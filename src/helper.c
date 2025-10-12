@@ -1,3 +1,15 @@
+/**
+ * @file helper.c
+ * 
+ * IFJ25 project
+ * 
+ * File with helper function
+ * 
+ * @author Jakub Králik <xkralij00>
+ */
+
+
+ 
 #include "helper.h"
 #include "error.h"
 

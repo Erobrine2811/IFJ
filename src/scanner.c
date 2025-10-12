@@ -1,3 +1,15 @@
+/**
+ * @file scanner.c
+ * 
+ * IFJ25 project
+ * 
+ * Lexical analyzator
+ * 
+ * @author Jakub Králik <xkralij00>
+ */
+
+
+ 
 #include "scanner.h"
 
 int FSM(FILE *file, tToken token)
