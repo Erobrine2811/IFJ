@@ -84,6 +84,7 @@ typedef enum {
  */
 typedef enum {
     S_NULL,
+    S_SPACE,
     S_ERROR,
     S_START,
     S_ADD,

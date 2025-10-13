@@ -8,7 +8,6 @@
  * @author Jakub Králik <xkralij00>
  */
 
-
  
 #include "scanner.h"
 
@@ -76,7 +75,11 @@ int FSM(FILE *file, tToken token)
                 else if (currChar == '.') nextState = S_DOT;
                 else if (currChar == '{') nextState = S_LEFT_BRACE;
                 else if (currChar == '}') nextState = S_RIGHT_BRACE;
+                else if (isspace(currChar)) nextState = S_SPACE;
                 else nextState = S_ERROR;
+                break;
+            case S_SPACE:
+                if (isspace(currChar) && currChar != EOL) nextState = S_SPACE;
                 break;
             case S_ADD:
                 token->type = T_ADD;
@@ -97,10 +100,22 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_BLOCK_COMMENT:
                 if (currChar == '*') nextState = S_BLOCK_COMMENT_2;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_BLOCK_COMMENT;
+                    colPos = 1;
+                    linePos++;
+                }
                 else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
                 break;
             case S_BLOCK_COMMENT_2:
                 if (currChar == '/') nextState = S_BLOCK_COMMENT_3;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_BLOCK_COMMENT;
+                    colPos = 1;
+                    linePos++;
+                }
                 else if (currChar != '/' && currChar != EOF) nextState = S_BLOCK_COMMENT;
                 break;
             case S_GREATER:
@@ -190,7 +205,7 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_NUM_HEX:
                 if (isdigit(currChar) || (currChar >= 'a' && currChar <= 'f') || (currChar >= 'A' && currChar <= 'F')) nextState = S_NUM_HEX;
-                else token->type = T_FLOAT;
+                else token->type = T_INTEGER;
                 break;
             case S_FLOAT_START:
                 if (isdigit(currChar)) nextState = S_FLOAT;
@@ -343,6 +358,8 @@ void scannerError(char currChar, tState state, unsigned int linePos, unsigned in
     } else {
         fprintf(stderr, "0x%x", currChar);
     }
+
+    fprintf(stderr, "\n");
 }
 
 
@@ -561,15 +578,10 @@ void printTokenList(tToken token)
         token = token->prevToken;
     }
 
-    while (token->nextToken != NULL)
+    while (token != NULL) // token->nextToken != NULL <--> if you don't want to print EOF token
     {
         printToken(token);
         token = token->nextToken;
     }
 }
 
-int main()
-{
-    printf("[CHECK]: succes\n");
-    return 0;
-}

@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -g
-SRC = src/scanner.c src/helper.c
+SRC = src/scanner.c src/helper.c src/scanner_test.c
 OBJ = $(SRC:.c=.o)
 TARGET = ifj25
 
