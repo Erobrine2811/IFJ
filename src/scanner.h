@@ -73,6 +73,7 @@ typedef enum {
     T_INTEGER,
     T_FLOAT,
     T_STRING,
+    T_MULTI_LINE_STRING,
     T_NULL,
     T_COMMA
 } tType;
@@ -105,7 +106,9 @@ typedef enum {
     S_COMMA,
     S_ID,
     S_STRING,
+    S_STRING_START,
     S_STRING_READ,
+    S_STRING_EMPTY_READ,
     S_STRING_BACKSLASH,
     S_STRING_HEX_START,
     S_STRING_HEX_END,
@@ -127,6 +130,8 @@ typedef enum {
     S_GLOBAL_ID,
     S_EOL,
     S_MULTI_LINE_LITERAL,
+    S_MULTI_LINE_LITERAL_1,
+    S_MULTI_LINE_LITERAL_2,
     S_MULTI_LINE_LITERAL_READ,
     S_BLOCK_COMMENT,
     S_BLOCK_COMMENT_2,

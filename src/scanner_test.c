@@ -10,7 +10,7 @@
 
 void scannerDebug()
 {
-    FILE *file_test = fopen("../examples/ex0-vsechny-konstrukce.wren", "r"); // ak chcete iny subor tak len prpiste cestu
+    FILE *file_test = fopen("../tests/test_code_scanner", "r"); // ak chcete iny subor tak len prpiste cestu
     if (file_test == NULL)
     {
         printf("nepodarilo sa otvorit test_code_scanner file\n");

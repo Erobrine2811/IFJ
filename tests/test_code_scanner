@@ -5,8 +5,14 @@
 /* block
 commentary*/
 // single line commentary
+"""asd
+ratata
+"""
 >
 >=
+"""asd
+ratata
+""
 <
 <=
 =

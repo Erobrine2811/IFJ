@@ -69,7 +69,7 @@ int FSM(FILE *file, tToken token)
                 else if (isalpha(currChar)) nextState = S_ID;
                 else if (currChar == '0') nextState = S_INT_0;
                 else if (isdigit(currChar)) nextState = S_INT;
-                else if (currChar == '"') nextState = S_STRING;
+                else if (currChar == '"') nextState = S_STRING_START;
                 else if (currChar == EOL) nextState = S_EOL;
                 else if (currChar == EOF) nextState = S_EOF;
                 else if (currChar == '.') nextState = S_DOT;
@@ -171,10 +171,56 @@ int FSM(FILE *file, tToken token)
                 if (isalpha(currChar) || isdigit(currChar) || currChar == '_') nextState = S_ID;
                 else token->type = T_ID;
                 break;
+            case S_STRING_START:
+                if (currChar == '"') nextState = S_STRING_EMPTY_READ;
+                else if (currChar == '\\') nextState = S_STRING_BACKSLASH;
+                else if (currChar >= 0x20) nextState = S_STRING;
+                else nextState = S_ERROR;
+                break;
+            case S_STRING_EMPTY_READ:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL;
+                else token->type = T_STRING;
+                break;
+            case S_MULTI_LINE_LITERAL:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_1;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_MULTI_LINE_LITERAL;
+                    colPos = 1;
+                    linePos++;
+                }
+                else if (currChar >= 0x20) nextState = S_MULTI_LINE_LITERAL;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_1:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_2;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_MULTI_LINE_LITERAL;
+                    colPos = 1;
+                    linePos++;
+                }
+                else if (currChar >= 0x20) nextState = S_MULTI_LINE_LITERAL;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_2:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_READ;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_MULTI_LINE_LITERAL;
+                    colPos = 1;
+                    linePos++;
+                }
+                else if (currChar >= 0x20) nextState = S_MULTI_LINE_LITERAL;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_READ:
+                token->type = T_MULTI_LINE_STRING;
+                break;
             case S_STRING:
                 if (currChar == '"') nextState = S_STRING_READ;
                 else if (currChar == '\\') nextState = S_STRING_BACKSLASH;
-                else if (currChar >= 0x20 && currChar != '"' && currChar != '\\') nextState = S_STRING;
+                else if (currChar >= 0x20) nextState = S_STRING;
                 else nextState = S_ERROR;
                 break;
             case S_STRING_READ:
@@ -285,6 +331,7 @@ int FSM(FILE *file, tToken token)
         case S_INT_0:
         case S_NUM_HEX:
         case S_STRING_READ:
+        case S_MULTI_LINE_LITERAL_READ:
         case S_EXP:
             codeStr[codeStrPos-1] = '\0';
             codeStr = safeRealloc(codeStr, codeStrPos);
@@ -317,7 +364,13 @@ void scannerError(char currChar, tState state, unsigned int linePos, unsigned in
             fprintf(stderr, "Expected a-z, A-Z, 0-9 or '_' after '__', found ");
             break;
         case S_STRING:
+        case S_STRING_START:
             fprintf(stderr, "Expected printable ASCII char (>=0x20) in string, found ");
+            break;
+        case S_MULTI_LINE_LITERAL:
+        case S_MULTI_LINE_LITERAL_1:
+        case S_MULTI_LINE_LITERAL_2:
+            fprintf(stderr, "Expected printable ASCII char (>=0x20) or EOL in multi line string, found ");
             break;
         case S_STRING_BACKSLASH:
             fprintf(stderr, "Expected '\"','n','r','t','\\' or 'x' after '\\' in string, found ");
@@ -424,6 +477,7 @@ void freeToken(tToken *token)
     switch((*token)->type)
     {
         case T_STRING:
+        case T_MULTI_LINE_STRING:
         case T_INTEGER:
         case T_FLOAT:
         case T_ID:
@@ -534,6 +588,7 @@ char *typeToString(tType type)
         case T_STRING:          return "STRING";
         case T_NULL:            return "NULL";
         case T_COMMA:           return "COMMA";
+        case T_MULTI_LINE_STRING: return "MULTI_LINE_STRING";
         default:                return "UNKNOWN";
     }
 }
@@ -552,6 +607,7 @@ void printToken(tToken token)
     switch(token->type)
     {
         case T_STRING:
+        case T_MULTI_LINE_STRING:
         case T_INTEGER:
         case T_FLOAT:
         case T_ID:
