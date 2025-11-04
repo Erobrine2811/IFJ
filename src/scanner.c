@@ -20,6 +20,8 @@ int FSM(FILE *file, tToken token)
     static unsigned int linePos = 0;
     static unsigned int colPos = 1;
     static int currChar = -5; // random value < -1 to be sure
+    static unsigned int commentNestingLevel = 0; // track nesting level of block comments
+
     if (currChar == -5)
     {
         currChar = EOL;
@@ -30,6 +32,7 @@ int FSM(FILE *file, tToken token)
         linePos = 0;
         colPos = 1;
         currChar = -5;
+        commentNestingLevel = 0;
         return 0;
     }
 
@@ -92,7 +95,11 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_DIV:
                 if (currChar == '/') nextState = S_SINGLE_LINE_COMMENT;
-                else if (currChar == '*') nextState = S_BLOCK_COMMENT;
+                else if (currChar == '*') 
+                {
+                    nextState = S_BLOCK_COMMENT;
+                    commentNestingLevel = 1;
+                }
                 else token->type = T_DIV;
                 break;
             case S_SINGLE_LINE_COMMENT:
@@ -100,6 +107,23 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_BLOCK_COMMENT:
                 if (currChar == '*') nextState = S_BLOCK_COMMENT_2;
+                else if (currChar == '/') nextState = S_BLOCK_COMMENT_SLASH;
+                else if (currChar == EOL) 
+                {
+                    nextState = S_BLOCK_COMMENT;
+                    colPos = 1;
+                    linePos++;
+                }
+                else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
+                break;
+            case S_BLOCK_COMMENT_SLASH:
+                if (currChar == '*')
+                {
+                    commentNestingLevel++;
+                    nextState = S_BLOCK_COMMENT;
+                }
+                else if (currChar == '*') nextState = S_BLOCK_COMMENT_2;
+                else if (currChar == '/') nextState = S_BLOCK_COMMENT_SLASH;
                 else if (currChar == EOL) 
                 {
                     nextState = S_BLOCK_COMMENT;
@@ -109,14 +133,33 @@ int FSM(FILE *file, tToken token)
                 else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
                 break;
             case S_BLOCK_COMMENT_2:
-                if (currChar == '/') nextState = S_BLOCK_COMMENT_3;
+                if (currChar == '/') 
+                {
+                    commentNestingLevel--;
+                    if (commentNestingLevel == 0)
+                    {
+                        nextState = S_BLOCK_COMMENT_3; // End of all nested comments
+                    }
+                    else
+                    {
+                        nextState = S_BLOCK_COMMENT; // Still inside nested comments
+                    }
+                }
+                else if (currChar == '*')
+                {
+                    nextState = S_BLOCK_COMMENT_2; // Stay in this state for consecutive *
+                }
+                else if (currChar == '/')
+                {
+                    nextState = S_BLOCK_COMMENT_SLASH; // Check for potential nested comment start
+                }
                 else if (currChar == EOL) 
                 {
                     nextState = S_BLOCK_COMMENT;
                     colPos = 1;
                     linePos++;
                 }
-                else if (currChar != '/' && currChar != EOF) nextState = S_BLOCK_COMMENT;
+                else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
                 break;
             case S_GREATER:
                 if (currChar == '=') nextState = S_GREATER_EQ;
