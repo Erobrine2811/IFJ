@@ -1,0 +1,39 @@
++
+-
+*
+/
+/* block
+commentary*/
+// single line commentary
+>
+>=
+<
+<=
+=
+==
+!=
+(
+)
+,
+__global_id
+local_id
+""
+"normal\nstring\"\r\t\\xa0xF7\""
+   rapapapa
+
+0xaf99c
+0.25
+0
+1448
+14e178
+14e+175
+14e -175
+    0e77
+0.8e-78
+14. 7e+78
+.
+{
+}
+class
+Ifj
+if else is null return var while static import for Num String Null

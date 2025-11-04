@@ -1,3 +1,15 @@
+/**
+ * @file error.h
+ * 
+ * IFJ25 project
+ * 
+ * Basic error exit codes
+ * 
+ * @author Jakub Králik <xkralij00>
+ */
+
+
+
 #ifndef IFJ_ERROR_H
 #define IFJ_ERROR_H
 
