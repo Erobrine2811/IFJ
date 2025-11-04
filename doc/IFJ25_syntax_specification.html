@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>IFJ25 – Precedence & Grammar Specification</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+            :root {
+                --ink: #1f2937;
+                --muted: #4b5563;
+                --accent: #0f766e;
+                --bg: #ffffff;
+                --stripe: #f8fafc;
+            }
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                background: var(--bg);
+                color: var(--ink);
+                font:
+                    16px/1.55 system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Ubuntu,
+                    Cantarell,
+                    Noto Sans,
+                    Helvetica Neue,
+                    Arial;
+            }
+            main {
+                max-width: 980px;
+                margin: 48px auto;
+                padding: 0 24px;
+            }
+            h1 {
+                font-size: 28px;
+                margin: 0 0 18px;
+                color: #0b3b61;
+            }
+            h2 {
+                font-size: 22px;
+                margin: 28px 0 10px;
+                color: #0b3b61;
+            }
+            p {
+                margin: 10px 0;
+            }
+            .note {
+                color: var(--muted);
+            }
+            table {
+                border-collapse: collapse;
+                margin: 16px 0;
+                width: 100%;
+                background: #fff;
+                box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+            }
+            th,
+            td {
+                border: 1px solid #e5e7eb;
+                padding: 8px 10px;
+                text-align: center;
+                vertical-align: middle;
+            }
+            th {
+                background: #0b3b61;
+                color: #fff;
+                font-weight: 600;
+            }
+            tr:nth-child(even) td {
+                background: var(--stripe);
+            }
+            code,
+            kbd {
+                font-family:
+                    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                    "Liberation Mono", "Courier New", monospace;
+            }
+            pre {
+                background: #0b3b610d;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 14px 16px;
+                overflow: auto;
+            }
+            .legend {
+                display: grid;
+                grid-template-columns: max-content auto;
+                gap: 6px 12px;
+                margin-top: 6px;
+            }
+            .pill {
+                display: inline-block;
+                border: 1px solid #cbd5e1;
+                border-radius: 999px;
+                padding: 0.1rem 0.5rem;
+                background: #f1f5f9;
+                color: #0b3b61;
+                font-weight: 600;
+            }
+            .ok {
+                color: #065f46;
+            }
+            .err {
+                color: #b91c1c;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>IFJ25 – Precedence &amp; Grammar Specification</h1>
+
+            <h2>1) Operator-precedence relations (expression parser)</h2>
+            <p>
+                V tabuľke sú vzťahy medzi <em>terminálom</em> na vrchu zásobníka
+                (riadok) a <em>lookahead</em> symbolom (stĺpec). Hodnoty:
+                <span class="pill">&lt;</span> = <strong>shift</strong>,
+                <span class="pill">&gt;</span> = <strong>reduce</strong>,
+                <span class="pill">=</span> = párovanie,
+                <span class="pill err">E</span> = syntaktická chyba.
+            </p>
+
+            <div class="legend">
+                <div><code>i</code></div>
+                <div>
+                    operand (literály Num/String/Null, identifikátory, globálne
+                    identifikátory, getter)
+                </div>
+                <div><code>(</code>, <code>)</code></div>
+                <div>zátvorky</div>
+                <div><code>$</code></div>
+                <div>interný koniec výrazu / sentinel</div>
+                <div><code>&lt;…&gt;</code></div>
+                <div>rel. operátory <code>&lt; &gt; &lt;= &gt;=</code></div>
+            </div>
+
+            <table aria-label="Precedence relation table">
+                <thead>
+                    <tr>
+                        <th>stack \\ lookahead</th>
+                        <th>* /</th>
+                        <th>+ -</th>
+                        <th>&lt; &gt; &lt;= &gt;=</th>
+                        <th>== !=</th>
+                        <th>is</th>
+                        <th>TYPE</th>
+                        <th>(</th>
+                        <th>)</th>
+                        <th>i</th>
+                        <th>$</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>* /</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>+ -</th>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>&lt; &gt; &lt;= &gt;=</th>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>== !=</th>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>is</th>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>TYPE</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>(</th>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>=</td>
+                        <td>&lt;</td>
+                        <td>E</td>
+                    </tr>
+                    <tr>
+                        <th>)</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>i</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                        <td>E</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>$</th>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>E</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="note">
+                Priorita (od najvyššej): <code>* /</code> &gt;
+                <code>+ -</code> &gt; <code>&lt; &gt; &lt;= &gt;=</code> &gt;
+                <code>== !=</code> &gt; <code>is</code>. Všetko ľavoasociatívne.
+                Zátvorky majú špeciálne párovanie <code>(</code>
+                <span class="pill">=</span> <code>)</code>.
+            </p>
+
+            <h3>Redukčné pravidlá (šípky znamenajú „nahradiť za E“)</h3>
+            <pre><code>E ← i
+E ← ( E )
+E ← E op E        ; op ∈ { +, -, *, /, &lt;, &gt;, &lt;=, &gt;=, ==, != }
+E ← E is TYPE     ; TYPE ∈ { Num, String, Null } – token typu, nie výraz</code></pre>
+
+            <h3>Mapovanie tokenov na triedy</h3>
+            <pre><code>i           := T_INTEGER | T_FLOAT | T_STRING | T_KW_NULL_VALUE
+               | T_ID | T_GLOBAL_ID | getter
+* /         := T_STAR | T_SLASH
++ -         := T_PLUS | T_MINUS
+&lt; … &gt;      := T_LT | T_GT | T_LE | T_GE
+== !=       := T_EQ | T_NEQ
+is          := T_KW_IS
+(  )        := T_LEFT_PAREN | T_RIGHT_PAREN
+$           := interný sentinel ukončenia výrazu</code></pre>
+
+            <h2>2) LL gramatika (top-down časť)</h2>
+            <pre><code>PROGRAM :: &lt;PROLOG&gt; &lt;CLASS_DEF&gt; &lt;EOF&gt;
+
+PROLOG :: import &lt;STRING&gt; for &lt;ID&gt; &lt;EOL&gt;
+           ; IFJ25 špecificky: import "ifj25" for Ifj
+
+CLASS_DEF :: class Program { &lt;EOL&gt; &lt;FUNC_LIST&gt; }
+
+FUNC_LIST :: &lt;FUNC_DEF&gt; &lt;FUNC_LIST&gt; | ε
+
+FUNC_DEF :: static &lt;ID&gt; ( &lt;PARAMS&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;     ; štandardná funkcia
+          | static &lt;ID&gt; &lt;BLOCK&gt; &lt;EOL&gt;                    ; getter (0 param)
+          | static &lt;ID&gt; = ( &lt;ID&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;          ; setter (1 param)
+
+PARAMS :: &lt;ID&gt; &lt;PARAMS_NEXT&gt; | ε
+PARAMS_NEXT :: , &lt;ID&gt; &lt;PARAMS_NEXT&gt; | ε
+
+BLOCK :: { &lt;EOL&gt; &lt;STATEMENT_LIST&gt; }
+
+STATEMENT_LIST :: &lt;STATEMENT&gt; &lt;EOL&gt; &lt;STATEMENT_LIST&gt; | ε
+
+STATEMENT :: &lt;VAR_DECL&gt;
+           | &lt;ASSIGN&gt;
+           | &lt;IF_STAT&gt;
+           | &lt;WHILE_STAT&gt;
+           | &lt;RETURN_STAT&gt;
+           | &lt;BLOCK&gt;
+
+VAR_DECL :: var &lt;ID&gt;
+          | var &lt;ID&gt; = &lt;EXPR&gt;
+
+ASSIGN :: &lt;ID&gt; = &lt;EXPR&gt;
+
+IF_STAT :: if ( &lt;EXPR&gt; ) &lt;BLOCK&gt; &lt;ELSE_STAT&gt;
+ELSE_STAT :: else &lt;BLOCK&gt; | ε
+
+WHILE_STAT :: while ( &lt;EXPR&gt; ) &lt;BLOCK&gt;
+
+RETURN_STAT :: return &lt;EXPR&gt;
+
+FUNC_CALL :: &lt;ID&gt; ( &lt;ARG_LIST&gt; )
+ARG_LIST :: &lt;EXPR&gt; &lt;ARG_NEXT&gt; | ε
+ARG_NEXT :: , &lt;EXPR&gt; &lt;ARG_NEXT&gt; | ε
+
+EXPR :: parsed pomocou precedenčnej analýzy vyššie
+</code></pre>
+        </main>
+    </body>
+</html>
