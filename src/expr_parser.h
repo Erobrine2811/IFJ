@@ -32,7 +32,6 @@ typedef enum {
 typedef struct ExprStackNode {
     tSymbol symbol;
     bool is_terminal;
-    char *value;
     struct ExprStackNode *next;
 } tExprStackNode;
 

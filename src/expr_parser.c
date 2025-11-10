@@ -1,7 +1,7 @@
 #include "expr_parser.h"
 #include "parser.h"
 #include <stdio.h>
-#include "3AC.h"
+
 static tPrec precedence_table[10][10] = {
 /*                MUL_DIV  PLUS_MINUS  REL     EQ_NEQ   IS     TYPE    LPAREN  RPAREN  ID     DOLLAR */
 /* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
@@ -143,12 +143,10 @@ static int reduce_expr(tExprStack *stack)
            !n2->is_terminal &&
            n3->is_terminal && n3->symbol == E_LPAREN)
         {
-            char *inner_value = n2->value;
             expr_pop(stack);
             expr_pop(stack);
             expr_pop(stack);
             expr_push(stack, E_ID, false);
-            stack->top->value = inner_value;
             return 1;
         }
     }
@@ -161,31 +159,12 @@ static int reduce_expr(tExprStack *stack)
            !n3->is_terminal)
         {
             tSymbol op = n2->symbol;
-            if (op == E_MUL_DIV || op == E_PLUS_MINUS)
+            if (op == E_MUL_DIV || op == E_PLUS_MINUS || op == E_REL || op == E_EQ_NEQ)
             {
-                char *leftVal = n3->value;
-                char *rightVal = n1->value;
-                char *temp = threeAC_create_temp(&threeACcode);
-        
-        
-                OperationType opType;
-                if (strcmp(n2->value, "+") == 0) opType = OPP_ADD;
-                else if (strcmp(n2->value, "-") == 0) opType = OPP_SUB;
-                else if (strcmp(n2->value, "*") == 0) opType = OPP_MUL;
-                else if (strcmp(n2->value, "/") == 0) opType = OPP_DIV;
-                else {
-                    exit(INTERNAL_ERROR);
-                }
-
-             
-                emit(opType, leftVal, rightVal, temp, &threeACcode);
-        
-             
-                expr_pop(stack); 
-                expr_pop(stack);  
-                expr_pop(stack);  
+                expr_pop(stack);
+                expr_pop(stack);
+                expr_pop(stack);
                 expr_push(stack, E_ID, false);
-                stack->top->value = temp;  
                 return 1;
             }
         }
@@ -230,32 +209,10 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
         tPrec prec = precedence_table[stack_sym][look_sym];
 
-        if (prec == PREC_LESS || prec == PREC_EQUAL) {
+        if (prec == PREC_LESS || prec == PREC_EQUAL)
+        {
             expr_push(&expr_stack, look_sym, true);
 
-
-
-            if (look_sym == E_ID) 
-            {
-                 expr_stack.top->value = safeMalloc(strlen(lookahead->data) + 1);
-                 strcpy(expr_stack.top->value, lookahead->data);
-            }
-            else if (look_sym == E_PLUS_MINUS || look_sym == E_MUL_DIV)
-            {
-                 char opChar;
-                 if (lookahead->type == T_ADD) opChar = '+';
-                 else if (lookahead->type == T_SUB) opChar = '-';
-                 else if (lookahead->type == T_MUL) opChar = '*';
-                 else if (lookahead->type == T_DIV) opChar = '/';
-                
-     
-                 expr_stack.top->value = safeMalloc(2);
-                 expr_stack.top->value[0] = opChar;
-                 expr_stack.top->value[1] = '\0';
-            }
-
-
-    
             if (lookahead->type == T_EOF)
             {
                 // EOF shifted, break if possible
