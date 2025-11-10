@@ -3,6 +3,7 @@
 #include "symtable.h"
 #include <stdio.h>
 #include "semantic.h"
+#include "3AC.h"
 
 static tToken peek_buffer = NULL;
 
@@ -619,7 +620,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
         skip_optional_eol(currentToken, file);
         parse_expression(file, currentToken, stack);
-
         free(varName);
         return;
     }
