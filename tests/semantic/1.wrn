@@ -1,0 +1,10 @@
+// expected: 3
+import "ifj25" for Ifj
+class Program {
+    static main() {
+        var a 
+        var b 
+        b = a + 2
+        a = b * 3
+    }
+}

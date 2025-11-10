@@ -1,0 +1,12 @@
+// expected: 10
+import "ifj25" for Ifj
+class Program {
+    static foo() {
+        var a
+        a = 5
+    }
+
+    static main() {
+        foo()
+    }
+}

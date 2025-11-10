@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include "parser.h"
+#include "3AC.h"
+
+// Global 3AC code list
+ThreeACList threeACcode;
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -13,12 +17,15 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    list_init(&threeACcode);
     int result = parse_program(file);
 
     fclose(file);
 
     if (result == 0) {
         printf("Compilation successful.\n");
+        printf("\n");
+        list_print(&threeACcode);
     } else {
         printf("Compilation failed.\n");
     }

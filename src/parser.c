@@ -2,6 +2,7 @@
 #include "scanner.h"
 #include "symtable.h"
 #include <stdio.h>
+#include "semantic.h"
 
 static tToken peek_buffer = NULL;
 
@@ -162,7 +163,7 @@ void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     if (symtable_find(global_symtable, "main@0") == NULL)
     {
-        fprintf(stderr, "[PARSER] Error: undefined function 'main' with 0 parameters\n");
+        fprintf(stderr, "[SEMANTIC] Error: undefined function 'main' with 0 parameters\n");
         exit(UNDEFINED_FUN_ERROR);
     }
 
@@ -264,7 +265,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     {
         if (existing->defined)
         {
-            fprintf(stderr, "[PARSER] Error: function '%s' redefined\n", key);
+            fprintf(stderr, "[SEMANTIC] Error: function '%s' redefined\n", key);
             free(key);
             exit(REDEFINITION_FUN_ERROR);
         }
@@ -679,29 +680,8 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     char *variable_name = safeMalloc(strlen((*currentToken)->data) + 1);
     strcpy(variable_name, (*currentToken)->data);
 
-    tSymbolData data = {0};
-    data.kind = SYM_VAR;
-    data.dataType = TYPE_UNDEF;
-    data.index = -1;
-
-    if (isGlobal)
-    {
-        if (!symtable_insert(global_symtable, variable_name, data))
-        {
-            free(variable_name);
-            exit(REDEFINITION_FUN_ERROR);
-        }
-    }
-    else
-    {
-        if (!symtable_insert(symtable_stack_top(stack), variable_name, data))
-        {
-            free(variable_name);
-            exit(REDEFINITION_FUN_ERROR);
-        }
-    }
-
-    free(variable_name);
+    semantic_define_variable(stack, variable_name, isGlobal);
+    
     get_next_token(file, currentToken);
 
     if ((*currentToken)->type == T_ASSIGN)
@@ -784,6 +764,23 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     free(key);
 }
 
+
+tDataType get_type_from_token(tToken token)
+{
+    switch (token->type)
+    {
+        case T_INTEGER:
+        case T_FLOAT:
+            return TYPE_NUM;
+        case T_STRING:
+            return TYPE_STRING;
+        case T_KW_NULL_VALUE:
+            return TYPE_NULL;
+        default:
+            return TYPE_UNDEF;
+    }
+}
+
 void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     switch ((*currentToken)->type)
@@ -852,9 +849,11 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
+    tDataType argTypes[3];
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
+        argTypes[0] = get_type_from_token(*currentToken);
         parse_term(file, currentToken, stack);
         argCount++;
         while ((*currentToken)->type == T_COMMA)
@@ -862,28 +861,16 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
             get_next_token(file, currentToken);
             skip_optional_eol(currentToken, file);
             parse_term(file, currentToken, stack);
-            argCount++;
+            argTypes[argCount++] = get_type_from_token(*currentToken);
         }
     }
 
+    
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     tSymbolData *funcData = symtable_find(global_symtable, fullName);
 
-    if (funcData == NULL || funcData->kind != SYM_FUNC)
-    {
-        fprintf(stderr, "[PARSER] Error: unknown built-in function '%s'\n", fullName);
-        free(fullName);
-        exit(UNDEFINED_FUN_ERROR);
-    }
-
-    if (argCount != funcData->paramCount)
-    {
-        fprintf(stderr, "[PARSER] Error: builtin '%s' expects %d arguments, got %d\n",
-                fullName, funcData->paramCount, argCount);
-        free(fullName);
-        exit(WRONG_ARGUMENT_COUNT_ERROR);
-    }
+    semantic_check_ifj_call(funcData, argTypes, argCount, fullName);
 
     free(fullName);
 }
