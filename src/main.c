@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
         printf("Compilation successful.\n");
         printf("\n");
         list_print(&threeACcode);
+        list_dispose(&threeACcode);
     } else {
         printf("Compilation failed.\n");
     }

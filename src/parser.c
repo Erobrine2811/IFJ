@@ -3,7 +3,7 @@
 #include "symtable.h"
 #include <stdio.h>
 #include "semantic.h"
-
+#include "3AC.h"
 static tToken peek_buffer = NULL;
 
 static tBuiltinDef builtin_defs[] = {
@@ -224,6 +224,11 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     char *funcName = safeMalloc(strlen((*currentToken)->data) + 1);
     strcpy(funcName, (*currentToken)->data);
+    char *funCopy = safeMalloc(strlen(funcName) + 1);
+    strcpy(funCopy, funcName);
+  
+    emit(OP_LABEL, NULL, NULL, funCopy, &threeACcode);
+
     get_next_token(file, currentToken);
 
     if ((*currentToken)->type != T_LEFT_PAREN)
@@ -310,6 +315,8 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     symtable_free(poppedSymtable);
     free(poppedSymtable);
     free(key);
+    // For space bettween instructions
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
@@ -577,6 +584,10 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
+    threeACcode.while_used = true;
+    char *loop_start_label = threeAC_create_label(&threeACcode);
+    emit(OP_LABEL, "while_start", NULL, loop_start_label, &threeACcode);
+
     parse_expression(file, currentToken, stack);
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
@@ -595,6 +606,7 @@ void parse_return_statement(FILE *file, tToken *currentToken, tSymTableStack *st
 
     if ((*currentToken)->type != T_EOL)
     {
+        threeACcode.return_used = true;
         parse_expression(file, currentToken, stack);
     }
 }
@@ -619,7 +631,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
         skip_optional_eol(currentToken, file);
         parse_expression(file, currentToken, stack);
-
         free(varName);
         return;
     }
@@ -646,7 +657,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         }
     }
 
-    free(varName);
 
     expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
@@ -664,6 +674,11 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     {
         parse_expression(file, currentToken, stack);
     }
+
+
+    emit(OPP_ASSIGN, threeACcode.expression_result, NULL, varName, &threeACcode);
+    // For space bettween instructions
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -713,6 +728,13 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             argCount++;
         }
     }
+    char *argCountStr = safeMalloc(12); // miesto pre int + null terminátor
+    sprintf(argCountStr, "%d", argCount);
+
+    char *temp = threeAC_create_temp(&threeACcode);
+    emit(OP_CALL, funcName, argCountStr, temp, &threeACcode);
+    threeACcode.expression_result = temp;
+
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
@@ -760,7 +782,6 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         exit(UNDEFINED_FUN_ERROR);
     }
 
-    free(funcName);
     free(key);
 }
 
@@ -798,6 +819,10 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
             int keyLength = strlen("getter:") + strlen((*currentToken)->data) + 3;
             char *getterKey = safeMalloc(keyLength);
             sprintf(getterKey, "getter:%s@0", (*currentToken)->data);
+
+            char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
+            strcpy(paramCopy, (*currentToken)->data);
+            emit(OP_PARAM, NULL, NULL, paramCopy, &threeACcode);
             if (symtable_find(global_symtable, getterKey))
             {
                 free(getterKey);

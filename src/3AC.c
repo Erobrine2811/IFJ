@@ -15,6 +15,9 @@ void list_init(ThreeACList *list)
     list->tail = NULL;
     list->active = list->head;
     list->temp_counter = 0;
+    list->expression_result = NULL; 
+    list->return_used = false;
+    list->while_used = false;
 }
 
 void list_dispose( ThreeACList *list ) 
@@ -237,6 +240,7 @@ const char *operation_to_string(OperationType op)
         case OP_JUMP: return "JUMP";
         case OP_CALL: return "CALL";
         case OP_RETURN: return "RETURN";
+        case OP_PARAM: return "PARAM";
         default: return "UNKNOWN_OP";
     }
 }
@@ -249,10 +253,23 @@ void list_print(ThreeACList *list) {
         char *arg1;
         char *arg2;
         char *result;
+        
+        list_getValue(list, &opType, &arg1, &arg2, &result);
+        if (opType == NO_OP) { 
+            printf("\n");
+            list_next(list);
+            continue;
+        } else if (opType == OP_LABEL) { 
+            printf("%s %s\n", operation_to_string(opType), result ? result : "");
+            list_next(list);
+            continue;
+        } else if (opType == OP_PARAM) { 
+            printf("%s %s\n", operation_to_string(opType), result ? result : "");
+            list_next(list);
+            continue;
+        } 
 
-       list_getValue(list, &opType, &arg1, &arg2, &result);
-
-        printf("%s %s %s %s\n", operation_to_string(opType), arg1 ? arg1 : "", arg2 ? arg2 : "", result ? result : "");
+        printf("%s %s %s %s\n", operation_to_string(opType), arg1 ? arg1 : "", arg2 || arg2 != NULL ? arg2 : "", result ? result : "");
 
         list_next(list);
     }
@@ -266,6 +283,15 @@ char *threeAC_create_temp(ThreeACList *list)
     int len = snprintf(NULL, 0, "t%d", list->temp_counter);
     char *name = safeMalloc(len + 1);
     sprintf(name, "t%d", list->temp_counter++);
+    return name;
+}
+
+
+char *threeAC_create_label(ThreeACList *list)
+{
+    int len = snprintf(NULL, 0, "t%d", list->loop_counter);
+    char *name = safeMalloc(len + 1);
+    sprintf(name, "t%d", list->loop_counter++);
     return name;
 }
 

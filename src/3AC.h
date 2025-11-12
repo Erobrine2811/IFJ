@@ -14,7 +14,9 @@ typedef enum {
     OP_LABEL,
     OP_JUMP,
     OP_CALL,
-    OP_RETURN
+    OP_RETURN,
+    OP_PARAM,
+    NO_OP
 } OperationType;
 
 typedef struct InstructionNode{
@@ -33,6 +35,10 @@ typedef struct  {
     InstructionNode *tail;
     size_t length;
     int temp_counter;
+    int loop_counter;
+    char *expression_result;
+    bool return_used;
+    bool while_used;
 } ThreeACList;
 
 
