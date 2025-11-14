@@ -1,7 +1,25 @@
 // expected: 3
 import "ifj25" for Ifj
 class Program {
+    static add(a,b) { 
+        return a + b;
+    }
     static main() {
-        a = 5
+        var a 
+        var b
+        a = 0 + 2
+        while (a < 5) { 
+            a = a + 1
+            while(b < 5) { 
+                Ifj.write("Neplatny argument\n")
+                b = b + 1
+
+                if ( a < 0 ) { 
+                    a = (b + 100) / b * 10
+                    a = add(a,b)
+                }
+            }
+            b = 0;
+        }
     }
 }

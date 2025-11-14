@@ -161,7 +161,7 @@ static int reduce_expr(tExprStack *stack)
            !n3->is_terminal)
         {
             tSymbol op = n2->symbol;
-            if (op == E_MUL_DIV || op == E_PLUS_MINUS)
+            if (op == E_MUL_DIV || op == E_PLUS_MINUS || op == E_REL || op == E_EQ_NEQ)
             {
                 char *leftVal = n3->value;
                 char *rightVal = n1->value;
@@ -173,13 +173,32 @@ static int reduce_expr(tExprStack *stack)
                 else if (strcmp(n2->value, "-") == 0) opType = OPP_SUB;
                 else if (strcmp(n2->value, "*") == 0) opType = OPP_MUL;
                 else if (strcmp(n2->value, "/") == 0) opType = OPP_DIV;
+                else if (strcmp(n2->value, "<") == 0) opType = OPP_LT;
+                else if (strcmp(n2->value, "<=") == 0) opType = OPP_LTE;
+                else if (strcmp(n2->value, ">") == 0) opType = OPP_GT;
+                else if (strcmp(n2->value, ">=") == 0) opType = OPP_GTE;
+                else if (strcmp(n2->value, "==") == 0) opType = OPP_EQ;
+                else if (strcmp(n2->value, "!=") == 0) opType = OPP_NEQ;
                 else {
-                    exit(INTERNAL_ERROR);
+                    printf("Unknown operator %s\n", n2->value);
+                    return 0;
                 }
-
              
                 emit(opType, leftVal, rightVal, temp, &threeACcode);
-        
+                if (threeACcode.while_used) {
+                    if (opType == OPP_LT || opType == OPP_LTE || opType == OPP_GT || opType == OPP_GTE) {
+                        emit(OP_JUMP_IF_FALSE, temp, "while_end", threeAC_get_current_label(&threeACcode), &threeACcode);
+                        threeACcode.temp_counter++;
+                    }
+                }
+                else if (threeACcode.if_used) {
+                    if (opType == OPP_LT || opType == OPP_LTE || opType == OPP_GT || opType == OPP_GTE || opType == OPP_EQ || opType == OPP_NEQ) {
+                       
+                            emit(OP_JUMP_IF_FALSE, temp, "if_end", threeAC_get_current_label(&threeACcode), &threeACcode);
+                            threeACcode.temp_counter++;
+                        
+                    }
+                }
              
                 expr_pop(stack); 
                 expr_pop(stack);  
@@ -187,6 +206,8 @@ static int reduce_expr(tExprStack *stack)
                 expr_push(stack, E_ID, false);
                 stack->top->value = temp;  
                 return 1;
+            } else { 
+                printf("Unsupported operator in reduction, op %s\n", n2->value);
             }
         }
     }
@@ -238,19 +259,64 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
                  expr_stack.top->value = safeMalloc(strlen(lookahead->data) + 1);
                  strcpy(expr_stack.top->value, lookahead->data);
             }
-            else if (look_sym == E_PLUS_MINUS || look_sym == E_MUL_DIV)
+            else if (look_sym == E_PLUS_MINUS || look_sym == E_MUL_DIV || look_sym == E_REL || look_sym == E_EQ_NEQ)
             {
-                 char opChar;
-                 if (lookahead->type == T_ADD) opChar = '+';
-                 else if (lookahead->type == T_SUB) opChar = '-';
-                 else if (lookahead->type == T_MUL) opChar = '*';
-                 else if (lookahead->type == T_DIV) opChar = '/';
-                
-     
-                 expr_stack.top->value = safeMalloc(2);
-                 expr_stack.top->value[0] = opChar;
-                 expr_stack.top->value[1] = '\0';
+
+                char opChar;
+                if (lookahead->type == T_ADD) { 
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '+';
+                    expr_stack.top->value[1] = '\0';
+                }
+                else if (lookahead->type == T_SUB) 
+                { 
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '-';
+                    expr_stack.top->value[1] = '\0';
+                }
+                else if (lookahead->type == T_MUL) 
+                { 
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '*';
+                    expr_stack.top->value[1] = '\0';
+                }
+                else if (lookahead->type == T_DIV) 
+                {
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '/';
+                    expr_stack.top->value[1] = '\0';
+                } else if (lookahead->type == T_EQL) { 
+                    expr_stack.top->value = safeMalloc(3);
+                    expr_stack.top->value[0] = '=';
+                    expr_stack.top->value[1] = '=';
+                    expr_stack.top->value[2] = '\0';
+                } else if (lookahead->type == T_NEQ) { 
+                    expr_stack.top->value = safeMalloc(3);
+                    expr_stack.top->value[0] = '!';
+                    expr_stack.top->value[1] = '=';
+                    expr_stack.top->value[2] = '\0';
+                } else if (lookahead->type == T_LT) { 
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '<';
+                    expr_stack.top->value[1] = '\0';
+                } else if (lookahead->type == T_LTE) { 
+                    expr_stack.top->value = safeMalloc(3);
+                    expr_stack.top->value[0] = '<';
+                    expr_stack.top->value[1] = '=';
+                    expr_stack.top->value[2] = '\0';
+                } else if (lookahead->type == T_GT) { 
+                    expr_stack.top->value = safeMalloc(2);
+                    expr_stack.top->value[0] = '>';
+                    expr_stack.top->value[1] = '\0';
+                } else if (lookahead->type == T_GTE) { 
+                    expr_stack.top->value = safeMalloc(3);
+                    expr_stack.top->value[0] = '>';
+                    expr_stack.top->value[1] = '=';
+                    expr_stack.top->value[2] = '\0';
+                }
+               
             }
+            
 
 
     
@@ -266,6 +332,7 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
         {
             if (!reduce_expr(&expr_stack))
             {
+                printf("Reduction failed\n");
                 exit(SYNTAX_ERROR);
             }
         }

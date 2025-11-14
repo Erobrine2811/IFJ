@@ -18,6 +18,7 @@ void list_init(ThreeACList *list)
     list->expression_result = NULL; 
     list->return_used = false;
     list->while_used = false;
+    list->if_used = false;
 }
 
 void list_dispose( ThreeACList *list ) 
@@ -241,6 +242,20 @@ const char *operation_to_string(OperationType op)
         case OP_CALL: return "CALL";
         case OP_RETURN: return "RETURN";
         case OP_PARAM: return "PARAM";
+        case OPP_GT : return "GT";
+        case OPP_GTE : return "GTE";
+        case OPP_LT : return "LT";
+        case OPP_LTE : return "LTE";
+        case OPP_EQ : return "EQ";
+        case OPP_NEQ : return "NEQ";
+        case NO_OP : return "NO_OP";
+        case while_start : return "WHILE_START";
+        case while_end : return "WHILE_END";
+        case OP_JUMP_IF_FALSE : return "JUMP_IF_FALSE";
+        case if_start : return "IF_START";
+        case if_end : return "IF_END";
+        case if_else : return "IF_ELSE";
+        
         default: return "UNKNOWN_OP";
     }
 }
@@ -253,7 +268,7 @@ void list_print(ThreeACList *list) {
         char *arg1;
         char *arg2;
         char *result;
-        
+    
         list_getValue(list, &opType, &arg1, &arg2, &result);
         if (opType == NO_OP) { 
             printf("\n");
@@ -291,8 +306,18 @@ char *threeAC_create_label(ThreeACList *list)
 {
     int len = snprintf(NULL, 0, "t%d", list->loop_counter);
     char *name = safeMalloc(len + 1);
-    sprintf(name, "t%d", list->loop_counter++);
+    sprintf(name, "l%d", list->loop_counter++);
     return name;
+}
+
+char *threeAC_get_current_label(ThreeACList *list) {
+    if (list->loop_counter == 0) return NULL;  
+
+    int curr = list->loop_counter - 1;
+    int len = snprintf(NULL, 0, "l%d", curr);
+    char *label = safeMalloc(len + 1);
+    sprintf(label, "l%d", curr);
+    return label;
 }
 
 

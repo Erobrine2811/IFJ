@@ -12,11 +12,28 @@ typedef enum {
     OPP_ASSIGN,
     OPP_WRITE,
     OP_LABEL,
+
     OP_JUMP,
+    OP_JUMP_IF_FALSE,
+
     OP_CALL,
     OP_RETURN,
     OP_PARAM,
-    NO_OP
+    NO_OP,
+
+    OPP_LT,
+    OPP_LTE,
+    OPP_GT,
+    OPP_GTE,
+    OPP_EQ,
+    OPP_NEQ,
+
+    while_start,
+    while_end,
+
+    if_start,
+    if_end,
+    if_else
 } OperationType;
 
 typedef struct InstructionNode{
@@ -39,7 +56,9 @@ typedef struct  {
     char *expression_result;
     bool return_used;
     bool while_used;
+    bool if_used;
 } ThreeACList;
+
 
 
 void list_init(ThreeACList *list);
@@ -58,7 +77,12 @@ void list_DeleteBefore(ThreeACList *list);
 void list_InsertFirst(ThreeACList *list, OperationType opType, char *arg1, char *arg2, char *result);
 
 void emit(OperationType op, const char *arg1, const char *arg2, const char *result, ThreeACList *list);
+
+
 char *threeAC_create_temp(ThreeACList *list);
+char *threeAC_create_label(ThreeACList *list);
+char *threeAC_get_current_label(ThreeACList *list);
+
 
 extern ThreeACList threeACcode;
 

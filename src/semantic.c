@@ -47,7 +47,7 @@ void semantic_check_ifj_call(tSymbolData *funcData, tDataType *argTypes, int arg
         tDataType expected = funcData->paramTypes[i];
         tDataType given = argTypes[i];
 
-        printf("IFJ CALL ARG %d: expected %d, got %d\n", i + 1, expected, given);
+      
         if (expected != 3 && given != 3 && expected != given) 
         { 
             fprintf(stderr, "[SEMANTIC] Type mismatch in function '%s' argument %d: expected %s, got %s\n", name, i + 1, transform_to_data_type(expected), transform_to_data_type(given)); 

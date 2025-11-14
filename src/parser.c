@@ -82,6 +82,7 @@ void consume_eol(FILE *file, tToken *currentToken)
 {
     if ((*currentToken)->type != T_EOL)
     {
+        printf("Expected token type2 %d but got %d\n", T_EOL, (*currentToken)->type);
         exit(SYNTAX_ERROR);
     }
 
@@ -219,6 +220,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     if ((*currentToken)->type != T_ID)
     {
+        printf("Expected token type %d but got2 %d\n", T_ID, (*currentToken)->type);
         exit(SYNTAX_ERROR);
     }
 
@@ -563,6 +565,14 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
+    bool while_used_backup = threeACcode.while_used;
+
+
+    threeACcode.while_used = false;
+    threeACcode.if_used = true;
+    char *if_label = threeAC_create_label(&threeACcode);
+    emit(if_start, NULL, NULL, if_label, &threeACcode);
+    InstructionNode *if_start_node = threeACcode.active;
 
     parse_expression(file, currentToken, stack);
 
@@ -572,9 +582,21 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     if ((*currentToken)->type == T_KW_ELSE)
     {
+        emit(OP_JUMP, NULL, "if_end", if_label, &threeACcode);
+        if_start_node = if_start_node->next;
+        if_start_node = if_start_node->next;
+        if_start_node->arg2 = "if_else";
+        emit(if_else, NULL, NULL, if_label, &threeACcode);
         get_next_token(file, currentToken);
         parse_block(file, currentToken, stack, false);
     }
+
+    emit(if_end, NULL, NULL, if_label, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+
+    
+    threeACcode.if_used = false;
+    threeACcode.while_used = while_used_backup;
 }
 
 void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -584,15 +606,28 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
+    bool if_used_backup = threeACcode.if_used;
+    threeACcode.if_used = false;
     threeACcode.while_used = true;
     char *loop_start_label = threeAC_create_label(&threeACcode);
-    emit(OP_LABEL, "while_start", NULL, loop_start_label, &threeACcode);
+
+    emit(while_start, NULL, NULL, loop_start_label, &threeACcode);
 
     parse_expression(file, currentToken, stack);
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     parse_block(file, currentToken, stack, false);
+    emit(OP_JUMP, NULL, "while_start", loop_start_label, &threeACcode);
+    emit(while_end, NULL, NULL, loop_start_label, &threeACcode);
+    threeACcode.while_used = false;
+    threeACcode.if_used = if_used_backup;
+
+    //iba pre medzeru potom sa vymaze
+    int num = atoi(loop_start_label + 1);   
+    if (num == 0) { 
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode); 
+    }
 }
 
 void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -868,12 +903,12 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     size_t fullNameLen = strlen("Ifj.") + strlen((*currentToken)->data) + 1;
     char *fullName = safeMalloc(fullNameLen);
     sprintf(fullName, "Ifj.%s", (*currentToken)->data);
-
+    printf("IFJ CALL: %s\n", fullName);
     get_next_token(file, currentToken);
 
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
-
+    
     tDataType argTypes[3];
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
