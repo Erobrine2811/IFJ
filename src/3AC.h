@@ -41,6 +41,7 @@ typedef struct InstructionNode{
     char *arg1;
     char *arg2;
     char *result;
+    
     struct InstructionNode *next;
     struct InstructionNode *prev;
 } InstructionNode;

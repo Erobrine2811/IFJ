@@ -16,7 +16,6 @@
 void semantic_check_ifj_call(tSymbolData *funcData, tDataType *argTypes, int argCount, const char *name);
 
 
-
 /**
  * Function to check semantic argument types and argument count of Ifj buildin function
  * 

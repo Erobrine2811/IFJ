@@ -333,3 +333,4 @@ void emit(OperationType op, const char *arg1, const char *arg2, const char *resu
         list_InsertAfter(list, op, (char *)arg1, (char *)arg2, (char *)result);
     }
 }
+
