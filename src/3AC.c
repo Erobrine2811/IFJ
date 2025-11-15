@@ -236,7 +236,6 @@ const char *operation_to_string(OperationType op)
         case OPP_MUL: return "MUL";
         case OPP_DIV: return "DIV";
         case OPP_ASSIGN: return "ASSIGN";
-        case OPP_WRITE: return "WRITE";
         case OP_LABEL: return "LABEL";
         case OP_JUMP: return "JUMP";
         case OP_CALL: return "CALL";
@@ -255,6 +254,7 @@ const char *operation_to_string(OperationType op)
         case if_start : return "IF_START";
         case if_end : return "IF_END";
         case if_else : return "IF_ELSE";
+        case OP_DEFVAR : return "DEFVAR";
         
         default: return "UNKNOWN_OP";
     }
@@ -274,15 +274,15 @@ void list_print(ThreeACList *list) {
             printf("\n");
             list_next(list);
             continue;
-        } else if (opType == OP_LABEL) { 
-            printf("%s %s\n", operation_to_string(opType), result ? result : "");
-            list_next(list);
-            continue;
         } else if (opType == OP_PARAM) { 
             printf("%s %s\n", operation_to_string(opType), result ? result : "");
             list_next(list);
             continue;
-        } 
+        } else if (opType == if_start) { 
+            printf("%s %s\n", operation_to_string(opType), result ? result : "");
+            list_next(list);
+            continue;
+        }
 
         printf("%s %s %s %s\n", operation_to_string(opType), arg1 ? arg1 : "", arg2 || arg2 != NULL ? arg2 : "", result ? result : "");
 

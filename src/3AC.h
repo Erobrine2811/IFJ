@@ -10,8 +10,8 @@ typedef enum {
     OPP_MUL,
     OPP_DIV,
     OPP_ASSIGN,
-    OPP_WRITE,
     OP_LABEL,
+    OP_DEFVAR,
 
     OP_JUMP,
     OP_JUMP_IF_FALSE,

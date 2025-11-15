@@ -229,7 +229,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     char *funCopy = safeMalloc(strlen(funcName) + 1);
     strcpy(funCopy, funcName);
   
-    emit(OP_LABEL, NULL, NULL, funCopy, &threeACcode);
+   
 
     get_next_token(file, currentToken);
 
@@ -251,6 +251,8 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         free(funcName);
         exit(SYNTAX_ERROR);
     }
+
+
     get_next_token(file, currentToken);
     skip_optional_eol(currentToken, file);
 
@@ -259,7 +261,10 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     symtable_stack_push(stack, funcSymtable);
 
     int paramCount = parse_parameter_list(file, currentToken, stack);
-
+    char *paramCountStr = safeMalloc(12);
+    sprintf(paramCountStr, "%d", paramCount);
+    
+    emit(OP_LABEL, funCopy, "f", paramCountStr , &threeACcode);
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     int keyLength = strlen(funcName) + 1 + 10 + 1;
@@ -344,6 +349,12 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     symtable_init(getterSymtable);
     symtable_stack_push(stack, getterSymtable);
 
+    char *funCopy = safeMalloc(strlen(funcName) + 1);
+    strcpy(funCopy, funcName);
+    emit(OP_LABEL, NULL, funCopy, "g", &threeACcode);
+
+
+
     parse_block(file, currentToken, stack, true);
 
     tSymbolData *definedGetter = symtable_find(global_symtable, key);
@@ -404,6 +415,11 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     paramData.index = -1;
     symtable_insert(setterSymtable, paramName, paramData);
     free(paramName);
+
+    char *funCopy = safeMalloc(strlen(funcName) + 1);
+    strcpy(funCopy, funcName);
+    emit(OP_LABEL, NULL, funCopy, "s", &threeACcode);
+
 
     parse_block(file, currentToken, stack, true);
 
@@ -575,6 +591,13 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     InstructionNode *if_start_node = threeACcode.active;
 
     parse_expression(file, currentToken, stack);
+    
+    if (threeACcode.expression_result[0] != 't') 
+    { 
+       char *tempVar = threeAC_create_temp(&threeACcode);
+       emit(OPP_NEQ, threeACcode.expression_result, "false", tempVar, &threeACcode); 
+       emit(OP_JUMP_IF_FALSE, tempVar, "if_end", if_label, &threeACcode);
+    }
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
@@ -731,7 +754,8 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     strcpy(variable_name, (*currentToken)->data);
 
     semantic_define_variable(stack, variable_name, isGlobal);
-    
+
+    emit(OP_DEFVAR, NULL, NULL, variable_name, &threeACcode);
     get_next_token(file, currentToken);
 
     if ((*currentToken)->type == T_ASSIGN)
@@ -846,6 +870,9 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
         case T_STRING:
         case T_KW_NULL_VALUE:
         case T_GLOBAL_ID:
+            char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
+            strcpy(paramCopy, (*currentToken)->data);
+            emit(OP_PARAM, NULL, NULL, paramCopy, &threeACcode);
             get_next_token(file, currentToken);
             break;
 
@@ -903,8 +930,8 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     size_t fullNameLen = strlen("Ifj.") + strlen((*currentToken)->data) + 1;
     char *fullName = safeMalloc(fullNameLen);
     sprintf(fullName, "Ifj.%s", (*currentToken)->data);
-    printf("IFJ CALL: %s\n", fullName);
     get_next_token(file, currentToken);
+ 
 
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
@@ -913,15 +940,19 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
-        argTypes[0] = get_type_from_token(*currentToken);
+        argTypes[argCount] = get_type_from_token(*currentToken);
         parse_term(file, currentToken, stack);
         argCount++;
+
         while ((*currentToken)->type == T_COMMA)
         {
             get_next_token(file, currentToken);
+         
             skip_optional_eol(currentToken, file);
+
             parse_term(file, currentToken, stack);
-            argTypes[argCount++] = get_type_from_token(*currentToken);
+            argTypes[argCount] = get_type_from_token(*currentToken);
+            argCount++;
         }
     }
 
@@ -931,6 +962,9 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     tSymbolData *funcData = symtable_find(global_symtable, fullName);
 
     semantic_check_ifj_call(funcData, argTypes, argCount, fullName);
-
-    free(fullName);
+    
+    char *count = safeMalloc(12);
+    sprintf(count, "%d", argCount);
+    emit(OP_CALL, fullName , count, threeAC_create_temp(&threeACcode), &threeACcode);
+    threeACcode.expression_result = threeACcode.active->result;
 }

@@ -71,5 +71,4 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
         fprintf(stderr, "[SEMANTIC] Error: variable '%s' redefined\n", variable_name);
         exit(REDEFINITION_FUN_ERROR);
     }
-    free((void *)variable_name);
 }
