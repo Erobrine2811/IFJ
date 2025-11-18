@@ -68,7 +68,7 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
         node->left = insert_rec(node->left, key, data, inserted);
     else if (cmp > 0)
         node->right = insert_rec(node->right, key, data, inserted);
-    else 
+    else
     {
         *inserted = false;
         return node;
@@ -82,12 +82,12 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
         return rotate_right(node);
     if (balance < -1 && strcmp(key, node->right->key) > 0)
         return rotate_left(node);
-    if (balance > 1 && strcmp(key, node->left->key) > 0) 
+    if (balance > 1 && strcmp(key, node->left->key) > 0)
     {
         node->left = rotate_left(node->left);
         return rotate_right(node);
     }
-    if (balance < -1 && strcmp(key, node->right->key) < 0) 
+    if (balance < -1 && strcmp(key, node->right->key) < 0)
     {
         node->right = rotate_right(node->right);
         return rotate_left(node);
@@ -96,7 +96,7 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
     return node;
 }
 
-tSymbolData *find_rec(tSymNode *node, const char *key) 
+tSymbolData *find_rec(tSymNode *node, const char *key)
 {
     if (!node) return NULL;
     int cmp = strcmp(key, node->key);
@@ -104,7 +104,7 @@ tSymbolData *find_rec(tSymNode *node, const char *key)
     return (cmp < 0) ? find_rec(node->left, key) : find_rec(node->right, key);
 }
 
-void free_rec(tSymNode *node) 
+void free_rec(tSymNode *node)
 {
     if (!node) return;
     free_rec(node->left);
@@ -112,25 +112,25 @@ void free_rec(tSymNode *node)
     free_node(node);
 }
 
-void symtable_init(tSymTable *t) 
+void symtable_init(tSymTable *t)
 {
     t->root = NULL;
 }
 
-void symtable_free(tSymTable *t) 
+void symtable_free(tSymTable *t)
 {
     free_rec(t->root);
     t->root = NULL;
 }
 
-bool symtable_insert(tSymTable *t, char *key, tSymbolData data) 
+bool symtable_insert(tSymTable *t, char *key, tSymbolData data)
 {
     bool inserted = false;
     t->root = insert_rec(t->root, key, data, &inserted);
     return inserted;
 }
 
-tSymbolData *symtable_find(tSymTable *t, char *key) 
+tSymbolData *symtable_find(tSymTable *t, char *key)
 {
     return find_rec(t->root, key);
 }
