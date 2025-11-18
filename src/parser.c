@@ -600,6 +600,14 @@ void parse_return_statement(FILE *file, tToken *currentToken, tSymTableStack *st
 
 void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
+    tToken nextToken = peek_token(file);
+
+    if (nextToken->type == T_LEFT_PAREN)
+    {
+        parse_function_call(file, currentToken, stack);
+        return;
+    }
+
     bool isGlobal = ((*currentToken)->type == T_GLOBAL_ID);
 
     char *varName = safeMalloc(strlen((*currentToken)->data) + 1);
@@ -650,7 +658,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
-    tToken nextToken = peek_token(file);
+    nextToken = peek_token(file);
     if ((*currentToken)->type == T_ID && nextToken->type == T_LEFT_PAREN)
     {
         parse_function_call(file, currentToken, stack);

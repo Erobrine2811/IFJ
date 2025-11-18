@@ -28,10 +28,9 @@ void free_node(tSymNode *node)
 tSymNode *rotate_right(tSymNode *y)
 {
     tSymNode *x = y->left;
-    tSymNode *T2 = x->right;
 
+    y->left = x->right;
     x->right = y;
-    y->left = T2;
 
     y->height = 1 + max(height(y->left), height(y->right));
     x->height = 1 + max(height(x->left), height(x->right));
@@ -42,10 +41,9 @@ tSymNode *rotate_right(tSymNode *y)
 tSymNode *rotate_left(tSymNode *x)
 {
     tSymNode *y = x->right;
-    tSymNode *T2 = y->left;
 
+    x->right = y->left;
     y->left = x;
-    x->right = T2;
 
     x->height = 1 + max(height(x->left), height(x->right));
     y->height = 1 + max(height(y->left), height(y->right));
@@ -136,6 +134,3 @@ tSymbolData *symtable_find(tSymTable *t, char *key)
 {
     return find_rec(t->root, key);
 }
-
-
-
