@@ -160,6 +160,37 @@ void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
     consume_eol(file, currentToken);
 
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    Operand* startJumpLabel = safeMalloc(sizeof(Operand));
+    startJumpLabel->type = OPP_LABEL;
+    startJumpLabel->value.label = safeMalloc(strlen("%start") + 1);
+    strcpy(startJumpLabel->value.label, "%start");
+    emit(OP_JUMP, startJumpLabel, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    char* commentText = safeMalloc(strlen("Program entry point") + 25);
+    sprintf(commentText, "####################");
+    emit_comment(commentText, &threeACcode);
+    sprintf(commentText, "Program entry point");
+    emit_comment(commentText, &threeACcode);
+    sprintf(commentText, "####################");
+    emit_comment(commentText, &threeACcode);
+    free(commentText);
+    emit(OP_LABEL, startJumpLabel, NULL, NULL , &threeACcode);
+    Operand* mainLabel = safeMalloc(sizeof(Operand));
+    mainLabel->type = OPP_LABEL;
+    mainLabel->value.label = safeMalloc(strlen("main") + 1);
+    strcpy(mainLabel->value.label, "main");
+    emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+    emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+    emit(OP_CALL, mainLabel, NULL, NULL, &threeACcode);
+    emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+    Operand *exitValue = safeMalloc(sizeof(Operand));
+    exitValue->type = OPP_CONST_INT;
+    exitValue->value.intval = 0;
+    emit(OP_EXIT, exitValue, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+
     parse_func_list(file, currentToken, stack);
 
     if (symtable_find(global_symtable, "main@0") == NULL)
@@ -268,10 +299,9 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     emit_comment(commentText, &threeACcode);
     sprintf(commentText, "####################");
     emit_comment(commentText, &threeACcode);
+  free(commentText);
     emit(OP_LABEL, labelOp, NULL, NULL , &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
-    emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
     threeACcode.temp_counter = 0;
 
     int paramCount = parse_parameter_list(file, currentToken, stack);
@@ -336,7 +366,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     free(poppedSymtable);
     free(key);
     // For space bettween instructions
-    emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+    emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }

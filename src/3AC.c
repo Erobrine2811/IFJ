@@ -301,7 +301,7 @@ const char *operation_to_string(OperationType op)
 
 void list_print(ThreeACList *list) { 
     list_first(list);
-    printf("----- 3AC CODE -----\n");
+    printf(".IFJcode25\n");
     bool indent = false;
     while (list_isActive(list)) { 
         OperationType opType;
@@ -331,7 +331,6 @@ void list_print(ThreeACList *list) {
 
         list_next(list);
     }
-    printf("----- -------- ------\n");
 }
 
 const char *operand_to_string(const Operand *operand) {
