@@ -1,12 +1,16 @@
 import "ifj25" for Ifj
 
 class Program {
-  static a() {
+  static l0() {
   }
 
     static main() {
-        var a = "a"
-        var b = a + "abc\n"
-        Ifj.write(b)
+        var a = 10
+        while (a > 0) {
+          var x
+          x = 10
+          Ifj.write(x)
+          a = a - 1
+        }
     }
 }

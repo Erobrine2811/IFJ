@@ -689,7 +689,7 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
 void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
-    get_next_token(file, currentToken);
+    get_next_token(file, currentToken); // consume 'while'
 
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
@@ -697,25 +697,94 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     bool if_used_backup = threeACcode.if_used;
     threeACcode.if_used = false;
     threeACcode.while_used = true;
-    char *loop_start_label = threeAC_create_label(&threeACcode);
 
-    // emit(while_start, NULL, NULL, loop_start_label, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment("While loop start", &threeACcode);
+    InstructionNode *hoist_point = threeACcode.active;
+
+    char *loop_start_label_str = threeAC_create_label(&threeACcode);
+    char *loop_end_label_str = threeAC_create_label(&threeACcode);
+
+    Operand *loop_start_label = safeMalloc(sizeof(Operand));
+    loop_start_label->type = OPP_LABEL;
+    loop_start_label->value.label = loop_start_label_str;
+
+    Operand *loop_end_label = safeMalloc(sizeof(Operand));
+    loop_end_label->type = OPP_LABEL;
+    loop_end_label->value.label = loop_end_label_str;
+
+    emit(OP_LABEL, loop_start_label, NULL, NULL, &threeACcode);
+    emit_comment("While condition", &threeACcode);
 
     parse_expression(file, currentToken, stack);
 
+    Operand* condition_result = safeMalloc(sizeof(Operand));
+    condition_result->type = OPP_TEMP;
+    condition_result->value.varname = threeAC_create_temp(&threeACcode);
+    emit(OP_DEFVAR, condition_result, NULL, NULL, &threeACcode);
+    emit(OP_POPS, condition_result, NULL, NULL, &threeACcode);
+
+    Operand* const_false = safeMalloc(sizeof(Operand));
+    const_false->type = OPP_CONST_BOOL;
+    const_false->value.boolval = false;
+
+    emit(OP_JUMPIFEQ, loop_end_label, condition_result, const_false, &threeACcode);
+
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
+    emit_comment("While body", &threeACcode);
     parse_block(file, currentToken, stack, false);
-    emit(OP_JUMP, NULL, "while_start", loop_start_label, &threeACcode);
-    // emit(while_end, NULL, NULL, loop_start_label, &threeACcode);
+
+    emit(OP_JUMP, loop_start_label, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, loop_end_label, NULL, NULL, &threeACcode);
+    emit_comment("While loop end", &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    InstructionNode *loop_end_node = threeACcode.active;
+
+    // Hoist DEFVARs
+    InstructionNode *scan_ptr = hoist_point ? hoist_point->next : threeACcode.head;
+    while (scan_ptr != NULL && scan_ptr != loop_end_node) {
+        InstructionNode *next_scan = scan_ptr->next;
+        if (scan_ptr->opType == OP_DEFVAR) {
+            // Unlink from current position
+            scan_ptr->prev->next = scan_ptr->next;
+            if (scan_ptr->next) {
+                scan_ptr->next->prev = scan_ptr->prev;
+            } else {
+                threeACcode.tail = scan_ptr->prev;
+            }
+
+            // Insert after hoist_point
+            if (hoist_point) {
+                scan_ptr->next = hoist_point->next;
+                if (hoist_point->next) {
+                    hoist_point->next->prev = scan_ptr;
+                }
+                hoist_point->next = scan_ptr;
+                scan_ptr->prev = hoist_point;
+            } else { // Hoisting to the very beginning of the list
+                scan_ptr->next = threeACcode.head;
+                if (threeACcode.head) {
+                    threeACcode.head->prev = scan_ptr;
+                }
+                threeACcode.head = scan_ptr;
+                scan_ptr->prev = NULL;
+            }
+            
+            if (threeACcode.tail == hoist_point) {
+                threeACcode.tail = scan_ptr;
+            }
+
+            hoist_point = scan_ptr; // The next DEFVAR will be inserted after this one
+        }
+        scan_ptr = next_scan;
+    }
+
+    threeACcode.active = loop_end_node;
+
     threeACcode.while_used = false;
     threeACcode.if_used = if_used_backup;
-
-    //iba pre medzeru potom sa vymaze
-    int num = atoi(loop_start_label + 1);   
-    if (num == 0) { 
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode); 
-    }
 }
 
 void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
