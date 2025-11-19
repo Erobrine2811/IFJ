@@ -1422,9 +1422,45 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         result_var->type = OPP_TEMP;
         result_var->value.varname = threeAC_create_temp(&threeACcode);
         emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
-        emit(OP_READ, result_var, create_operand_from_type("string"), NULL, &threeACcode);
-        Operand* int_type_var = safeMalloc(sizeof(Operand));
+        emit(OP_READ, result_var, create_operand_from_type("float"), NULL, &threeACcode);
+
+        // Convert float to int
+        Operand* int_val = safeMalloc(sizeof(Operand));
+        int_val->type = OPP_TEMP;
+        int_val->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, int_val, NULL, NULL, &threeACcode);
+        emit(OP_FLOAT2INT, int_val, result_var, NULL, &threeACcode);
+
+        // Convert int back to float for comparison
+        Operand* int_to_float_check = safeMalloc(sizeof(Operand));
+        int_to_float_check->type = OPP_TEMP;
+        int_to_float_check->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, int_to_float_check, NULL, NULL, &threeACcode);
+        emit(OP_INT2FLOAT, int_to_float_check, int_val, NULL, &threeACcode);
+
+        // Compare original float with int-converted-back-to-float
+        Operand* is_int_flag = safeMalloc(sizeof(Operand));
+        is_int_flag->type = OPP_TEMP;
+        is_int_flag->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, is_int_flag, NULL, NULL, &threeACcode);
+        emit(OP_EQ, is_int_flag, result_var, int_to_float_check, &threeACcode);
+
+        // Labels for branching
+        Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_end_read_num = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+        // If is_int_flag is true, jump to label_is_int
+        emit(OP_JUMPIFEQ, label_is_int, is_int_flag, create_operand_from_constant_bool(true), &threeACcode);
+
+        // Else (it's a float), push the original float value
         emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
+        emit(OP_JUMP, label_end_read_num, NULL, NULL, &threeACcode);
+
+        // If it's an int, push the integer value
+        emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, int_val, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_end_read_num, NULL, NULL, &threeACcode);
 
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);

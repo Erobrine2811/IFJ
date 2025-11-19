@@ -2,17 +2,17 @@ import "ifj25" for Ifj
 
 class Program {
     static main() {
-        //Ifj.write("Type num: ")
-        //var a = Ifj.read_num()
-        //Ifj.write(a)
-        //Ifj.write("Type str: ")
-        //var b = Ifj.read_str()
-        //Ifj.write(b)
-
-
-        var a = 3
-        a = Ifj.str(a)
-        a = a + "ahoj\n"
+        Ifj.write("Type num: ")
+        var a = Ifj.read_num()
         Ifj.write(a)
+        Ifj.write("Type str: ")
+        var b = Ifj.read_str()
+        Ifj.write(b)
+
+
+        //var a = 3
+        //a = Ifj.str(a)
+        //a = a + "ahoj\n"
+        //Ifj.write(a)
     }
 }
