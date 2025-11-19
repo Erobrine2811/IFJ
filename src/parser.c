@@ -1588,6 +1588,178 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_NUM; // Return type is Num (integer)
+    } else if (strcmp(fullName, "Ifj.substring") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.substring call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        Operand *s_arg = NULL, *i_arg = NULL, *j_arg = NULL;
+
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            // Parse s
+            argCount++;
+            parse_expression(file, currentToken, stack);
+            s_arg = safeMalloc(sizeof(Operand));
+            s_arg->type = OPP_TEMP;
+            s_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, s_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, s_arg, NULL, NULL, &threeACcode);
+
+            // Expect comma
+            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
+            skip_optional_eol(currentToken, file);
+
+            // Parse i
+            argCount++;
+            parse_expression(file, currentToken, stack);
+            i_arg = safeMalloc(sizeof(Operand));
+            i_arg->type = OPP_TEMP;
+            i_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
+
+            // Expect comma
+            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
+            skip_optional_eol(currentToken, file);
+
+            // Parse j
+            argCount++;
+            parse_expression(file, currentToken, stack);
+            j_arg = safeMalloc(sizeof(Operand));
+            j_arg->type = OPP_TEMP;
+            j_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, j_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, j_arg, NULL, NULL, &threeACcode);
+        }
+        semantic_check_argument_count(funcData, argCount, fullName);
+
+        // Type checking for i and j (must be integers)
+        Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        Operand* type_j = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
+        emit(OP_DEFVAR, type_j, NULL, NULL, &threeACcode);
+        emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
+        emit(OP_TYPE, type_j, j_arg, NULL, &threeACcode);
+
+        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_continue_substring = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+        // Check if i is not int
+        emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
+        // Check if j is not int
+        emit(OP_JUMPIFNEQ, label_type_error, type_j, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_continue_substring, NULL, NULL, &threeACcode);
+
+        // Type error handler
+        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
+        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_PARAM_TYPE_ERROR);
+        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_continue_substring, NULL, NULL, &threeACcode);
+
+        // Get length of s
+        Operand* len_s = safeMalloc(sizeof(Operand));
+        len_s->type = OPP_TEMP;
+        len_s->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, len_s, NULL, NULL, &threeACcode);
+        emit(OP_STRLEN, len_s, s_arg, NULL, &threeACcode);
+
+        // Labels for null return
+        Operand* label_return_null = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_end_substring = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+        // Boundary checks
+        // i < 0
+        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
+        emit(OP_LTS, NULL, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
+
+        // j < 0
+        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
+        emit(OP_LTS, NULL, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
+
+        // i > j
+        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
+        emit(OP_GTS, NULL, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
+
+        // i >= Ifj.length(s)  => NOT (i < Ifj.length(s))
+        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
+        emit(OP_LTS, NULL, NULL, NULL, &threeACcode); // Result is on stack: (i < len_s)
+        emit(OP_NOTS, NULL, NULL, NULL, &threeACcode); // Result is on stack: NOT (i < len_s)
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
+
+        // j > Ifj.length(s)
+        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
+        emit(OP_GTS, NULL, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
+
+        // Substring generation loop
+        Operand* result_str = safeMalloc(sizeof(Operand));
+        result_str->type = OPP_TEMP;
+        result_str->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
+        emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode);
+
+        Operand* loop_counter = safeMalloc(sizeof(Operand));
+        loop_counter->type = OPP_TEMP;
+        loop_counter->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, loop_counter, NULL, NULL, &threeACcode);
+        emit(OP_MOVE, loop_counter, i_arg, NULL, &threeACcode); // Initialize loop_counter with i
+
+        // Hoist current_char definition outside the loop
+        Operand* current_char = safeMalloc(sizeof(Operand));
+        current_char->type = OPP_TEMP;
+        current_char->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, current_char, NULL, NULL, &threeACcode);
+
+        Operand* loop_start_label_sub = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* loop_end_label_sub = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+        emit(OP_LABEL, loop_start_label_sub, NULL, NULL, &threeACcode);
+
+        // Loop condition: loop_counter < j
+        emit(OP_PUSHS, loop_counter, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
+        emit(OP_LTS, NULL, NULL, NULL, &threeACcode); // Result (bool) is on stack
+        emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
+        emit(OP_JUMPIFEQS, loop_end_label_sub, NULL, NULL, &threeACcode);
+
+        // Get character at loop_counter
+        emit(OP_GETCHAR, current_char, s_arg, loop_counter, &threeACcode);
+
+        // Concatenate to result_str
+        emit(OP_CONCAT, result_str, result_str, current_char, &threeACcode);
+
+        // Increment loop_counter
+        emit(OP_ADD, loop_counter, loop_counter, create_operand_from_constant_int(1), &threeACcode);
+
+        emit(OP_JUMP, loop_start_label_sub, NULL, NULL, &threeACcode);
+        emit(OP_LABEL, loop_end_label_sub, NULL, NULL, &threeACcode);
+
+        emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
+        emit(OP_JUMP, label_end_substring, NULL, NULL, &threeACcode);
+
+        // Return null label
+        emit(OP_LABEL, label_return_null, NULL, NULL, &threeACcode);
+        emit(OP_PUSHS, create_operand_from_constant_nil(), NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_end_substring, NULL, NULL, &threeACcode);
+
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_STRING;
     }
     
     tDataType argTypes[3];

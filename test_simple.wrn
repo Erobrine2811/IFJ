@@ -19,8 +19,8 @@ class Program {
         //a = Ifj.floor(a)
         //Ifj.write(a)
 
-        var a = "af"
-        a = Ifj.length(a)
+        var a = "ahoj"
+        a = Ifj.substring(a, 0, 6)
         Ifj.write(a)
     }
 }
