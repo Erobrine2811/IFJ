@@ -20,7 +20,8 @@ class Program {
         //Ifj.write(a)
 
         var a = "ahoj"
-        a = Ifj.substring(a, 0, 6)
-        Ifj.write(a)
+        var index = 0
+        var c = Ifj.ord(a, index)
+        Ifj.write(c)
     }
 }
