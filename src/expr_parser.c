@@ -295,27 +295,52 @@ static int reduce_expr(tExprStack *stack)
                     result_type = semantic_check_operation(n2->value, n3->dataType, n1->dataType);
                 }
 
-                OperationType opType;
-                bool use_not = false;
+                if (op == E_PLUS_MINUS && strcmp(n2->value, "+") == 0 && result_type == TYPE_STRING) {
+                    // String concatenation
+                    Operand* res = safeMalloc(sizeof(Operand));
+                    res->type = OPP_TEMP;
+                    res->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, res, NULL, NULL, &threeACcode);
 
-                if (strcmp(n2->value, "+") == 0) opType = OP_ADDS;
-                else if (strcmp(n2->value, "-") == 0) opType = OP_SUBS;
-                else if (strcmp(n2->value, "*") == 0) opType = OP_MULS;
-                else if (strcmp(n2->value, "/") == 0) opType = OP_DIVS;
-                else if (strcmp(n2->value, "<") == 0) opType = OP_LTS;
-                else if (strcmp(n2->value, ">") == 0) opType = OP_GTS;
-                else if (strcmp(n2->value, "==") == 0) opType = OP_EQS;
-                else if (strcmp(n2->value, "!=") == 0) { opType = OP_EQS; use_not = true; }
-                else if (strcmp(n2->value, "<=") == 0) { opType = OP_GTS; use_not = true; }
-                else if (strcmp(n2->value, ">=") == 0) { opType = OP_LTS; use_not = true; }
-                else {
-                    // Unknown operator
-                    return 0;
-                }
-             
-                emit(opType, NULL, NULL, NULL, &threeACcode);
-                if (use_not) {
-                    emit(OP_NOTS, NULL, NULL, NULL, &threeACcode);
+                    Operand* op2 = safeMalloc(sizeof(Operand));
+                    op2->type = OPP_TEMP;
+                    op2->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
+                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
+
+                    Operand* op1 = safeMalloc(sizeof(Operand));
+                    op1->type = OPP_TEMP;
+                    op1->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
+                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
+
+                    emit(OP_CONCAT, res, op1, op2, &threeACcode);
+
+                    emit(OP_PUSHS, res, NULL, NULL, &threeACcode);
+                } else {
+                    // Existing logic for stack-based operations
+                    OperationType opType;
+                    bool use_not = false;
+
+                    if (strcmp(n2->value, "+") == 0) opType = OP_ADDS;
+                    else if (strcmp(n2->value, "-") == 0) opType = OP_SUBS;
+                    else if (strcmp(n2->value, "*") == 0) opType = OP_MULS;
+                    else if (strcmp(n2->value, "/") == 0) opType = OP_DIVS;
+                    else if (strcmp(n2->value, "<") == 0) opType = OP_LTS;
+                    else if (strcmp(n2->value, ">") == 0) opType = OP_GTS;
+                    else if (strcmp(n2->value, "==") == 0) opType = OP_EQS;
+                    else if (strcmp(n2->value, "!=") == 0) { opType = OP_EQS; use_not = true; }
+                    else if (strcmp(n2->value, "<=") == 0) { opType = OP_GTS; use_not = true; }
+                    else if (strcmp(n2->value, ">=") == 0) { opType = OP_LTS; use_not = true; }
+                    else {
+                        // Unknown operator
+                        return 0;
+                    }
+                
+                    emit(opType, NULL, NULL, NULL, &threeACcode);
+                    if (use_not) {
+                        emit(OP_NOTS, NULL, NULL, NULL, &threeACcode);
+                    }
                 }
              
                 expr_pop(stack); 
