@@ -1970,6 +1970,56 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_STRING;
+    
+    } else if (strcmp(fullName, "Ifj.chr") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.chr call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        Operand *i_arg = NULL;
+
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            // Parse i
+            argCount++;
+            parse_expression(file, currentToken, stack);
+            i_arg = safeMalloc(sizeof(Operand));
+            i_arg->type = OPP_TEMP;
+            i_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
+        }
+        semantic_check_argument_count(funcData, argCount, fullName);
+
+        // Type checking for i (must be integer)
+        Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
+        emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
+
+        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_continue_chr = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+        // Check if i is not int
+        emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_continue_chr, NULL, NULL, &threeACcode);
+
+        // Type error handler
+        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
+        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
+        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_continue_chr, NULL, NULL, &threeACcode);
+
+        Operand* result_str = safeMalloc(sizeof(Operand));
+        result_str->type = OPP_TEMP;
+        result_str->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
+
+        emit(OP_INT2CHAR, result_str, i_arg, NULL, &threeACcode);
+        emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
+
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_STRING;
     }
     
     tDataType argTypes[3];

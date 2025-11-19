@@ -19,9 +19,8 @@ class Program {
         //a = Ifj.floor(a)
         //Ifj.write(a)
 
-        var a = "ahoj"
-        var index = 0
-        var c = Ifj.ord(a, index)
+        var index = 97
+        var c = Ifj.chr(index)
         Ifj.write(c)
     }
 }
