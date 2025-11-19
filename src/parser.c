@@ -261,6 +261,10 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     Operand *labelOp = safeMalloc(sizeof(Operand));
     labelOp->type = OPP_LABEL;
     labelOp->value.label = funCopy;
+    char* commentText = safeMalloc(strlen(funcName) + 25);
+    sprintf(commentText, "Function declaration: %s", funcName);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment(commentText, &threeACcode);
     emit(OP_LABEL, labelOp, NULL, NULL , &threeACcode);
     emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
@@ -328,6 +332,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     free(key);
     // For space bettween instructions
     emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
@@ -477,6 +482,9 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         paramOp->type = OPP_VAR;
         paramOp->value.varname = safeMalloc(strlen(paramName) + 1);
         strcpy(paramOp->value.varname, paramName);
+        
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Parameter declaration", &threeACcode);
         emit(OP_DEFVAR, paramOp, NULL, NULL, &threeACcode);
 
         if (!symtable_insert(currentSymtable, paramName, paramData))
@@ -715,18 +723,9 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     free(setterKey);
 
     Operand *varOp = safeMalloc(sizeof(Operand));
-    if (!isGlobal)
-    {
-        varOp->type = OPP_VAR;
-    }
-    else
-    {
-        varOp->type = OPP_GLOBAL;
-    }
+    varOp->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
     varOp->value.varname = safeMalloc(strlen(varName) + 1);
     strcpy(varOp->value.varname, varName);
-
-    emit(OP_DEFVAR, varOp, NULL, NULL, &threeACcode);
 
     if (setterSymbol != NULL)
     {
@@ -737,15 +736,25 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         return;
     }
 
+    bool is_new_declaration = false;
     if (isGlobal)
     {
         if (symtable_find(global_symtable, varName) == NULL)
         {
+            is_new_declaration = true;
             tSymbolData globalVar = {0};
             globalVar.kind = SYM_VAR;
             globalVar.dataType = TYPE_UNDEF;
             globalVar.index = -1;
             symtable_insert(global_symtable, varName, globalVar);
+
+            char *commentText = safeMalloc(strlen(varName) + 40);
+            sprintf(commentText, "Implicit declaration of global variable '%s'", varName);
+            emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+            emit_comment(commentText, &threeACcode);
+            free(commentText);
+            
+            emit(OP_DEFVAR, varOp, NULL, NULL, &threeACcode);
         }
     }
     else
@@ -757,6 +766,14 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
             free(varName);
             exit(UNDEFINED_FUN_ERROR);
         }
+    }
+
+    if (!is_new_declaration) {
+        char *commentText = safeMalloc(strlen(varName) + 30);
+        sprintf(commentText, "Assignment to variable '%s'", varName);
+            emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment(commentText, &threeACcode);
+        free(commentText);
     }
 
 
@@ -781,7 +798,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
     emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
     // For space bettween instructions
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -801,16 +817,16 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     semantic_define_variable(stack, variable_name, isGlobal);
 
     Operand *varOp = safeMalloc(sizeof(Operand));
-    if (!isGlobal)
-    {
-        varOp->type = OPP_VAR;
-    }
-    else
-    {
-        varOp->type = OPP_GLOBAL;
-    }
+    varOp->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
     varOp->value.varname = safeMalloc(strlen(variable_name) + 1);
     strcpy(varOp->value.varname, variable_name);
+
+    char *commentText = safeMalloc(strlen(variable_name) + 30);
+    sprintf(commentText, "Declaration of variable '%s'", variable_name);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment(commentText, &threeACcode);
+    free(commentText);
+
     emit(OP_DEFVAR, varOp, NULL, NULL, &threeACcode);
     get_next_token(file, currentToken);
 
@@ -818,9 +834,8 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     {
         get_next_token(file, currentToken);
         parse_expression(file, currentToken, stack);
+        emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
     }
-    
-    emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
 }
 
 void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack)

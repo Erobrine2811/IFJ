@@ -291,6 +291,7 @@ const char *operation_to_string(OperationType op)
     case OP_WRITE:        return "WRITE";
 
     case OP_EXIT:         return "EXIT";
+    case OP_COMMENT:      return "#";
 
     case NO_OP:           return "NO_OP";
         
@@ -325,6 +326,8 @@ const char *operand_to_string(const Operand *operand) {
     if (operand == NULL) return "";
 
     switch (operand->type) {
+        case OPP_COMMENT_TEXT:
+            return operand->value.strval;
         case OPP_GLOBAL: {
             char* buf = safeMalloc(strlen(operand->value.varname) + 4);
             sprintf(buf, "GF@%s", operand->value.varname);
@@ -402,6 +405,14 @@ char *threeAC_get_current_label(ThreeACList *list) {
     return label;
 }
 
+
+void emit_comment(const char *text, ThreeACList *list) {
+    Operand *commentOp = safeMalloc(sizeof(Operand));
+    commentOp->type = OPP_COMMENT_TEXT;
+    commentOp->value.strval = safeMalloc(strlen(text) + 1);
+    strcpy(commentOp->value.strval, text);
+    emit(OP_COMMENT, commentOp, NULL, NULL, list);
+}
 
 void emit(OperationType op, Operand *result, Operand *arg1,  Operand *arg2, ThreeACList *list) {
     if (list_isActive(list)) 

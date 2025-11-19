@@ -65,13 +65,13 @@ typedef enum {
   OP_WRITE,
 
   OP_EXIT,
-
+  OP_COMMENT,
   NO_OP
-
 } OperationType;
 
 typedef enum {
     OPP_NONE,
+    OPP_COMMENT_TEXT,
     OPP_VAR,
     OPP_TEMP,
     OPP_GLOBAL,
@@ -139,6 +139,7 @@ void list_DeleteBefore( ThreeACList *list );
 void list_InsertFirst( ThreeACList *list, OperationType opType, Operand *result, Operand *arg1, Operand *arg2 );
 
 void emit(OperationType op, Operand *result, Operand *arg1,  Operand *arg2, ThreeACList *list);
+void emit_comment(const char *text, ThreeACList *list);
 
 
 char *threeAC_create_temp(ThreeACList *list);
