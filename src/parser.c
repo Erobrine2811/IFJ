@@ -1489,7 +1489,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
-            parse_expression(file, currentToken, stack); // Parse the argument
             
             Operand* arg_val = safeMalloc(sizeof(Operand));
             arg_val->type = OPP_TEMP;
@@ -1558,6 +1557,37 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_STRING;
+    } else if (strcmp(fullName, "Ifj.length") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.length call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            argCount = 1;
+            tDataType expr_type = parse_expression(file, currentToken, stack);
+            if (expr_type != TYPE_STRING){
+                fprintf(stderr, "[SEMANTIC] Error: Ifj.length expects a string argument\n");
+                exit(TYPE_COMPATIBILITY_ERROR);
+            }
+            
+            Operand* str_arg = safeMalloc(sizeof(Operand));
+            str_arg->type = OPP_TEMP;
+            str_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, str_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, str_arg, NULL, NULL, &threeACcode);
+          
+            Operand* result_len = safeMalloc(sizeof(Operand));
+            result_len->type = OPP_TEMP;
+            result_len->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, result_len, NULL, NULL, &threeACcode);
+
+            emit(OP_STRLEN, result_len, str_arg, NULL, &threeACcode); // Calculate length
+            emit(OP_PUSHS, result_len, NULL, NULL, &threeACcode); // Push result to stack
+        }
+        semantic_check_argument_count(funcData, argCount, fullName);
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_NUM; // Return type is Num (integer)
     }
     
     tDataType argTypes[3];

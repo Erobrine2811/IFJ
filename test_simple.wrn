@@ -15,8 +15,12 @@ class Program {
         //a = a + "ahoj\n"
         //Ifj.write(a)
 
-        var a = 3.5
-        a = Ifj.floor(a)
+        //var a = 3.5
+        //a = Ifj.floor(a)
+        //Ifj.write(a)
+
+        var a = "af"
+        a = Ifj.length(a)
         Ifj.write(a)
     }
 }
