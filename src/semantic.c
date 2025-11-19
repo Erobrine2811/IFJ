@@ -68,7 +68,11 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
     data.dataType = TYPE_UNDEF;
     data.index = -1;
 
-    bool success = (isGlobal) ? symtable_insert(global_symtable, variable_name, data) : symtable_insert(symtable_stack_top(stack), variable_name, data);
+    int len = snprintf(NULL, 0, "%s%%%d", variable_name, threeACcode.var_counter);
+    data.unique_name = safeMalloc(len + 1);
+    sprintf(data.unique_name, "%s%%%d", variable_name, threeACcode.var_counter++);
+
+    bool success = (isGlobal) ? symtable_insert(global_symtable, (char*)variable_name, data) : symtable_insert(symtable_stack_top(stack), (char*)variable_name, data);
 
     if (!success)
     {

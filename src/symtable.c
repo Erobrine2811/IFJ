@@ -19,6 +19,7 @@ void free_node(tSymNode *node)
 {
     if (!node) return;
     free(node->key);
+    free(node->data.unique_name);
     if (node->data.kind == SYM_FUNC) {
         free(node->data.paramTypes);
         if (node->data.paramNames) {
@@ -136,7 +137,7 @@ bool symtable_insert(tSymTable *t, char *key, tSymbolData data)
     return inserted;
 }
 
-tSymbolData *symtable_find(tSymTable *t, char *key) 
+tSymbolData *symtable_find(tSymTable *t, const char *key) 
 {
     return find_rec(t->root, key);
 }

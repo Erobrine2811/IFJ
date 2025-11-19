@@ -130,6 +130,7 @@ typedef struct  {
     size_t length;
     int temp_counter;
     int loop_counter;
+    int var_counter;
     char *expression_result;
     bool return_used;
     bool while_used;

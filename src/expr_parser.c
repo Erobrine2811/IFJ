@@ -5,7 +5,7 @@
 #include "semantic.h"
 
 // Helper to create an Operand from a token
-static Operand* create_operand_from_token(tToken token) {
+static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stack) {
     if (!token) return NULL;
 
     Operand *op = safeMalloc(sizeof(Operand));
@@ -81,13 +81,31 @@ static Operand* create_operand_from_token(tToken token) {
             free(data_copy);
             break;
         case T_ID:
+        {
+            tSymbolData *data = find_data_in_stack(sym_stack, data_copy);
+            if (!data) {
+                fprintf(stderr, "[SEMANTIC] Error: variable '%s' not found\n", data_copy);
+                exit(OTHER_SEMANTIC_ERROR);
+            }
             op->type = OPP_VAR;
-            op->value.varname = data_copy;
+            op->value.varname = safeMalloc(strlen(data->unique_name) + 1);
+            strcpy(op->value.varname, data->unique_name);
+            free(data_copy);
             break;
+        }
         case T_GLOBAL_ID:
+        {
+            tSymbolData *data = find_data_in_stack(sym_stack, data_copy);
+            if (!data) {
+                semantic_define_variable(sym_stack, data_copy, true);
+                data = find_data_in_stack(sym_stack, data_copy);
+            }
             op->type = OPP_GLOBAL;
-            op->value.varname = data_copy;
+            op->value.varname = safeMalloc(strlen(data->unique_name) + 1);
+            strcpy(op->value.varname, data->unique_name);
+            free(data_copy);
             break;
+        }
         default:
             free(op);
             free(data_copy);
@@ -452,7 +470,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
             if (look_sym == E_ID) 
             {
-                Operand *op = create_operand_from_token(lookahead);
+                Operand *op = create_operand_from_token(lookahead, stack);
                 if (op) {
                     emit(OP_PUSHS, op, NULL, NULL, &threeACcode);
                 }

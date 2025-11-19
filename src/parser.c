@@ -91,7 +91,7 @@ void consume_eol(FILE *file, tToken *currentToken)
     } while ((*currentToken)->type == T_EOL);
 }
 
-tSymbolData *find_data_in_stack(tSymTableStack *stack, char *key)
+tSymbolData *find_data_in_stack(tSymTableStack *stack, const char *key)
 {
     for (int i = stack->top; i >= 0; i--)
     {
@@ -548,15 +548,20 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         paramData.dataType = TYPE_UNDEF;
         paramData.index = -1;
 
+        int len = snprintf(NULL, 0, "%s%%%d", paramName, threeACcode.var_counter);
+        paramData.unique_name = safeMalloc(len + 1);
+        sprintf(paramData.unique_name, "%s%%%d", paramName, threeACcode.var_counter++);
+
         Operand* paramOp = safeMalloc(sizeof(Operand));
         paramOp->type = OPP_VAR;
-        paramOp->value.varname = safeMalloc(strlen(paramName) + 1);
-        strcpy(paramOp->value.varname, paramName);
+        paramOp->value.varname = safeMalloc(strlen(paramData.unique_name) + 1);
+        strcpy(paramOp->value.varname, paramData.unique_name);
         
         emit(OP_DEFVAR, paramOp, NULL, NULL, &threeACcode);
 
         if (!symtable_insert(currentSymtable, paramName, paramData))
         {
+            free(paramData.unique_name);
             free(paramName);
             exit(REDEFINITION_FUN_ERROR);
         }
@@ -849,9 +854,12 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 {
     tToken nextToken = peek_token(file);
 
-    if (nextToken->type == T_LEFT_PAREN)
+    if (nextToken && nextToken->type == T_LEFT_PAREN)
     {
         parse_function_call(file, currentToken, stack);
+        if ((*currentToken)->type == T_EOL) {
+            consume_eol(file, currentToken);
+        }
         return;
     }
 
@@ -868,11 +876,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     tSymbolData *setterSymbol = symtable_find(global_symtable, setterKey);
     free(setterKey);
 
-    Operand *varOp = safeMalloc(sizeof(Operand));
-    varOp->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
-    varOp->value.varname = safeMalloc(strlen(varName) + 1);
-    strcpy(varOp->value.varname, varName);
-
     if (setterSymbol != NULL)
     {
         expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
@@ -882,30 +885,30 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         return;
     }
 
+    tSymbolData *var_data = NULL;
     bool is_new_declaration = false;
     if (isGlobal)
     {
-        if (symtable_find(global_symtable, varName) == NULL)
+        var_data = symtable_find(global_symtable, varName);
+        if (var_data == NULL)
         {
             is_new_declaration = true;
-            tSymbolData globalVar = {0};
-            globalVar.kind = SYM_VAR;
-            globalVar.dataType = TYPE_UNDEF;
-            globalVar.index = -1;
-            symtable_insert(global_symtable, varName, globalVar);
+            semantic_define_variable(stack, varName, true);
+            var_data = symtable_find(global_symtable, varName);
 
             char *commentText = safeMalloc(strlen(varName) + 40);
             sprintf(commentText, "Implicit declaration of global variable '%s'", varName);
             emit_comment(commentText, &threeACcode);
             free(commentText);
             
-            emit(OP_DEFVAR, varOp, NULL, NULL, &threeACcode);
+            Operand *defVarOp = create_operand_from_variable(var_data->unique_name, true);
+            emit(OP_DEFVAR, defVarOp, NULL, NULL, &threeACcode);
         }
     }
     else
     {
-        tSymbolData *local = find_data_in_stack(stack, varName);
-        if (local == NULL)
+        var_data = find_data_in_stack(stack, varName);
+        if (var_data == NULL)
         {
             fprintf(stderr, "[PARSER] Error: assignment to undefined variable '%s'\n", varName);
             free(varName);
@@ -926,16 +929,14 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
     nextToken = peek_token(file);
     tDataType expr_type;
-    if ((*currentToken)->type == T_ID && nextToken->type == T_LEFT_PAREN)
+    if (((*currentToken)->type == T_ID || (*currentToken)->type == T_GLOBAL_ID) && nextToken && nextToken->type == T_LEFT_PAREN)
     {
         parse_function_call(file, currentToken, stack);
-        // TODO: Get return type from function call
         expr_type = TYPE_UNDEF;
     }
     else if ((*currentToken)->type == T_KW_IFJ)
     {
         parse_ifj_call(file, currentToken, stack);
-        // TODO: Get return type from builtin call
         expr_type = TYPE_UNDEF;
     }
     else
@@ -943,15 +944,14 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         expr_type = parse_expression(file, currentToken, stack);
     }
 
-    tSymbolData* var_data = isGlobal ? symtable_find(global_symtable, varName) : find_data_in_stack(stack, varName);
     if (var_data) {
         var_data->dataType = expr_type;
     }
 
-
-    emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
-    // For space bettween instructions
+    Operand *popsVarOp = create_operand_from_variable(var_data->unique_name, isGlobal);
+    emit(OP_POPS, popsVarOp, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    free(varName);
 }
 
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -970,10 +970,13 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     semantic_define_variable(stack, variable_name, isGlobal);
 
+    tSymTable *target_table = isGlobal ? global_symtable : symtable_stack_top(stack);
+    tSymbolData *var_sym_data = symtable_find(target_table, variable_name);
+
     Operand *varOp = safeMalloc(sizeof(Operand));
     varOp->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
-    varOp->value.varname = safeMalloc(strlen(variable_name) + 1);
-    strcpy(varOp->value.varname, variable_name);
+    varOp->value.varname = safeMalloc(strlen(var_sym_data->unique_name) + 1);
+    strcpy(varOp->value.varname, var_sym_data->unique_name);
 
     char *commentText = safeMalloc(strlen(variable_name) + 30);
     sprintf(commentText, "Declaration of variable '%s'", variable_name);

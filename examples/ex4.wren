@@ -4,7 +4,7 @@ class Program {
 
     static main() {
         var x
-        x = mystery();  // táto funkcia nikdy nebude definovaná
+        x = mystery()  // táto funkcia nikdy nebude definovaná
         Ifj.write(x)
     }
 

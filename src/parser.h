@@ -44,6 +44,6 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
-tSymbolData *find_data_in_stack(tSymTableStack *stack, char *key);
+tSymbolData *find_data_in_stack(tSymTableStack *stack, const char *key);
 
 #endif

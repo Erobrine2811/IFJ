@@ -15,6 +15,7 @@ void list_init(ThreeACList *list)
     list->tail = NULL;
     list->active = list->head;
     list->temp_counter = 0;
+    list->var_counter = 0;
     list->expression_result = NULL; 
     list->return_used = false;
     list->while_used = false;

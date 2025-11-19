@@ -2,6 +2,7 @@
 #define SEMANTIC_H
 
 #include "symtable.h"
+#include "3AC.h"
 #include "symstack.h"
 #include <stdbool.h>
 
