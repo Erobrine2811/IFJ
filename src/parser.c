@@ -82,7 +82,7 @@ void consume_eol(FILE *file, tToken *currentToken)
 {
     if ((*currentToken)->type != T_EOL)
     {
-        printf("Expected token type2 %d but got %d\n", T_EOL, (*currentToken)->type);
+        fprintf(stderr, "[PARSER] Syntax Error: Expected EOL, but got token of type %d\n", (*currentToken)->type);
         exit(SYNTAX_ERROR);
     }
 
@@ -586,12 +586,12 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
     }
 
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
-    consume_eol(file, currentToken);
+    skip_optional_eol(currentToken, file);
 
     while ((*currentToken)->type != T_RIGHT_BRACE && (*currentToken)->type != T_EOF)
     {
         parse_statement(file, currentToken, stack);
-        consume_eol(file, currentToken);
+        skip_optional_eol(currentToken, file);
     }
 
     expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
@@ -639,50 +639,58 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
 void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
-    get_next_token(file, currentToken);
+    get_next_token(file, currentToken); // consume 'if'
 
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
+
     bool while_used_backup = threeACcode.while_used;
-
-
     threeACcode.while_used = false;
     threeACcode.if_used = true;
 
-    char *if_label = threeAC_create_label(&threeACcode);
-    printf("# If statement label: %s\n", if_label);
-    // emit(if_start, NULL, NULL, if_label, &threeACcode);
-
-    InstructionNode *if_start_node = threeACcode.active;
-
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment("If statement condition", &threeACcode);
     parse_expression(file, currentToken, stack);
-    
-    if (threeACcode.expression_result[0] != 't') 
-    { 
-       char *tempVar = threeAC_create_temp(&threeACcode);
-       // emit(OP_NEQ, threeACcode.expression_result, "false", tempVar, &threeACcode); 
-       // emit(OP_JUMP_IF_FALSE, tempVar, "if_end", if_label, &threeACcode);
-    }
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
+    char *label1_str = threeAC_create_label(&threeACcode);
+    Operand *label1 = create_operand_from_label(label1_str);
+
+    emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFEQS, label1, NULL, NULL, &threeACcode);
+
+    emit_comment("If-block", &threeACcode);
     parse_block(file, currentToken, stack, false);
+    skip_optional_eol(currentToken, file);
 
     if ((*currentToken)->type == T_KW_ELSE)
     {
-        emit(OP_JUMP, NULL, "if_end", if_label, &threeACcode);
-        if_start_node = if_start_node->next;
-        if_start_node = if_start_node->next;
-        if_start_node->arg2 = "if_else";
-        // emit(if_else, NULL, NULL, if_label, &threeACcode);
-        get_next_token(file, currentToken);
+        get_next_token(file, currentToken); // consume 'else'
+
+        char *label2_str = threeAC_create_label(&threeACcode);
+        Operand *label2 = create_operand_from_label(label2_str);
+
+        emit(OP_JUMP, label2, NULL, NULL, &threeACcode);
+        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
+
+        emit_comment("Else-block", &threeACcode);
         parse_block(file, currentToken, stack, false);
+
+        emit(OP_LABEL, label2, NULL, NULL, &threeACcode);
+
+        free(label2_str);
+    }
+    else
+    {
+        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
     }
 
-    // emit(if_end, NULL, NULL, if_label, &threeACcode);
+    free(label1_str);
+
+    emit_comment("If statement end", &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 
-    
     threeACcode.if_used = false;
     threeACcode.while_used = while_used_backup;
 }

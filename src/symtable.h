@@ -14,6 +14,8 @@ typedef enum {
 } tSymbolType;
 
 typedef enum {
+    TYPE_INT,
+    TYPE_FLOAT,
     TYPE_NUM,
     TYPE_STRING,
     TYPE_NULL,

@@ -101,8 +101,9 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *sym_stac
 
     switch(token->type) {
         case T_INTEGER:
+            return TYPE_INT;
         case T_FLOAT:
-            return TYPE_NUM;
+            return TYPE_FLOAT;
         case T_STRING:
             return TYPE_STRING;
         case T_KW_NULL_VALUE:
@@ -372,7 +373,27 @@ static int reduce_expr(tExprStack *stack)
                     if (strcmp(n2->value, "+") == 0) opType = OP_ADDS;
                     else if (strcmp(n2->value, "-") == 0) opType = OP_SUBS;
                     else if (strcmp(n2->value, "*") == 0) opType = OP_MULS;
-                    else if (strcmp(n2->value, "/") == 0) opType = OP_DIVS;
+                    else if (strcmp(n2->value, "/") == 0) {
+                        if (n3->dataType == TYPE_INT && n1->dataType == TYPE_INT) { // int / int
+                            // convert both to float
+                            emit(OP_INT2FLOATS, NULL, NULL, NULL, &threeACcode); // convert right op (top of stack)
+                            Operand* temp = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+                            emit(OP_DEFVAR, temp, NULL, NULL, &threeACcode);
+                            emit(OP_POPS, temp, NULL, NULL, &threeACcode); // pop converted right op
+                            emit(OP_INT2FLOATS, NULL, NULL, NULL, &threeACcode); // convert left op
+                            emit(OP_PUSHS, temp, NULL, NULL, &threeACcode); // push converted right op back
+                        } else if (n3->dataType == TYPE_INT && (n1->dataType == TYPE_FLOAT || n1->dataType == TYPE_NUM)) { // int / float
+                            Operand* temp = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+                            emit(OP_DEFVAR, temp, NULL, NULL, &threeACcode);
+                            emit(OP_POPS, temp, NULL, NULL, &threeACcode); // pop float
+                            emit(OP_INT2FLOATS, NULL, NULL, NULL, &threeACcode); // convert int
+                            emit(OP_PUSHS, temp, NULL, NULL, &threeACcode); // push float back
+                        } else if ((n3->dataType == TYPE_FLOAT || n3->dataType == TYPE_NUM) && n1->dataType == TYPE_INT) { // float / int
+                            emit(OP_INT2FLOATS, NULL, NULL, NULL, &threeACcode);
+                        }
+                        // if both are float, do nothing
+                        opType = OP_DIVS;
+                    }
                     else if (strcmp(n2->value, "<") == 0) opType = OP_LTS;
                     else if (strcmp(n2->value, ">") == 0) opType = OP_GTS;
                     else if (strcmp(n2->value, "==") == 0) opType = OP_EQS;

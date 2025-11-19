@@ -249,6 +249,7 @@ const char *operation_to_string(OperationType op)
     case OP_SUB:          return "SUB";
     case OP_MUL:          return "MUL";
     case OP_DIV:          return "DIV";
+    case OP_IDIV:         return "IDIV";
 
     case OP_AND:          return "AND";
     case OP_OR:           return "OR";
@@ -270,6 +271,7 @@ const char *operation_to_string(OperationType op)
     case OP_SUBS:         return "SUBS";
     case OP_MULS:         return "MULS";
     case OP_DIVS:         return "DIVS";
+    case OP_IDIVS:        return "IDIVS";
 
     case OP_ANDS:         return "ANDS";
     case OP_ORS:          return "ORS";
@@ -285,6 +287,16 @@ const char *operation_to_string(OperationType op)
     case OP_INT2FLOAT:    return "INT2FLOAT";
     case OP_FLOAT2INT:    return "FLOAT2INT";
     case OP_FLOAT2STR:    return "FLOAT2STR";
+    case OP_INT2CHAR:     return "INT2CHAR";
+    case OP_STRI2INT:     return "STRI2INT";
+    case OP_INT2STR:      return "INT2STR";
+
+    case OP_INT2FLOATS:   return "INT2FLOATS";
+    case OP_FLOAT2INTS:   return "FLOAT2INTS";
+    case OP_INT2CHARS:    return "INT2CHARS";
+    case OP_STRI2INTS:    return "STRI2INTS";
+    case OP_FLOAT2STRS:   return "FLOAT2STRS";
+    case OP_INT2STRS:     return "INT2STRS";
 
     case OP_TYPE:         return "TYPE";
     case OP_ISINT:        return "ISINT";
@@ -419,9 +431,9 @@ char *threeAC_create_temp(ThreeACList *list)
 
 char *threeAC_create_label(ThreeACList *list)
 {
-    int len = snprintf(NULL, 0, "t%d", list->loop_counter);
+    int len = snprintf(NULL, 0, "%%L%d", list->loop_counter);
     char *name = safeMalloc(len + 1);
-    sprintf(name, "l%d", list->loop_counter++);
+    sprintf(name, "%%L%d", list->loop_counter++);
     return name;
 }
 
@@ -429,9 +441,9 @@ char *threeAC_get_current_label(ThreeACList *list) {
     if (list->loop_counter == 0) return NULL;  
 
     int curr = list->loop_counter - 1;
-    int len = snprintf(NULL, 0, "l%d", curr);
+    int len = snprintf(NULL, 0, "%%L%d", curr);
     char *label = safeMalloc(len + 1);
-    sprintf(label, "l%d", curr);
+    sprintf(label, "%%L%d", curr);
     return label;
 }
 

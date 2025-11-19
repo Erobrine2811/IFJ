@@ -23,6 +23,7 @@ typedef enum {
   OP_SUB,
   OP_MUL,
   OP_DIV,
+  OP_IDIV,
 
   OP_AND,
   OP_OR,
@@ -44,6 +45,7 @@ typedef enum {
   OP_SUBS,
   OP_MULS,
   OP_DIVS,
+  OP_IDIVS,
 
   OP_ANDS,
   OP_ORS,
@@ -59,6 +61,16 @@ typedef enum {
   OP_INT2FLOAT,
   OP_FLOAT2INT,
   OP_FLOAT2STR,
+  OP_INT2CHAR,
+  OP_STRI2INT,
+  OP_INT2STR,
+
+  OP_INT2FLOATS,
+  OP_FLOAT2INTS,
+  OP_INT2CHARS,
+  OP_STRI2INTS,
+  OP_FLOAT2STRS,
+  OP_INT2STRS,
 
   OP_TYPE,
   OP_ISINT,

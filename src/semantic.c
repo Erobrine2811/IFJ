@@ -7,11 +7,15 @@
 
 char* transform_to_data_type(int type) { 
     switch (type) { 
-        case 0: 
+        case TYPE_INT:
+            return "INT";
+        case TYPE_FLOAT:
+            return "FLOAT";
+        case TYPE_NUM: 
             return "NUM"; 
-        case 1: 
+        case TYPE_STRING: 
             return "STRING"; 
-        case 2: 
+        case TYPE_NULL: 
             return "NULL"; 
         default: 
             return "UNDEF"; 
@@ -48,7 +52,7 @@ void semantic_check_ifj_call(tSymbolData *funcData, tDataType *argTypes, int arg
         tDataType given = argTypes[i];
 
       
-        if (expected != 3 && given != 3 && expected != given) 
+        if (expected != TYPE_UNDEF && given != TYPE_UNDEF && expected != given) 
         { 
             fprintf(stderr, "[SEMANTIC] Type mismatch in function '%s' argument %d: expected %s, got %s\n", name, i + 1, transform_to_data_type(expected), transform_to_data_type(given)); 
             exit(WRONG_ARGUMENT_COUNT_ERROR); 
@@ -83,21 +87,36 @@ tDataType semantic_check_operation(char* op, tDataType left, tDataType right) {
         exit(TYPE_COMPATIBILITY_ERROR);
     }
 
+    bool left_is_num = (left == TYPE_INT || left == TYPE_FLOAT || left == TYPE_NUM);
+    bool right_is_num = (right == TYPE_INT || right == TYPE_FLOAT || right == TYPE_NUM);
+
     if (strcmp(op, "+") == 0) {
-        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
+        if (left_is_num && right_is_num) {
+            if (left == TYPE_FLOAT || right == TYPE_FLOAT) return TYPE_FLOAT;
+            if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
+            return TYPE_INT;
+        }
         if (left == TYPE_STRING && right == TYPE_STRING) return TYPE_STRING;
         fprintf(stderr, "[SEMANTIC] Type error in '+' operation: cannot add %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }
-    if (strcmp(op, "-") == 0 || strcmp(op, "/") == 0) {
-        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
+        if (left_is_num && right_is_num) {
+            if (strcmp(op, "/") == 0) {
+                if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
+                return TYPE_FLOAT;
+            }
         fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }
     if (strcmp(op, "*") == 0) {
-        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
-        if (left == TYPE_STRING && right == TYPE_NUM) return TYPE_STRING;
-        if (left == TYPE_NUM && right == TYPE_STRING) return TYPE_STRING;
+        if (left_is_num && right_is_num) {
+            if (left == TYPE_FLOAT || right == TYPE_FLOAT) return TYPE_FLOAT;
+            if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
+            return TYPE_INT;
+        }
+        if ((left == TYPE_STRING && right == TYPE_INT) || (left == TYPE_INT && right == TYPE_STRING)) {
+            return TYPE_STRING;
+        }
         fprintf(stderr, "[SEMANTIC] Type error in '*' operation: incompatible types %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }
