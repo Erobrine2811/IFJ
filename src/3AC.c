@@ -347,11 +347,8 @@ void list_print(ThreeACList *list) {
 
     InstructionNode *current_global = list->global_def_head;
     while (current_global != NULL) {
-        printf("%s %s %s %s\n", 
-               operation_to_string(current_global->opType), 
-               operand_to_string(current_global->result), 
-               operand_to_string(current_global->arg1), 
-               operand_to_string(current_global->arg2));
+        printf("DEFVAR %s\n", operand_to_string(current_global->result));
+        printf("MOVE %s %s\n", operand_to_string(current_global->result), "nil@nil");
         current_global = current_global->next;
     }
 
@@ -401,7 +398,7 @@ const char *operand_to_string(const Operand *operand) {
             char* buf = safeMalloc(strlen(operand->value.varname) + 4);
             sprintf(buf, "TF@%s", operand->value.varname);
             return buf;
-        }
+}
         case OPP_VAR: {
             char* buf = safeMalloc(strlen(operand->value.varname) + 4);
             sprintf(buf, "LF@%s", operand->value.varname);

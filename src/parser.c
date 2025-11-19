@@ -538,6 +538,12 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     Operand* nil_op = create_operand_from_constant_nil();
     emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
 
+    // Parameter handling for setter
+    Operand* setter_param_dest = create_operand_from_variable(paramData.unique_name, false);
+    Operand* setter_param_src = create_operand_from_variable("%param0", false); // Changed from TF to LF
+    emit(OP_DEFVAR, setter_param_dest, NULL, NULL, &threeACcode); // Define the local variable
+    emit(OP_MOVE, setter_param_dest, setter_param_src, NULL, &threeACcode); // Move LF@%param0 to local variable
+
     parse_block(file, currentToken, stack, true);
 
     tSymbolData *definedSetter = symtable_find(global_symtable, key);
@@ -550,6 +556,9 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     symtable_free(setterSymtable);
     free(setterSymtable);
     free(key);
+    emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack, char ***paramNames)
@@ -728,6 +737,50 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     emit_comment("If statement condition", &threeACcode);
     parse_expression(file, currentToken, stack);
 
+    // Handle truthiness rules
+    Operand* expr_val_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, expr_val_if, NULL, NULL, &threeACcode);
+    emit(OP_POPS, expr_val_if, NULL, NULL, &threeACcode); // Pop expression result
+
+    Operand* final_bool_result_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, final_bool_result_if, NULL, NULL, &threeACcode);
+
+    Operand* label_is_null_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_bool_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_other_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_end_truthiness_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+    // Check if null
+    emit(OP_JUMPIFEQ, label_is_null_if, expr_val_if, create_operand_from_constant_nil(), &threeACcode);
+
+    // Check if boolean (using TYPE instruction)
+    Operand* type_check_var_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, type_check_var_if, NULL, NULL, &threeACcode);
+    emit(OP_TYPE, type_check_var_if, expr_val_if, NULL, &threeACcode); // Get type of expr_val
+
+    emit(OP_JUMPIFEQ, label_is_bool_if, type_check_var_if, create_operand_from_constant_string("bool"), &threeACcode);
+
+    // If not null and not bool, it's true
+    emit(OP_JUMP, label_is_other_if, NULL, NULL, &threeACcode);
+
+    // Case: is null
+    emit(OP_LABEL, label_is_null_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(false), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    // Case: is boolean
+    emit(OP_LABEL, label_is_bool_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, expr_val_if, NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    // Case: is other (number, string, etc.)
+    emit(OP_LABEL, label_is_other_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(true), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, label_end_truthiness_if, NULL, NULL, &threeACcode);
+    emit(OP_PUSHS, final_bool_result_if, NULL, NULL, &threeACcode); // Push the final boolean result
+
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     char *label1_str = threeAC_create_label(&threeACcode);
@@ -801,6 +854,50 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     emit_comment("While condition", &threeACcode);
 
     parse_expression(file, currentToken, stack);
+
+    // Handle truthiness rules
+    Operand* expr_val_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, expr_val_while, NULL, NULL, &threeACcode);
+    emit(OP_POPS, expr_val_while, NULL, NULL, &threeACcode); // Pop expression result
+
+    Operand* final_bool_result_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, final_bool_result_while, NULL, NULL, &threeACcode);
+
+    Operand* label_is_null_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_bool_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_other_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_end_truthiness_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+    // Check if null
+    emit(OP_JUMPIFEQ, label_is_null_while, expr_val_while, create_operand_from_constant_nil(), &threeACcode);
+
+    // Check if boolean (using TYPE instruction)
+    Operand* type_check_var_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, type_check_var_while, NULL, NULL, &threeACcode);
+    emit(OP_TYPE, type_check_var_while, expr_val_while, NULL, &threeACcode); // Get type of expr_val
+
+    emit(OP_JUMPIFEQ, label_is_bool_while, type_check_var_while, create_operand_from_constant_string("bool"), &threeACcode);
+
+    // If not null and not bool, it's true
+    emit(OP_JUMP, label_is_other_while, NULL, NULL, &threeACcode);
+
+    // Case: is null
+    emit(OP_LABEL, label_is_null_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(false), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    // Case: is boolean
+    emit(OP_LABEL, label_is_bool_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, expr_val_while, NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    // Case: is other (number, string, etc.)
+    emit(OP_LABEL, label_is_other_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(true), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, label_end_truthiness_while, NULL, NULL, &threeACcode);
+    emit(OP_PUSHS, final_bool_result_while, NULL, NULL, &threeACcode); // Push the final boolean result
 
     Operand* condition_result = safeMalloc(sizeof(Operand));
     condition_result->type = OPP_TEMP;
