@@ -74,6 +74,11 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
 
     bool success = (isGlobal) ? symtable_insert(global_symtable, (char*)variable_name, data) : symtable_insert(symtable_stack_top(stack), (char*)variable_name, data);
 
+    if (success && isGlobal) {
+        Operand *defVarOp = create_operand_from_variable(data.unique_name, true);
+        list_add_global_def(&threeACcode, OP_DEFVAR, defVarOp, NULL, NULL);
+    }
+
     if (!success)
     {
         fprintf(stderr, "[SEMANTIC] Error: variable '%s' redefined\n", variable_name);

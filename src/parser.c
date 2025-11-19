@@ -178,8 +178,8 @@ void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
     emit(OP_LABEL, startJumpLabel, NULL, NULL , &threeACcode);
     Operand* mainLabel = safeMalloc(sizeof(Operand));
     mainLabel->type = OPP_LABEL;
-    mainLabel->value.label = safeMalloc(strlen("main") + 1);
-    strcpy(mainLabel->value.label, "main");
+    mainLabel->value.label = safeMalloc(strlen("main%func") + 1);
+    strcpy(mainLabel->value.label, "main%func");
     emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
     emit(OP_CALL, mainLabel, NULL, NULL, &threeACcode);
@@ -216,6 +216,7 @@ void insert_builtin_functions()
         builtinData.returnType = def->returnType;
         builtinData.paramCount = def->paramCount;
         builtinData.paramNames = NULL;
+        builtinData.unique_name = NULL;
 
         if (def->paramCount > 0)
         {
@@ -258,8 +259,10 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     char *funcName = safeMalloc(strlen((*currentToken)->data) + 1);
     strcpy(funcName, (*currentToken)->data);
-    char *funCopy = safeMalloc(strlen(funcName) + 1);
-    strcpy(funCopy, funcName);
+    
+    int mangled_len = strlen(funcName) + strlen("%func") + 1;
+    char *mangledName = safeMalloc(mangled_len);
+    sprintf(mangledName, "%s%%func", funcName);
    
     get_next_token(file, currentToken);
 
@@ -269,16 +272,19 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         {
             parse_getter(file, currentToken, stack, funcName);
             free(funcName);
+            free(mangledName);
             return;
         }
         else if ((*currentToken)->type == T_ASSIGN)
         {
             parse_setter(file, currentToken, stack, funcName);
             free(funcName);
+            free(mangledName);
             return;
         }
 
         free(funcName);
+        free(mangledName);
         exit(SYNTAX_ERROR);
     }
 
@@ -292,7 +298,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     Operand *labelOp = safeMalloc(sizeof(Operand));
     labelOp->type = OPP_LABEL;
-    labelOp->value.label = funCopy;
+    labelOp->value.label = mangledName;
     char* commentText = safeMalloc(strlen(funcName) + 25);
     sprintf(commentText, "####################");
     emit_comment(commentText, &threeACcode);
@@ -312,11 +318,18 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     char **paramNames = NULL;
     int paramCount = parse_parameter_list(file, currentToken, stack, &paramNames);
 
+    tSymTable *func_scope_table = symtable_stack_top(stack);
+
     for (int i = 0; i < paramCount; i++) {
         char temp_param_name[20];
         sprintf(temp_param_name, "%%param%d", i);
         
-        Operand* dest = create_operand_from_variable(paramNames[i], false);
+        tSymbolData *param_data = symtable_find(func_scope_table, paramNames[i]);
+        if (!param_data) {
+            exit(INTERNAL_ERROR);
+        }
+        
+        Operand* dest = create_operand_from_variable(param_data->unique_name, false);
         Operand* src = create_operand_from_variable(temp_param_name, false);
         emit(OP_MOVE, dest, src, NULL, &threeACcode);
     }
@@ -359,6 +372,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         funcData.defined = false;
         funcData.paramCount = paramCount;
         funcData.paramNames = paramNames;
+        funcData.unique_name = NULL;
 
         if (paramCount > 0)
         {
@@ -409,6 +423,8 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     getterData.index = -1;
     getterData.defined = false;
     getterData.paramCount = 0;
+    getterData.paramNames = NULL;
+    getterData.unique_name = NULL;
 
     if (!symtable_insert(global_symtable, key, getterData))
     {
@@ -420,14 +436,24 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     symtable_init(getterSymtable);
     symtable_stack_push(stack, getterSymtable);
 
-    char *funCopy = safeMalloc(strlen(funcName) + 1);
-    strcpy(funCopy, funcName);
-
+    int mangled_len = strlen(funcName) + strlen("%getter") + 1;
+    char *mangledName = safeMalloc(mangled_len);
     Operand *labelOp = safeMalloc(sizeof(Operand));
     labelOp->type = OPP_LABEL;
-    labelOp->value.label = funCopy;
-    emit(OP_LABEL, &labelOp, NULL, NULL, &threeACcode);
+    sprintf(mangledName, "%s%%getter", funcName);
+    labelOp->value.label = mangledName;
+    emit_comment("####################", &threeACcode);
+    char* commentText = safeMalloc(strlen(funcName) + 25);
+    sprintf(commentText, "Function declaration: %s (getter)", funcName);
+    emit_comment(commentText, &threeACcode);
+    emit_comment("####################", &threeACcode);
+    emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
+    Operand* retval_def = create_operand_from_variable("%retval", false);
+    emit(OP_DEFVAR, retval_def, NULL, NULL, &threeACcode);
+    Operand* retval_init = create_operand_from_variable("%retval", false);
+    Operand* nil_op = create_operand_from_constant_nil();
+    emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
 
     parse_block(file, currentToken, stack, true);
 
@@ -471,6 +497,8 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     setterData.paramCount = 1;
     setterData.paramTypes = safeMalloc(sizeof(tDataType));
     setterData.paramTypes[0] = TYPE_UNDEF;
+    setterData.paramNames = NULL;
+    setterData.unique_name = NULL;
 
     if (!symtable_insert(global_symtable, key, setterData))
     {
@@ -487,17 +515,28 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     paramData.kind = SYM_VAR;
     paramData.dataType = TYPE_UNDEF;
     paramData.index = -1;
+
+    int len = snprintf(NULL, 0, "%s%%%d", paramName, threeACcode.var_counter);
+    paramData.unique_name = safeMalloc(len + 1);
+    sprintf(paramData.unique_name, "%s%%%d", paramName, threeACcode.var_counter++);
+
     symtable_insert(setterSymtable, paramName, paramData);
     free(paramName);
 
-    char *funCopy = safeMalloc(strlen(funcName) + 1);
-    strcpy(funCopy, funcName);
+    int mangled_len = strlen(funcName) + strlen("%setter") + 1;
+    char *mangledName = safeMalloc(mangled_len);
+    sprintf(mangledName, "%s%%setter", funcName);
 
     Operand *labelOp = safeMalloc(sizeof(Operand));
     labelOp->type = OPP_LABEL;
-    labelOp->value.label = funCopy;
-    emit(OP_LABEL, &labelOp, NULL, NULL, &threeACcode);
+    labelOp->value.label = mangledName;
+    emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
+    Operand* retval_def = create_operand_from_variable("%retval", false);
+    emit(OP_DEFVAR, retval_def, NULL, NULL, &threeACcode);
+    Operand* retval_init = create_operand_from_variable("%retval", false);
+    Operand* nil_op = create_operand_from_constant_nil();
+    emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
 
     parse_block(file, currentToken, stack, true);
 
@@ -881,6 +920,24 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
         skip_optional_eol(currentToken, file);
         parse_expression(file, currentToken, stack);
+        
+        emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+        
+        Operand* tf_param = create_operand_from_tf_variable("%param0");
+        emit(OP_DEFVAR, tf_param, NULL, NULL, &threeACcode);
+        
+        Operand* tf_param_pop = create_operand_from_tf_variable("%param0");
+        emit(OP_POPS, tf_param_pop, NULL, NULL, &threeACcode);
+        
+        emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+        
+        char mangledName[256];
+        sprintf(mangledName, "%s%%setter", varName);
+        Operand* call_label = create_operand_from_label(mangledName);
+        emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
+        
+        emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+        
         free(varName);
         return;
     }
@@ -1056,7 +1113,13 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     // 3. Call function
     emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-    Operand* call_label = create_operand_from_label(funcName);
+    
+    int mangled_len = strlen(funcName) + strlen("%func") + 1;
+    char *mangledName = safeMalloc(mangled_len);
+    sprintf(mangledName, "%s%%func", funcName);
+    Operand* call_label = create_operand_from_label(mangledName);
+    free(mangledName);
+
     emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
     emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
 
@@ -1081,6 +1144,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         forwardDecl.defined = false;
         forwardDecl.paramCount = argCount;
         forwardDecl.paramNames = NULL;
+        forwardDecl.unique_name = NULL;
 
         if (argCount > 0)
         {

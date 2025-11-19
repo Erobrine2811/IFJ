@@ -135,6 +135,8 @@ typedef struct  {
     bool return_used;
     bool while_used;
     bool if_used;
+    InstructionNode *global_def_head;
+    InstructionNode *global_def_tail;
 } ThreeACList;
 
 
@@ -153,6 +155,7 @@ void list_GetValue( ThreeACList *list, OperationType *opType, Operand **arg1, Op
 void list_DeleteAfter( ThreeACList *list );
 void list_DeleteBefore( ThreeACList *list );
 void list_InsertFirst( ThreeACList *list, OperationType opType, Operand *result, Operand *arg1, Operand *arg2 );
+void list_add_global_def(ThreeACList *list, OperationType op, Operand *result, Operand *arg1, Operand *arg2);
 
 void emit(OperationType op, Operand *result, Operand *arg1,  Operand *arg2, ThreeACList *list);
 void emit_comment(const char *text, ThreeACList *list);

@@ -82,6 +82,26 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
             break;
         case T_ID:
         {
+            char getterKey[256];
+            sprintf(getterKey, "getter:%s@0", data_copy);
+            tSymbolData *getter_data = symtable_find(global_symtable, getterKey);
+
+            if (getter_data) {
+                emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+                emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+                
+                char mangledName[256];
+                sprintf(mangledName, "%s%%getter", data_copy);
+                Operand* call_label = create_operand_from_label(mangledName);
+                emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
+                
+                emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+                
+                op = create_operand_from_tf_variable("%retval");
+                free(data_copy);
+                return op;
+            }
+
             tSymbolData *data = find_data_in_stack(sym_stack, data_copy);
             if (!data) {
                 fprintf(stderr, "[SEMANTIC] Error: variable '%s' not found\n", data_copy);

@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+extern tSymTable *global_symtable;
+
 typedef struct {
     char *name;
     tDataType returnType;

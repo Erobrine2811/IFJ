@@ -20,6 +20,8 @@ void list_init(ThreeACList *list)
     list->return_used = false;
     list->while_used = false;
     list->if_used = false;
+    list->global_def_head = NULL;
+    list->global_def_tail = NULL;
 }
 
 void list_dispose( ThreeACList *list ) 
@@ -40,6 +42,16 @@ void list_dispose( ThreeACList *list )
     list->head = NULL;
     list->tail = NULL;
     list->active = NULL;
+
+    current = list->global_def_head;
+	while (current != NULL) 
+    { 
+        next = current->next;
+        free(current);
+		current = next;
+	}
+    list->global_def_head = NULL;
+    list->global_def_tail = NULL;
 }
 
 void list_first( ThreeACList *list ) 
@@ -226,7 +238,22 @@ void list_DeleteBefore( ThreeACList *list )
     }
 }
 
+void list_add_global_def(ThreeACList *list, OperationType op, Operand *result, Operand *arg1, Operand *arg2) {
+    InstructionNode *newNode = (InstructionNode *) safeMalloc (sizeof(InstructionNode));
+    newNode->opType = op;
+    newNode->result = result;
+    newNode->arg1 = arg1;
+    newNode->arg2 = arg2;
+    newNode->next = NULL;
+    newNode->prev = list->global_def_tail;
 
+    if (list->global_def_tail) {
+        list->global_def_tail->next = newNode;
+    } else {
+        list->global_def_head = newNode;
+    }
+    list->global_def_tail = newNode;
+}
 
 const char *operation_to_string(OperationType op) 
 {
@@ -317,6 +344,17 @@ const char *operation_to_string(OperationType op)
 void list_print(ThreeACList *list) { 
     list_first(list);
     printf(".IFJcode25\n");
+
+    InstructionNode *current_global = list->global_def_head;
+    while (current_global != NULL) {
+        printf("%s %s %s %s\n", 
+               operation_to_string(current_global->opType), 
+               operand_to_string(current_global->result), 
+               operand_to_string(current_global->arg1), 
+               operand_to_string(current_global->arg2));
+        current_global = current_global->next;
+    }
+
     bool indent = false;
     while (list_isActive(list)) { 
         OperationType opType;
@@ -332,9 +370,9 @@ void list_print(ThreeACList *list) {
             continue;
         }
 
-        if (indent) {
-            printf("    ");
-        }
+        // if (indent) {
+        //     printf("    ");
+        // }
 
         printf("%s %s %s %s\n", operation_to_string(opType), operand_to_string(result), operand_to_string(arg1), operand_to_string(arg2));
 

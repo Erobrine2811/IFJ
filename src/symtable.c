@@ -18,7 +18,6 @@ tSymNode *create_node(const char *key, tSymbolData data)
 void free_node(tSymNode *node)
 {
     if (!node) return;
-    free(node->key);
     free(node->data.unique_name);
     if (node->data.kind == SYM_FUNC) {
         free(node->data.paramTypes);
@@ -29,6 +28,7 @@ void free_node(tSymNode *node)
             free(node->data.paramNames);
         }
     }
+    free(node->key);
     free(node);
 }
 
