@@ -1125,6 +1125,8 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     if (strcmp(fullName, "Ifj.write") == 0)
     {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.write call", &threeACcode);
         tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {

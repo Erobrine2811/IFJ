@@ -9,6 +9,8 @@ typedef enum {
   OP_JUMP,
   OP_JUMPIFEQ,
   OP_JUMPIFNEQ,
+  OP_JUMPIFEQS,
+  OP_JUMPIFNEQS,
 
   OP_DEFVAR,
   OP_MOVE,
@@ -146,6 +148,14 @@ char *threeAC_create_temp(ThreeACList *list);
 char *threeAC_create_label(ThreeACList *list);
 char *threeAC_get_current_label(ThreeACList *list);
 
+
+
+Operand* create_operand_from_constant_string(const char *value);
+Operand* create_operand_from_constant_int(int value);
+Operand* create_operand_from_constant_bool(bool value);
+Operand* create_operand_from_label(const char *label);
+Operand* create_operand_from_variable(const char *varname, bool isGlobal);
+Operand* create_operand_from_constant_nil();
 
 extern ThreeACList threeACcode;
 

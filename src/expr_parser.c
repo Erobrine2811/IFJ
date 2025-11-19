@@ -296,7 +296,6 @@ static int reduce_expr(tExprStack *stack)
                 }
 
                 if (op == E_PLUS_MINUS && strcmp(n2->value, "+") == 0 && result_type == TYPE_STRING) {
-                    // String concatenation
                     Operand* res = safeMalloc(sizeof(Operand));
                     res->type = OPP_TEMP;
                     res->value.varname = threeAC_create_temp(&threeACcode);
@@ -317,6 +316,54 @@ static int reduce_expr(tExprStack *stack)
                     emit(OP_CONCAT, res, op1, op2, &threeACcode);
 
                     emit(OP_PUSHS, res, NULL, NULL, &threeACcode);
+                } else if (op == E_MUL_DIV && strcmp(n2->value, "*") == 0 && result_type == TYPE_STRING) {
+                    Operand* str_op = safeMalloc(sizeof(Operand));
+                    str_op->type = OPP_TEMP;
+                    str_op->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, str_op, NULL, NULL, &threeACcode);
+
+                    Operand* num_op = safeMalloc(sizeof(Operand));
+                    num_op->type = OPP_TEMP;
+                    num_op->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, num_op, NULL, NULL, &threeACcode);
+
+                    Operand* result_str = safeMalloc(sizeof(Operand));
+                    result_str->type = OPP_TEMP;
+                    result_str->value.varname = threeAC_create_temp(&threeACcode);
+                    emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
+
+                    emit(OP_POPS, num_op, NULL, NULL, &threeACcode);
+                    emit(OP_POPS, str_op, NULL, NULL, &threeACcode);
+                    emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode);
+                
+                    Operand *startWhileLabel = safeMalloc(sizeof(Operand));
+                    startWhileLabel->type = OPP_LABEL;
+                    startWhileLabel->value.label = threeAC_create_label(&threeACcode);
+                    emit(OP_LABEL, startWhileLabel, NULL, NULL, &threeACcode);
+
+                    emit(OP_PUSHS, num_op, NULL, NULL, &threeACcode);
+                    emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
+                    emit(OP_GTS, NULL, NULL, NULL, &threeACcode);
+                    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+
+                    Operand *endWhileLabel = safeMalloc(sizeof(Operand));
+                    endWhileLabel->type = OPP_LABEL;
+                    endWhileLabel->value.label = threeAC_create_label(&threeACcode);
+
+                    emit(OP_JUMPIFNEQS, NULL, NULL, endWhileLabel, &threeACcode);
+                    emit(OP_PUSHS, num_op, NULL, NULL, &threeACcode);
+                    emit(OP_PUSHS, create_operand_from_constant_int(1), NULL, NULL, &threeACcode);
+                    emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
+                    emit(OP_POPS, num_op, NULL, NULL, &threeACcode);
+
+                    // Concatenate
+                    emit(OP_CONCAT, result_str, result_str, str_op, &threeACcode);
+
+                    emit(OP_JUMP, NULL, NULL, startWhileLabel, &threeACcode);
+                    emit(OP_LABEL, endWhileLabel, NULL, NULL, &threeACcode);
+
+                    emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
+
                 } else {
                     // Existing logic for stack-based operations
                     OperationType opType;

@@ -235,6 +235,8 @@ const char *operation_to_string(OperationType op)
     case OP_JUMP:         return "JUMP";
     case OP_JUMPIFEQ:     return "JUMPIFEQ";
     case OP_JUMPIFNEQ:    return "JUMPIFNEQ";
+    case OP_JUMPIFEQS:    return "JUMPIFEQS";
+    case OP_JUMPIFNEQS:   return "JUMPIFNEQS";
 
     case OP_DEFVAR:       return "DEFVAR";
     case OP_MOVE:         return "MOVE";
@@ -433,6 +435,50 @@ char *threeAC_get_current_label(ThreeACList *list) {
     return label;
 }
 
+Operand* create_operand_from_constant_int(int value) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_CONST_INT;
+    op->value.intval = value;
+    return op;
+}
+
+Operand* create_operand_from_constant_string(const char *value) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_CONST_STRING;
+    op->value.strval = safeMalloc(strlen(value) + 1);
+    strcpy(op->value.strval, value);
+    return op;
+}
+
+Operand* create_operand_from_constant_bool(bool value) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_CONST_BOOL;
+    op->value.boolval = value;
+    return op;
+}
+
+Operand* create_operand_from_label(const char *label) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_LABEL;
+    op->value.label = safeMalloc(strlen(label) + 1);
+    strcpy(op->value.label, label);
+    return op;
+}
+
+Operand* create_operand_from_variable(const char *varname, bool isGlobal) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
+    op->value.varname = safeMalloc(strlen(varname) + 1);
+    strcpy(op->value.varname, varname);
+    return op;
+}
+
+
+Operand* create_operand_from_constant_nil() {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_CONST_NIL;
+    return op;
+}
 
 void emit_comment(const char *text, ThreeACList *list) {
     Operand *commentOp = safeMalloc(sizeof(Operand));
