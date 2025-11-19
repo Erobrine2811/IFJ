@@ -31,6 +31,7 @@ typedef struct {
     bool defined;
     tDataType returnType;
     tDataType *paramTypes;
+    char **paramNames;
     int paramCount;
 } tSymbolData;
 

@@ -358,6 +358,11 @@ const char *operand_to_string(const Operand *operand) {
             sprintf(buf, "GF@%s", operand->value.varname);
             return buf;
         }
+        case OPP_TF_VAR: {
+            char* buf = safeMalloc(strlen(operand->value.varname) + 4);
+            sprintf(buf, "TF@%s", operand->value.varname);
+            return buf;
+        }
         case OPP_VAR: {
             char* buf = safeMalloc(strlen(operand->value.varname) + 4);
             sprintf(buf, "LF@%s", operand->value.varname);
@@ -484,6 +489,15 @@ Operand* create_operand_from_variable(const char *varname, bool isGlobal) {
     strcpy(op->value.varname, varname);
     return op;
 }
+
+Operand* create_operand_from_tf_variable(const char *varname) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_TF_VAR;
+    op->value.varname = safeMalloc(strlen(varname) + 1);
+    strcpy(op->value.varname, varname);
+    return op;
+}
+
 
 
 Operand* create_operand_from_constant_nil() {

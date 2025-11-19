@@ -21,6 +21,12 @@ void free_node(tSymNode *node)
     free(node->key);
     if (node->data.kind == SYM_FUNC) {
         free(node->data.paramTypes);
+        if (node->data.paramNames) {
+            for (int i = 0; i < node->data.paramCount; i++) {
+                free(node->data.paramNames[i]);
+            }
+            free(node->data.paramNames);
+        }
     }
     free(node);
 }

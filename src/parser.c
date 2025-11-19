@@ -215,6 +215,7 @@ void insert_builtin_functions()
         builtinData.defined = true;
         builtinData.returnType = def->returnType;
         builtinData.paramCount = def->paramCount;
+        builtinData.paramNames = NULL;
 
         if (def->paramCount > 0)
         {
@@ -301,12 +302,27 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     emit_comment(commentText, &threeACcode);
   free(commentText);
     emit(OP_LABEL, labelOp, NULL, NULL , &threeACcode);
+
+    Operand* retval_def = create_operand_from_variable("%retval", false);
+    emit(OP_DEFVAR, retval_def, NULL, NULL, &threeACcode);
+    Operand* retval_init = create_operand_from_variable("%retval", false);
+    Operand* nil_op = create_operand_from_constant_nil();
+    emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
+    
+    char **paramNames = NULL;
+    int paramCount = parse_parameter_list(file, currentToken, stack, &paramNames);
+
+    for (int i = 0; i < paramCount; i++) {
+        char temp_param_name[20];
+        sprintf(temp_param_name, "%%param%d", i);
+        
+        Operand* dest = create_operand_from_variable(paramNames[i], false);
+        Operand* src = create_operand_from_variable(temp_param_name, false);
+        emit(OP_MOVE, dest, src, NULL, &threeACcode);
+    }
+
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     threeACcode.temp_counter = 0;
-
-    int paramCount = parse_parameter_list(file, currentToken, stack);
-    char *paramCountStr = safeMalloc(12);
-    sprintf(paramCountStr, "%d", paramCount);
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
@@ -324,6 +340,15 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
             free(key);
             exit(REDEFINITION_FUN_ERROR);
         }
+        existing->paramCount = paramCount;
+        existing->paramNames = paramNames;
+        if (existing->paramTypes) free(existing->paramTypes);
+        if (paramCount > 0) {
+            existing->paramTypes = safeMalloc(sizeof(tDataType) * paramCount);
+            for (int i = 0; i < paramCount; i++) existing->paramTypes[i] = TYPE_UNDEF;
+        } else {
+            existing->paramTypes = NULL;
+        }
     }
     else
     {
@@ -333,6 +358,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         funcData.index = -1;
         funcData.defined = false;
         funcData.paramCount = paramCount;
+        funcData.paramNames = paramNames;
 
         if (paramCount > 0)
         {
@@ -487,15 +513,18 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     free(key);
 }
 
-int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
+int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack, char ***paramNames)
 {
     int paramCount = 0;
     tSymTable *currentSymtable = symtable_stack_top(stack);
 
     if ((*currentToken)->type == T_RIGHT_PAREN)
     {
+        *paramNames = NULL;
         return 0;
     }
+
+    *paramNames = NULL;
 
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Parameter declaration", &threeACcode);
@@ -509,6 +538,10 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         char *paramName = safeMalloc(strlen((*currentToken)->data) + 1);
         strcpy(paramName, (*currentToken)->data);
         
+        paramCount++;
+        *paramNames = safeRealloc(*paramNames, paramCount * sizeof(char*));
+        (*paramNames)[paramCount - 1] = safeMalloc(strlen(paramName) + 1);
+        strcpy((*paramNames)[paramCount - 1], paramName);
 
         tSymbolData paramData = {0};
         paramData.kind = SYM_VAR;
@@ -529,7 +562,6 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         }
         free(paramName);
 
-        paramCount++;
         get_next_token(file, currentToken);
 
         if ((*currentToken)->type == T_RIGHT_PAREN)
@@ -808,6 +840,8 @@ void parse_return_statement(FILE *file, tToken *currentToken, tSymTableStack *st
     {
         threeACcode.return_used = true;
         parse_expression(file, currentToken, stack);
+    } else {
+        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
     }
 }
 
@@ -953,7 +987,19 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     if ((*currentToken)->type == T_ASSIGN)
     {
         get_next_token(file, currentToken);
-        tDataType expr_type = parse_expression(file, currentToken, stack);
+        tDataType expr_type;
+        tToken nextToken = peek_token(file);
+        if (((*currentToken)->type == T_ID || (*currentToken)->type == T_GLOBAL_ID) && nextToken && nextToken->type == T_LEFT_PAREN) {
+            parse_function_call(file, currentToken, stack);
+            expr_type = TYPE_UNDEF;
+        } else if ((*currentToken)->type == T_KW_IFJ) {
+            parse_ifj_call(file, currentToken, stack);
+            expr_type = TYPE_UNDEF;
+        }
+        else {
+            expr_type = parse_expression(file, currentToken, stack);
+        }
+
         tSymbolData* var_data = isGlobal ? symtable_find(global_symtable, variable_name) : find_data_in_stack(stack, variable_name);
         if (var_data) {
             var_data->dataType = expr_type;
@@ -971,29 +1017,51 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
+    // 1. Evaluate argument expressions
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
-        parse_term(file, currentToken, stack);
-        argCount++;
-        while ((*currentToken)->type == T_COMMA)
-        {
-            get_next_token(file, currentToken);
-            skip_optional_eol(currentToken, file);
-            parse_term(file, currentToken, stack);
+        while(1) {
+            parse_expression(file, currentToken, stack);
             argCount++;
+            if ((*currentToken)->type == T_COMMA) {
+                get_next_token(file, currentToken);
+                skip_optional_eol(currentToken, file);
+            } else {
+                break;
+            }
         }
     }
-    char *argCountStr = safeMalloc(12); // miesto pre int + null terminátor
-    sprintf(argCountStr, "%d", argCount);
-
-    char *temp = threeAC_create_temp(&threeACcode);
-    emit(OP_CALL, funcName, argCountStr, temp, &threeACcode);
-    threeACcode.expression_result = temp;
-
-
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
+    // 2. Create frame and pass parameters
+    emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+
+    for (int i = 0; i < argCount; i++) {
+        char param_name[20];
+        sprintf(param_name, "%%param%d", i);
+        Operand* tf_param = create_operand_from_tf_variable(param_name);
+        emit(OP_DEFVAR, tf_param, NULL, NULL, &threeACcode);
+    }
+
+    for (int i = argCount - 1; i >= 0; i--) {
+        char param_name[20];
+        sprintf(param_name, "%%param%d", i);
+        Operand* tf_param = create_operand_from_tf_variable(param_name);
+        emit(OP_POPS, tf_param, NULL, NULL, &threeACcode);
+    }
+
+    // 3. Call function
+    emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+    Operand* call_label = create_operand_from_label(funcName);
+    emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
+    emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+
+    // 4. Push return value for expression evaluation
+    Operand* retval = create_operand_from_tf_variable("%retval");
+    emit(OP_PUSHS, retval, NULL, NULL, &threeACcode);
+
+    // 5. Semantic checks and forward declaration
     int keyLength = strlen(funcName) + 1 + 10 + 1;
     char *key = safeMalloc(keyLength);
     sprintf(key, "%s@%d", funcName, argCount);
@@ -1002,7 +1070,6 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     if (!func)
     {
-        // Dopredná deklarácia funkcie
         tSymbolData forwardDecl = {0};
         forwardDecl.kind = SYM_FUNC;
         forwardDecl.dataType = TYPE_UNDEF;
@@ -1010,6 +1077,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         forwardDecl.index = -1;
         forwardDecl.defined = false;
         forwardDecl.paramCount = argCount;
+        forwardDecl.paramNames = NULL;
 
         if (argCount > 0)
         {
@@ -1038,6 +1106,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         exit(UNDEFINED_FUN_ERROR);
     }
 
+    free(funcName);
     free(key);
 }
 

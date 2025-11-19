@@ -87,6 +87,7 @@ typedef enum {
     OPP_NONE,
     OPP_COMMENT_TEXT,
     OPP_VAR,
+    OPP_TF_VAR,
     OPP_TEMP,
     OPP_GLOBAL,
     OPP_CONST_INT,
@@ -167,6 +168,7 @@ Operand* create_operand_from_constant_int(int value);
 Operand* create_operand_from_constant_bool(bool value);
 Operand* create_operand_from_label(const char *label);
 Operand* create_operand_from_variable(const char *varname, bool isGlobal);
+Operand* create_operand_from_tf_variable(const char *varname);
 Operand* create_operand_from_constant_nil();
 
 extern ThreeACList threeACcode;

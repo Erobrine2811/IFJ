@@ -541,12 +541,9 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
     if (expr_stack.top && !expr_stack.top->is_terminal) {
        result_type = expr_stack.top->dataType;
        if (threeACcode.return_used == true) {
-          Operand* ret_val = safeMalloc(sizeof(Operand));
-          ret_val->type = OPP_TEMP;
-          ret_val->value.varname = threeAC_create_temp(&threeACcode);
-          emit(OP_DEFVAR, ret_val, NULL, NULL, &threeACcode);
-          emit(OP_POPS, ret_val, NULL, NULL, &threeACcode);
-          emit(OP_RETURN, ret_val, NULL, NULL, &threeACcode);
+          Operand* retval_var = create_operand_from_variable("%retval", false);
+          emit(OP_POPS, retval_var, NULL, NULL, &threeACcode);
+          emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
           threeACcode.return_used = false;
        }
        threeACcode.expression_result = NULL;

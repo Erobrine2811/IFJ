@@ -32,7 +32,7 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void check_node_defined(tSymNode *node);
 void check_undefined_functions();
-int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack);
+int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack, char ***paramNames);
 void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
