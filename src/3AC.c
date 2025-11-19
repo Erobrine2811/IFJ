@@ -302,6 +302,7 @@ const char *operation_to_string(OperationType op)
 void list_print(ThreeACList *list) { 
     list_first(list);
     printf("----- 3AC CODE -----\n");
+    bool indent = false;
     while (list_isActive(list)) { 
         OperationType opType;
         Operand *arg1;
@@ -316,7 +317,18 @@ void list_print(ThreeACList *list) {
             continue;
         }
 
+        if (indent) {
+            printf("    ");
+        }
+
         printf("%s %s %s %s\n", operation_to_string(opType), operand_to_string(result), operand_to_string(arg1), operand_to_string(arg2));
+
+        if (opType == OP_LABEL) {
+            indent = true;
+        } else if (opType == OP_POPFRAME) {
+            indent = false;
+        }
+
         list_next(list);
     }
     printf("----- -------- ------\n");
@@ -340,7 +352,7 @@ const char *operand_to_string(const Operand *operand) {
         }
         case OPP_TEMP: {
             char* buf = safeMalloc(strlen(operand->value.varname) + 4);
-            sprintf(buf, "TF@%s", operand->value.varname);
+            sprintf(buf, "LF@%s", operand->value.varname);
             return buf;
         }
         case OPP_CONST_INT: {

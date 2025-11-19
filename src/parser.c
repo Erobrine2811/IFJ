@@ -262,12 +262,17 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     labelOp->type = OPP_LABEL;
     labelOp->value.label = funCopy;
     char* commentText = safeMalloc(strlen(funcName) + 25);
+    sprintf(commentText, "####################");
+    emit_comment(commentText, &threeACcode);
     sprintf(commentText, "Function declaration: %s", funcName);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment(commentText, &threeACcode);
+    sprintf(commentText, "####################");
     emit_comment(commentText, &threeACcode);
     emit(OP_LABEL, labelOp, NULL, NULL , &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+    threeACcode.temp_counter = 0;
 
     int paramCount = parse_parameter_list(file, currentToken, stack);
     char *paramCountStr = safeMalloc(12);
@@ -462,6 +467,8 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         return 0;
     }
 
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment("Parameter declaration", &threeACcode);
     while (true)
     {
         if ((*currentToken)->type != T_ID)
@@ -483,8 +490,6 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         paramOp->value.varname = safeMalloc(strlen(paramName) + 1);
         strcpy(paramOp->value.varname, paramName);
         
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Parameter declaration", &threeACcode);
         emit(OP_DEFVAR, paramOp, NULL, NULL, &threeACcode);
 
         if (!symtable_insert(currentSymtable, paramName, paramData))
@@ -750,7 +755,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
             char *commentText = safeMalloc(strlen(varName) + 40);
             sprintf(commentText, "Implicit declaration of global variable '%s'", varName);
-            emit(NO_OP, NULL, NULL, NULL, &threeACcode);
             emit_comment(commentText, &threeACcode);
             free(commentText);
             
@@ -771,7 +775,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     if (!is_new_declaration) {
         char *commentText = safeMalloc(strlen(varName) + 30);
         sprintf(commentText, "Assignment to variable '%s'", varName);
-            emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment(commentText, &threeACcode);
         free(commentText);
     }
@@ -798,6 +801,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
     emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
     // For space bettween instructions
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -992,9 +996,7 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
 void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
-
     expect_and_consume(T_DOT, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
 
     if ((*currentToken)->type != T_ID)
     {
@@ -1006,9 +1008,40 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     sprintf(fullName, "Ifj.%s", (*currentToken)->data);
     get_next_token(file, currentToken);
  
-
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
+
+    if (strcmp(fullName, "Ifj.write") == 0)
+    {
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            argCount = 1;
+            parse_expression(file, currentToken, stack);
+            
+            Operand* write_arg = safeMalloc(sizeof(Operand));
+            write_arg->type = OPP_TEMP;
+            write_arg->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, write_arg, NULL, NULL, &threeACcode);
+            emit(OP_POPS, write_arg, NULL, NULL, &threeACcode);
+            emit(OP_WRITE, write_arg, NULL, NULL, &threeACcode);
+        }
+
+        semantic_check_argument_count(funcData, argCount, fullName);
+
+        if ((*currentToken)->type == T_COMMA) {
+            exit(WRONG_ARGUMENT_COUNT_ERROR);
+        }
+        
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        
+        Operand *null_op = safeMalloc(sizeof(Operand));
+        null_op->type = OPP_CONST_NIL;
+        emit(OP_PUSHS, null_op, NULL, NULL, &threeACcode);
+
+        free(fullName);
+        return;
+    }
     
     tDataType argTypes[3];
     int argCount = 0;
@@ -1041,4 +1074,5 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
     sprintf(count, "%d", argCount);
     emit(OP_CALL, fullName , count, threeAC_create_temp(&threeACcode), &threeACcode);
     threeACcode.expression_result = threeACcode.active->result;
+    free(fullName);
 }

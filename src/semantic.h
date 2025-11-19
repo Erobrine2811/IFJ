@@ -26,4 +26,12 @@ void semantic_check_ifj_call(tSymbolData *funcData, tDataType *argTypes, int arg
  */
 void semantic_define_variable(tSymTableStack *stack, const char *variable_name, bool isGlobal);
 
+/**
+ * Function to check semantic argument count of function call
+ * 
+ * @param funcData Function symbol data
+ * @param argCount Number of arguments passed to the function
+ * @param name Name of the function being called
+ */
+void semantic_check_argument_count(tSymbolData *funcData, int argCount, const char *name);
 #endif

@@ -380,7 +380,6 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
        }
        threeACcode.expression_result = NULL;
     }
-    threeACcode.temp_counter = 0;
 
     while (expr_stack.top != NULL)
     {
