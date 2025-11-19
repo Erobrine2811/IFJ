@@ -418,9 +418,9 @@ const char *operand_to_string(const Operand *operand) {
             return str;
         }
         case OPP_CONST_FLOAT: {
-            int len = snprintf(NULL, 0, "%f", operand->value.floatval);
+            int len = snprintf(NULL, 0, "%a", operand->value.floatval);
             char *str = safeMalloc(len + 7);
-            sprintf(str, "float@%f", operand->value.floatval);
+            sprintf(str, "float@%a", operand->value.floatval);
             return str;
         }
         case OPP_CONST_STRING: {

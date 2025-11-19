@@ -1465,6 +1465,23 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_NUM;
+    } else if (strcmp(fullName, "Ifj.floor") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.floor call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            argCount = 1;
+            parse_expression(file, currentToken, stack); // Parse the argument, pushes to stack
+            
+            // The argument (a number) is already on the stack.
+            // Use OP_FLOAT2INTS to convert the top of the stack (float) to int (floor).
+            emit(OP_FLOAT2INTS, NULL, NULL, NULL, &threeACcode); 
+        }
+        semantic_check_argument_count(funcData, argCount, fullName);
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_NUM; // Return type is Num (int or float)
     } else if (strcmp(fullName, "Ifj.str") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.str call", &threeACcode);
