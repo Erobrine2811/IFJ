@@ -16,7 +16,7 @@ typedef struct {
     char *name;
     tDataType returnType;
     int paramCount;
-    tDataType params[3]; // Max params for a builtin is 3
+    tDataType params[3];
 } tBuiltinDef;
 
 int parse_program(FILE *file);

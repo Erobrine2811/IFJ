@@ -1,0 +1,4 @@
+*.o
+scanner_test
+ifj25
+*.dSYM/

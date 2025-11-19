@@ -5,46 +5,107 @@
 #include <stdbool.h>
 
 typedef enum { 
-    OPP_ADD,
-    OPP_SUB,
-    OPP_MUL,
-    OPP_DIV,
-    OPP_ASSIGN,
-    OP_LABEL,
-    OP_DEFVAR,
+  OP_LABEL,
+  OP_JUMP,
+  OP_JUMPIFEQ,
+  OP_JUMPIFNEQ,
 
-    OP_JUMP,
-    OP_JUMP_IF_FALSE,
+  OP_DEFVAR,
+  OP_MOVE,
 
-    OP_CALL,
-    OP_RETURN,
-    OP_PARAM,
-    NO_OP,
+  OP_CREATEFRAME,
+  OP_PUSHFRAME,
+  OP_POPFRAME,
 
-    OPP_LT,
-    OPP_LTE,
-    OPP_GT,
-    OPP_GTE,
-    OPP_EQ,
-    OPP_NEQ,
+  OP_ADD,
+  OP_SUB,
+  OP_MUL,
+  OP_DIV,
 
-    while_start,
-    while_end,
+  OP_AND,
+  OP_OR,
+  OP_NOT,
 
-    if_start,
-    if_end,
-    if_else
+  OP_LT,
+  OP_GT,
+  OP_EQ,
+
+  OP_CONCAT,
+  OP_STRLEN,
+  OP_GETCHAR,
+  OP_SETCHAR,
+
+  OP_PUSHS,
+  OP_POPS,
+
+  OP_ADDS,
+  OP_SUBS,
+  OP_MULS,
+  OP_DIVS,
+
+  OP_ANDS,
+  OP_ORS,
+  OP_NOTS,
+
+  OP_LTS,
+  OP_GTS,
+  OP_EQS,
+
+  OP_CALL,
+  OP_RETURN,
+
+  OP_INT2FLOAT,
+  OP_FLOAT2INT,
+  OP_FLOAT2STR,
+
+  OP_TYPE,
+  OP_ISINT,
+
+  OP_READ,
+  OP_WRITE,
+
+  OP_EXIT,
+
+  NO_OP
+
 } OperationType;
+
+typedef enum {
+    OPP_NONE,
+    OPP_VAR,
+    OPP_TEMP,
+    OPP_GLOBAL,
+    OPP_CONST_INT,
+    OPP_CONST_FLOAT,
+    OPP_CONST_STRING,
+    OPP_CONST_BOOL,
+    OPP_CONST_NIL,
+    OPP_LABEL
+} OperandType;
+
+
+typedef struct {
+    OperandType type;
+    union {
+        int intval;
+        double floatval;
+        char *strval;
+        bool boolval;
+        char *varname;
+        char *label; 
+    } value;
+} Operand;
 
 typedef struct InstructionNode{
     OperationType opType;
-    char *arg1;
-    char *arg2;
-    char *result;
+    Operand *result;
+    Operand *arg1;
+    Operand *arg2;
     
     struct InstructionNode *next;
     struct InstructionNode *prev;
 } InstructionNode;
+
 
 
 typedef struct  {
@@ -69,15 +130,15 @@ void list_last(ThreeACList *list);
 void list_next(ThreeACList *list);
 void list_previous(ThreeACList *list);
 bool list_isActive(ThreeACList *list);
-void list_setValue(ThreeACList *list, OperationType opType, char *arg1, char *arg2, char *result);
-void list_InsertAfter(ThreeACList *list, OperationType opType, char *arg1, char *arg2, char *result);
-void list_InsertBefore(ThreeACList *list, OperationType opType, char *arg1, char *arg2, char *result);
-void list_GetValue(ThreeACList *list, OperationType *opType, char **arg1, char **arg2, char **result);
-void list_DeleteAfter(ThreeACList *list);
-void list_DeleteBefore(ThreeACList *list);
-void list_InsertFirst(ThreeACList *list, OperationType opType, char *arg1, char *arg2, char *result);
+void list_setValue(ThreeACList *list, OperationType opType, Operand *arg1, Operand *arg2, Operand *result);
+void list_InsertAfter( ThreeACList *list, OperationType opType, Operand *result, Operand *arg1, Operand *arg2 );
+void list_InsertBefore( ThreeACList *list, OperationType opType, Operand *result, Operand *arg1, Operand *arg2 );
+void list_GetValue( ThreeACList *list, OperationType *opType, Operand **arg1, Operand **arg2, Operand **result );
+void list_DeleteAfter( ThreeACList *list );
+void list_DeleteBefore( ThreeACList *list );
+void list_InsertFirst( ThreeACList *list, OperationType opType, Operand *result, Operand *arg1, Operand *arg2 );
 
-void emit(OperationType op, const char *arg1, const char *arg2, const char *result, ThreeACList *list);
+void emit(OperationType op, Operand *result, Operand *arg1,  Operand *arg2, ThreeACList *list);
 
 
 char *threeAC_create_temp(ThreeACList *list);
@@ -89,5 +150,6 @@ extern ThreeACList threeACcode;
 
 void list_print(ThreeACList *list);
 const char *operation_to_string(OperationType op);
+const char *operand_to_string(const Operand *operand);
 
 #endif
