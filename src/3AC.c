@@ -367,11 +367,28 @@ const char *operand_to_string(const Operand *operand) {
             return str;
         }
         case OPP_CONST_STRING: {
-            int len = snprintf(NULL, 0, "%s", operand->value.strval);
-            char *str = safeMalloc(len + 8);
-            sprintf(str, "string@%s", operand->value.strval);
+            const char* s = operand->value.strval;
+            size_t s_len = strlen(s);
+            char* escaped_str = safeMalloc(s_len * 4 + 1); 
+            char* p = escaped_str;
+            for (size_t i = 0; i < s_len; i++) {
+                unsigned char c = s[i];
+                if (c <= 32 || c == '#' || c == '\\') {
+                    sprintf(p, "\\%03d", c);
+                    p += 4;
+                } else {
+                    *p++ = c;
+                }
+            }
+            *p = '\0';
+
+            int final_len = snprintf(NULL, 0, "string@%s", escaped_str);
+            char *str = safeMalloc(final_len + 1);
+            sprintf(str, "string@%s", escaped_str);
+            
+            free(escaped_str);
             return str;
-      }
+        }
         case OPP_CONST_BOOL: {
             int bool_len = operand->value.boolval ? 5 : 6;
             char *bool_str = safeMalloc(bool_len);

@@ -814,19 +814,28 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     skip_optional_eol(currentToken, file);
 
     nextToken = peek_token(file);
+    tDataType expr_type;
     if ((*currentToken)->type == T_ID && nextToken->type == T_LEFT_PAREN)
     {
         parse_function_call(file, currentToken, stack);
+        // TODO: Get return type from function call
+        expr_type = TYPE_UNDEF;
     }
     else if ((*currentToken)->type == T_KW_IFJ)
     {
         parse_ifj_call(file, currentToken, stack);
+        // TODO: Get return type from builtin call
+        expr_type = TYPE_UNDEF;
     }
     else
     {
-        parse_expression(file, currentToken, stack);
+        expr_type = parse_expression(file, currentToken, stack);
     }
 
+    tSymbolData* var_data = isGlobal ? symtable_find(global_symtable, varName) : find_data_in_stack(stack, varName);
+    if (var_data) {
+        var_data->dataType = expr_type;
+    }
 
 
     emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
@@ -867,7 +876,11 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     if ((*currentToken)->type == T_ASSIGN)
     {
         get_next_token(file, currentToken);
-        parse_expression(file, currentToken, stack);
+        tDataType expr_type = parse_expression(file, currentToken, stack);
+        tSymbolData* var_data = isGlobal ? symtable_find(global_symtable, variable_name) : find_data_in_stack(stack, variable_name);
+        if (var_data) {
+            var_data->dataType = expr_type;
+        }
         emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
     }
 }

@@ -6,7 +6,7 @@ class Program {
 
     static main() {
         var a = "a"
-        var b = a * 2
+        var b = a + "\n"
         Ifj.write(b)
     }
 }

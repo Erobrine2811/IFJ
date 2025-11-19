@@ -72,3 +72,35 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
         exit(REDEFINITION_FUN_ERROR);
     }
 }
+
+tDataType semantic_check_operation(char* op, tDataType left, tDataType right) {
+    if (left == TYPE_UNDEF || right == TYPE_UNDEF) {
+        return TYPE_UNDEF;
+    }
+
+    if (left == TYPE_NULL || right == TYPE_NULL) {
+        fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: operand cannot be null\n", op);
+        exit(TYPE_COMPATIBILITY_ERROR);
+    }
+
+    if (strcmp(op, "+") == 0) {
+        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
+        if (left == TYPE_STRING && right == TYPE_STRING) return TYPE_STRING;
+        fprintf(stderr, "[SEMANTIC] Type error in '+' operation: cannot add %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
+        exit(TYPE_COMPATIBILITY_ERROR);
+    }
+    if (strcmp(op, "-") == 0 || strcmp(op, "/") == 0) {
+        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
+        fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
+        exit(TYPE_COMPATIBILITY_ERROR);
+    }
+    if (strcmp(op, "*") == 0) {
+        if (left == TYPE_NUM && right == TYPE_NUM) return TYPE_NUM;
+        if (left == TYPE_STRING && right == TYPE_NUM) return TYPE_STRING;
+        if (left == TYPE_NUM && right == TYPE_STRING) return TYPE_STRING;
+        fprintf(stderr, "[SEMANTIC] Type error in '*' operation: incompatible types %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
+        exit(TYPE_COMPATIBILITY_ERROR);
+    }
+
+    return TYPE_UNDEF;
+}

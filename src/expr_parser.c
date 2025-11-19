@@ -2,6 +2,7 @@
 #include "parser.h"
 #include <stdio.h>
 #include "3AC.h"
+#include "semantic.h"
 
 // Helper to create an Operand from a token
 static Operand* create_operand_from_token(tToken token) {
@@ -32,9 +33,49 @@ static Operand* create_operand_from_token(tToken token) {
             free(data_copy);
             break;
         case T_STRING:
+        {
             op->type = OPP_CONST_STRING;
-            op->value.strval = data_copy;
+            int len = strlen(data_copy);
+            if (len < 2 || data_copy[0] != '"' || data_copy[len-1] != '"') {
+                op->value.strval = data_copy;
+                break;
+            }
+
+            char* unescaped_str = safeMalloc(len);
+            int j = 0;
+            for (int i = 1; i < len - 1; i++) {
+                if (data_copy[i] == '\\') {
+                    i++;
+                    if (i >= len - 1) { break; }
+                    switch (data_copy[i]) {
+                        case 'n': unescaped_str[j++] = '\n'; break;
+                        case 'r': unescaped_str[j++] = '\r'; break;
+                        case 't': unescaped_str[j++] = '\t'; break;
+                        case '"': unescaped_str[j++] = '"'; break;
+                        case '\\': unescaped_str[j++] = '\\'; break;
+                        case 'x':
+                            if (i + 2 < len - 1 && isxdigit(data_copy[i+1]) && isxdigit(data_copy[i+2])) {
+                                char hex[3] = {data_copy[i+1], data_copy[i+2], '\0'};
+                                unescaped_str[j++] = (char)strtol(hex, NULL, 16);
+                                i += 2;
+                            } else {
+                                unescaped_str[j++] = 'x';
+                            }
+                            break;
+                        default:
+                            unescaped_str[j++] = '\\';
+                            unescaped_str[j++] = data_copy[i];
+                            break;
+                    }
+                } else {
+                    unescaped_str[j++] = data_copy[i];
+                }
+            }
+            unescaped_str[j] = '\0';
+            op->value.strval = safeRealloc(unescaped_str, j + 1);
+            free(data_copy);
             break;
+        }
         case T_KW_NULL_VALUE:
             op->type = OPP_CONST_NIL;
             free(data_copy);
@@ -53,6 +94,31 @@ static Operand* create_operand_from_token(tToken token) {
             return NULL;
     }
     return op;
+}
+
+static tDataType get_data_type_from_token(tToken token, tSymTableStack *sym_stack) {
+    if (!token) return TYPE_UNDEF;
+
+    switch(token->type) {
+        case T_INTEGER:
+        case T_FLOAT:
+            return TYPE_NUM;
+        case T_STRING:
+            return TYPE_STRING;
+        case T_KW_NULL_VALUE:
+            return TYPE_NULL;
+        case T_ID:
+        case T_GLOBAL_ID:
+        {
+            tSymbolData *data = find_data_in_stack(sym_stack, token->data);
+            if (data) {
+                return data->dataType;
+            }
+            return TYPE_UNDEF;
+        }
+        default:
+            return TYPE_UNDEF;
+    }
 }
 
 static tPrec precedence_table[10][10] = {
@@ -127,6 +193,8 @@ static void expr_push(tExprStack *stack, tSymbol sym, bool is_terminal)
     node->symbol = sym;
     node->is_terminal = is_terminal;
     node->next = stack->top;
+    node->dataType = TYPE_UNDEF;
+    node->value = NULL;
     stack->top = node;
 }
 
@@ -182,11 +250,13 @@ static int reduce_expr(tExprStack *stack)
     // E -> i
     if (n1->is_terminal && n1->symbol == E_ID)
     {
+        tDataType type = n1->dataType;
         n1->is_terminal = false;
         if (n1->value) {
             free(n1->value);
             n1->value = NULL;
         }
+        n1->dataType = type;
         return 1;
     }
 
@@ -200,11 +270,12 @@ static int reduce_expr(tExprStack *stack)
            !n2->is_terminal &&
            n3->is_terminal && n3->symbol == E_LPAREN)
         {
+            tDataType type = n2->dataType;
             expr_pop(stack);
             expr_pop(stack);
             expr_pop(stack);
             expr_push(stack, E_ID, false);
-            stack->top->value = NULL;
+            stack->top->dataType = type;
             return 1;
         }
     }
@@ -219,6 +290,11 @@ static int reduce_expr(tExprStack *stack)
             tSymbol op = n2->symbol;
             if (op == E_MUL_DIV || op == E_PLUS_MINUS || op == E_REL || op == E_EQ_NEQ)
             {
+                tDataType result_type = TYPE_UNDEF;
+                if (op == E_MUL_DIV || op == E_PLUS_MINUS) {
+                    result_type = semantic_check_operation(n2->value, n3->dataType, n1->dataType);
+                }
+
                 OperationType opType;
                 bool use_not = false;
 
@@ -247,7 +323,7 @@ static int reduce_expr(tExprStack *stack)
                 expr_pop(stack);  
                 expr_pop(stack);  
                 expr_push(stack, E_ID, false);
-                stack->top->value = NULL;
+                stack->top->dataType = result_type;
                 return 1;
             }
         }
@@ -256,7 +332,7 @@ static int reduce_expr(tExprStack *stack)
     return 0;
 }
 
-int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
+tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     tExprStack expr_stack = { NULL };
     expr_push(&expr_stack, E_DOLLAR, true);
@@ -287,7 +363,7 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
                 if (op) {
                     emit(OP_PUSHS, op, NULL, NULL, &threeACcode);
                 }
-                expr_stack.top->value = NULL;
+                expr_stack.top->dataType = get_data_type_from_token(lookahead, stack);
             }
             else if (look_sym == E_TYPE)
             {
@@ -368,7 +444,9 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
         }
     }
 
+    tDataType result_type = TYPE_UNDEF;
     if (expr_stack.top && !expr_stack.top->is_terminal) {
+       result_type = expr_stack.top->dataType;
        if (threeACcode.return_used == true) {
           Operand* ret_val = safeMalloc(sizeof(Operand));
           ret_val->type = OPP_TEMP;
@@ -390,5 +468,5 @@ int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack)
     }
 
     *currentToken = lookahead;
-    return 0;
+    return result_type;
 }

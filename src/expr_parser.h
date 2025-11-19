@@ -33,6 +33,7 @@ typedef struct ExprStackNode {
     tSymbol symbol;
     bool is_terminal;
     char *value;
+    tDataType dataType;
     struct ExprStackNode *next;
 } tExprStackNode;
 
@@ -40,6 +41,6 @@ typedef struct {
     tExprStackNode *top;
 } tExprStack;
 
-int parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack);
+tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 #endif
