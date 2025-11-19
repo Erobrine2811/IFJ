@@ -85,6 +85,7 @@ typedef enum {
 
 typedef enum {
     OPP_NONE,
+    OPP_TYPE,
     OPP_COMMENT_TEXT,
     OPP_VAR,
     OPP_TF_VAR,
@@ -108,6 +109,7 @@ typedef struct {
         bool boolval;
         char *varname;
         char *label; 
+        char *type_name;
     } value;
 } Operand;
 
@@ -174,6 +176,7 @@ Operand* create_operand_from_label(const char *label);
 Operand* create_operand_from_variable(const char *varname, bool isGlobal);
 Operand* create_operand_from_tf_variable(const char *varname);
 Operand* create_operand_from_constant_nil();
+Operand* create_operand_from_type(const char *type_name);
 
 extern ThreeACList threeACcode;
 

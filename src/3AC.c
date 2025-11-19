@@ -387,6 +387,8 @@ const char *operand_to_string(const Operand *operand) {
     if (operand == NULL) return "";
 
     switch (operand->type) {
+        case OPP_TYPE:
+            return operand->value.type_name;
         case OPP_COMMENT_TEXT:
             return operand->value.strval;
         case OPP_GLOBAL: {
@@ -534,6 +536,13 @@ Operand* create_operand_from_tf_variable(const char *varname) {
     return op;
 }
 
+Operand* create_operand_from_type(const char *type_name) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_TYPE;
+    op->value.type_name = safeMalloc(strlen(type_name) + 1);
+    strcpy(op->value.type_name, type_name);
+    return op;
+}
 
 
 Operand* create_operand_from_constant_nil() {

@@ -11,7 +11,7 @@ static tBuiltinDef builtin_defs[] = {
     {"Ifj.read_num", TYPE_NUM, 0, {}},
     {"Ifj.read_str", TYPE_STRING, 0, {}},
     {"Ifj.floor", TYPE_NUM, 1, {TYPE_NUM}},
-    {"Ifj.str", TYPE_STRING, 1, {TYPE_NUM}},
+    {"Ifj.str", TYPE_STRING, 1, {TYPE_UNDEF}},
     {"Ifj.length", TYPE_NUM, 1, {TYPE_STRING}},
     {"Ifj.substring", TYPE_STRING, 3, {TYPE_STRING, TYPE_NUM, TYPE_NUM}},
     {"Ifj.strcmp", TYPE_NUM, 2, {TYPE_STRING, TYPE_STRING}},
@@ -1090,8 +1090,8 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     }
     else if ((*currentToken)->type == T_KW_IFJ)
     {
-        parse_ifj_call(file, currentToken, stack);
-        expr_type = TYPE_UNDEF;
+        tDataType returnType = parse_ifj_call(file, currentToken, stack);
+        expr_type = returnType;
     }
     else
     {
@@ -1346,7 +1346,7 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
     }
 }
 
-void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
+tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
     expect_and_consume(T_DOT, currentToken, file, false, NULL);
@@ -1395,7 +1395,116 @@ void parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
         emit(OP_PUSHS, null_op, NULL, NULL, &threeACcode);
 
         free(fullName);
-        return;
+        return TYPE_NULL;
+    } else if (strcmp(fullName, "Ifj.read_str") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.read_str call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        semantic_check_argument_count(funcData, 0, fullName);
+
+        Operand* result_var = safeMalloc(sizeof(Operand));
+        result_var->type = OPP_TEMP;
+        result_var->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
+        emit(OP_READ, result_var, create_operand_from_type("string"), NULL, &threeACcode);
+        emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
+
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_STRING;
+    } else if (strcmp(fullName, "Ifj.read_num") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.read_num call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        semantic_check_argument_count(funcData, 0, fullName);
+
+        Operand* result_var = safeMalloc(sizeof(Operand));
+        result_var->type = OPP_TEMP;
+        result_var->value.varname = threeAC_create_temp(&threeACcode);
+        emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
+        emit(OP_READ, result_var, create_operand_from_type("string"), NULL, &threeACcode);
+        Operand* int_type_var = safeMalloc(sizeof(Operand));
+        emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
+
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_NUM;
+    } else if (strcmp(fullName, "Ifj.str") == 0) {
+        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+        emit_comment("Ifj.str call", &threeACcode);
+        tSymbolData *funcData = symtable_find(global_symtable, fullName);
+        int argCount = 0;
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            argCount = 1;
+            parse_expression(file, currentToken, stack); // Parse the argument
+            
+            Operand* arg_val = safeMalloc(sizeof(Operand));
+            arg_val->type = OPP_TEMP;
+            arg_val->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, arg_val, NULL, NULL, &threeACcode);
+            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode); // Pop argument from stack
+
+            Operand* result_str = safeMalloc(sizeof(Operand));
+            result_str->type = OPP_TEMP;
+            result_str->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
+
+            Operand* type_check_var = safeMalloc(sizeof(Operand));
+            type_check_var->type = OPP_TEMP;
+            type_check_var->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, type_check_var, NULL, NULL, &threeACcode);
+
+            Operand* label_end = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_is_string = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_is_nil = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+
+            // Check if nil
+            emit(OP_JUMPIFEQ, label_is_nil, arg_val, create_operand_from_constant_nil(), &threeACcode);
+
+            // Get type of arg_val
+            emit(OP_TYPE, type_check_var, arg_val, NULL, &threeACcode);
+
+            // Check if string
+            emit(OP_JUMPIFEQ, label_is_string, type_check_var, create_operand_from_constant_string("string"), &threeACcode);
+            // Check if int
+            emit(OP_JUMPIFEQ, label_is_int, type_check_var, create_operand_from_constant_string("int"), &threeACcode);
+            // Check if float
+            emit(OP_JUMPIFEQ, label_is_float, type_check_var, create_operand_from_constant_string("float"), &threeACcode);
+
+            // Default case (should not happen if all types are covered, but for safety)
+            emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode); // Empty string or error
+            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
+
+            // Handle string
+            emit(OP_LABEL, label_is_string, NULL, NULL, &threeACcode);
+            emit(OP_MOVE, result_str, arg_val, NULL, &threeACcode);
+            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
+
+            // Handle int
+            emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
+            emit(OP_INT2STR, result_str, arg_val, NULL, &threeACcode);
+            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
+
+            // Handle float
+            emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
+            emit(OP_FLOAT2STR, result_str, arg_val, NULL, &threeACcode);
+            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
+
+            // Handle nil
+            emit(OP_LABEL, label_is_nil, NULL, NULL, &threeACcode);
+            emit(OP_MOVE, result_str, create_operand_from_constant_string("null"), NULL, &threeACcode);
+            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
+
+            emit(OP_LABEL, label_end, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
+        }
+        semantic_check_argument_count(funcData, argCount, fullName);
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        free(fullName);
+        return TYPE_STRING;
     }
     
     tDataType argTypes[3];
