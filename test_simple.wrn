@@ -2,18 +2,14 @@ import "ifj25" for Ifj
 
 class Program {
     static main() {
-      var x = "aklasjfla"
-
-      while (x == null) {
-
-        var confirm = Ifj.read_str()
-
-        var res = Ifj.strcmp(confirm, "y")
-        
-        if (res == 0) {
-          x = null
-        } else {
-          x = x + x
-        }
+      var c = 10
+      while (c > 0) {
+        test(10, c)
+        c = c - 1
+        Ifj.write(c)
       }
+    }
+    static test(a, b) {
+      return a - b
+    }
 }

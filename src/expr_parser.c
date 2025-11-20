@@ -331,7 +331,6 @@ static int reduce_expr(tExprStack *stack)
             {
                 tDataType result_type = TYPE_UNDEF;
 
-                if (op == E_MUL_DIV || op == E_PLUS_MINUS) {
                     if (strcmp(n2->value, "+") == 0) {
                       Operand* first = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
                       Operand* second = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
@@ -435,7 +434,6 @@ static int reduce_expr(tExprStack *stack)
                     result_type = TYPE_INT;
 
                     emit(OP_LABEL, endAdditionLabel, NULL, NULL, &threeACcode);
-                    }
                 } else {
                     // Existing logic for stack-based operations
                     OperationType opType;

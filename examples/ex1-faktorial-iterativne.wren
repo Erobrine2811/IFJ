@@ -17,8 +17,6 @@ class Program {
                 while (a > 0) {
                     vysl = vysl * a
                     a = a - 1
-                    print("a in while loop: ",a)
-                    print("vysl in while loop: ",vysl)
                 }
                 vysl = Ifj.floor(vysl)
                 vysl = Ifj.str(vysl)
@@ -30,9 +28,4 @@ class Program {
         }
     }
 
-    static print(msg, x) {
-      Ifj.write(msg)
-      Ifj.write(x)
-      Ifj.write("\n")
-    }
 }

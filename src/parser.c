@@ -928,7 +928,7 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     InstructionNode *scan_ptr = hoist_point ? hoist_point->next : threeACcode.head;
     while (scan_ptr != NULL && scan_ptr != loop_end_node) {
         InstructionNode *next_scan = scan_ptr->next;
-        if (scan_ptr->opType == OP_DEFVAR) {
+        if (scan_ptr->opType == OP_DEFVAR && (scan_ptr->result->type == OPP_VAR || scan_ptr->result->type == OPP_TEMP)) {
             // Unlink from current position
             scan_ptr->prev->next = scan_ptr->next;
             if (scan_ptr->next) {
