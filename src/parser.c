@@ -58,6 +58,7 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
 {
     if ((*currentToken)->type != type)
     {
+      printf("%s\n", (*currentToken)->data);
         exit(SYNTAX_ERROR);
     }
 
@@ -1683,15 +1684,28 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
             parse_expression(file, currentToken, stack); // Parse the argument, pushes to stack
-            
-            // The argument (a number) is already on the stack.
-            // Use OP_FLOAT2INTS to convert the top of the stack (float) to int (floor).
+          
+            Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_end_floor = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* arg_val = safeMalloc(sizeof(Operand));
+            arg_val->type = OPP_TEMP;
+            arg_val->value.varname = threeAC_create_temp(&threeACcode);
+            emit(OP_DEFVAR, arg_val, NULL, NULL, &threeACcode);
+            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
+            emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, create_operand_from_constant_string("int"),  NULL,NULL, &threeACcode);
+            emit(OP_JUMPIFEQS, label_is_int, NULL, NULL, &threeACcode);
             emit(OP_FLOAT2INTS, NULL, NULL, NULL, &threeACcode); 
+            emit(OP_JUMP, label_end_floor, NULL, NULL, &threeACcode);
+            emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
+            emit(OP_LABEL, label_end_floor, NULL, NULL, &threeACcode);
         }
         semantic_check_argument_count(funcData, argCount, fullName);
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
-        return TYPE_NUM; // Return type is Num (int or float)
+        return TYPE_INT;
     } else if (strcmp(fullName, "Ifj.str") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.str call", &threeACcode);
@@ -1699,6 +1713,8 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
+            parse_expression(file, currentToken, stack);
+            
             
             Operand* arg_val = safeMalloc(sizeof(Operand));
             arg_val->type = OPP_TEMP;

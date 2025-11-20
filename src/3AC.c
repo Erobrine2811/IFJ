@@ -328,6 +328,8 @@ const char *operation_to_string(OperationType op)
 
     case OP_TYPE:         return "TYPE";
     case OP_ISINT:        return "ISINT";
+    case OP_TYPES:         return "TYPES";
+    case OP_ISINTS:        return "ISINTS";
 
     case OP_READ:         return "READ";
     case OP_WRITE:        return "WRITE";

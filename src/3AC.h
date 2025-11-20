@@ -75,6 +75,9 @@ typedef enum {
   OP_TYPE,
   OP_ISINT,
 
+  OP_TYPES,
+  OP_ISINTS,
+
   OP_READ,
   OP_WRITE,
 

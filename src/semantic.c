@@ -99,34 +99,14 @@ tDataType semantic_check_operation(char* op, tDataType left, tDataType right) {
     bool left_is_num = (left == TYPE_INT || left == TYPE_FLOAT || left == TYPE_NUM);
     bool right_is_num = (right == TYPE_INT || right == TYPE_FLOAT || right == TYPE_NUM);
 
-    if (strcmp(op, "+") == 0) {
+    if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
         if (left_is_num && right_is_num) {
-            if (left == TYPE_FLOAT || right == TYPE_FLOAT) return TYPE_FLOAT;
-            if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
+            if (left == TYPE_FLOAT || right == TYPE_FLOAT || left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
             return TYPE_INT;
         }
-        if (left == TYPE_STRING && right == TYPE_STRING) return TYPE_STRING;
-        fprintf(stderr, "[SEMANTIC] Type error in '+' operation: cannot add %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
-        exit(TYPE_COMPATIBILITY_ERROR);
-    }
-        if (left_is_num && right_is_num) {
-            if (strcmp(op, "/") == 0) {
-                if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
-                return TYPE_FLOAT;
-            }
+        if (strcmp(op, "+") == 0 && left == TYPE_STRING && right == TYPE_STRING) return TYPE_STRING;
+        if (strcmp(op, "*") == 0 && ((left == TYPE_STRING && right == TYPE_INT) || (left == TYPE_INT && right == TYPE_STRING))) return TYPE_STRING;
         fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
-        exit(TYPE_COMPATIBILITY_ERROR);
-    }
-    if (strcmp(op, "*") == 0) {
-        if (left_is_num && right_is_num) {
-            if (left == TYPE_FLOAT || right == TYPE_FLOAT) return TYPE_FLOAT;
-            if (left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
-            return TYPE_INT;
-        }
-        if ((left == TYPE_STRING && right == TYPE_INT) || (left == TYPE_INT && right == TYPE_STRING)) {
-            return TYPE_STRING;
-        }
-        fprintf(stderr, "[SEMANTIC] Type error in '*' operation: incompatible types %s and %s\n", transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }
 
