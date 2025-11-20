@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # --- Configuration ---
-INTERPRETER_PATH="/Users/erobrine/Documents/school/3/ifj/ic25int"
-IFJ25_BIN="/Users/erobrine/Documents/school/3/ifj/ifj25"
+INTERPRETER_PATH="/pub/courses/ifj/ic25int/linux/ic25int"
+IFJ25_BIN="./ifj25"
 SIMPLE_TESTS_DIR="tests/simple/"
 ADVANCED_TESTS_DIR="tests/advanced/"
 
