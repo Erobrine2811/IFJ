@@ -1,1 +1,874 @@
-Reduction failed
+.IFJcode25
+DEFVAR GF@__a%2
+MOVE GF@__a%2 nil@nil
+
+JUMP %start  
+
+# ####################  
+# Program entry point  
+# ####################  
+LABEL %start  
+CREATEFRAME   
+PUSHFRAME   
+CALL main%func  
+POPFRAME   
+EXIT int@0  
+
+
+# ####################  
+# Function declaration: getAnswer  
+# ####################  
+LABEL getAnswer%func  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+
+PUSHS int@42  
+POPS LF@%retval  
+RETURN   
+RETURN   
+
+
+# ####################  
+# Function declaration: getAnswer  
+# ####################  
+LABEL getAnswer%func  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+
+# Parameter declaration  
+DEFVAR LF@arg%0  
+MOVE LF@arg%0 LF@%param0 
+
+
+# If statement condition  
+PUSHS LF@arg%0  
+DEFVAR LF@t0  
+POPS LF@t0  
+DEFVAR LF@t1  
+TYPE LF@t1 LF@t0 
+DEFVAR LF@t2  
+JUMPIFEQ %L0 LF@t1 string@int
+EQ LF@t2 LF@t1 string@float
+JUMP %L1  
+LABEL %L0  
+MOVE LF@t2 bool@true 
+LABEL %L1  
+PUSHS LF@t2  
+DEFVAR LF@t3  
+POPS LF@t3  
+DEFVAR LF@t4  
+JUMPIFEQ %L2 LF@t3 nil@nil
+DEFVAR LF@t5  
+TYPE LF@t5 LF@t3 
+JUMPIFEQ %L3 LF@t5 string@bool
+JUMP %L4  
+LABEL %L2  
+MOVE LF@t4 bool@false 
+JUMP %L5  
+LABEL %L3  
+MOVE LF@t4 LF@t3 
+JUMP %L5  
+LABEL %L4  
+MOVE LF@t4 bool@true 
+JUMP %L5  
+LABEL %L5  
+PUSHS LF@t4  
+PUSHS bool@false  
+JUMPIFEQS %L6  
+# If-block  
+
+# If statement condition  
+PUSHS LF@arg%0  
+PUSHS int@1  
+SUBS   
+PUSHS int@32  
+PUSHS float@0x1.5066666666666p+6  
+DEFVAR LF@t6  
+DEFVAR LF@t7  
+POPS LF@t7  
+POPS LF@t6  
+PUSHS LF@t6  
+TYPES   
+PUSHS LF@t7  
+TYPES   
+PUSHS string@int  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L8  
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L8  
+DEFVAR LF@t8  
+MOVE LF@t8 string@ 
+LABEL %L10  
+PUSHS LF@t7  
+PUSHS int@0  
+GTS   
+PUSHS bool@true  
+JUMPIFNEQS   %L11
+PUSHS LF@t7  
+PUSHS int@1  
+SUBS   
+POPS LF@t7  
+CONCAT LF@t8 LF@t8 LF@t6
+JUMP   %L10
+LABEL %L11  
+PUSHS LF@t8  
+JUMP %L9  
+LABEL %L8  
+PUSHS LF@t6  
+PUSHS LF@t7  
+MULS   
+LABEL %L9  
+PUSHS float@0x1.3333333333333p+1  
+DEFVAR LF@t9  
+POPS LF@t9  
+INT2FLOATS   
+PUSHS LF@t9  
+DIVS   
+GTS   
+DEFVAR LF@t10  
+POPS LF@t10  
+DEFVAR LF@t11  
+JUMPIFEQ %L12 LF@t10 nil@nil
+DEFVAR LF@t12  
+TYPE LF@t12 LF@t10 
+JUMPIFEQ %L13 LF@t12 string@bool
+JUMP %L14  
+LABEL %L12  
+MOVE LF@t11 bool@false 
+JUMP %L15  
+LABEL %L13  
+MOVE LF@t11 LF@t10 
+JUMP %L15  
+LABEL %L14  
+MOVE LF@t11 bool@true 
+JUMP %L15  
+LABEL %L15  
+PUSHS LF@t11  
+PUSHS bool@false  
+JUMPIFEQS %L16  
+# If-block  
+
+# Ifj.write call  
+PUSHS string@Celkem\032velke\032cislo!\010  
+DEFVAR LF@t13  
+POPS LF@t13  
+WRITE LF@t13  
+PUSHS nil@nil  
+LABEL %L16  
+# If statement end  
+
+# Assignment to variable 'arg'  
+PUSHS LF@arg%0  
+PUSHS int@42  
+DEFVAR LF@t14  
+DEFVAR LF@t15  
+POPS LF@t15  
+POPS LF@t14  
+PUSHS LF@t14  
+TYPES   
+PUSHS LF@t15  
+TYPES   
+PUSHS string@int  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L18  
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L18  
+DEFVAR LF@t16  
+MOVE LF@t16 string@ 
+LABEL %L20  
+PUSHS LF@t15  
+PUSHS int@0  
+GTS   
+PUSHS bool@true  
+JUMPIFNEQS   %L21
+PUSHS LF@t15  
+PUSHS int@1  
+SUBS   
+POPS LF@t15  
+CONCAT LF@t16 LF@t16 LF@t14
+JUMP   %L20
+LABEL %L21  
+PUSHS LF@t16  
+JUMP %L19  
+LABEL %L18  
+PUSHS LF@t14  
+PUSHS LF@t15  
+MULS   
+LABEL %L19  
+POPS LF@arg%0  
+
+
+# Declaration of variable 'ansStr'  
+DEFVAR LF@ansStr%1  
+# Assignment to variable 'ansStr'  
+
+# Ifj.str call  
+PUSHS LF@arg%0  
+DEFVAR LF@t17  
+POPS LF@t17  
+DEFVAR LF@t18  
+DEFVAR LF@t19  
+JUMPIFEQ %L26 LF@t17 nil@nil
+TYPE LF@t19 LF@t17 
+JUMPIFEQ %L23 LF@t19 string@string
+JUMPIFEQ %L24 LF@t19 string@int
+JUMPIFEQ %L25 LF@t19 string@float
+MOVE LF@t18 string@ 
+JUMP %L22  
+LABEL %L23  
+MOVE LF@t18 LF@t17 
+JUMP %L22  
+LABEL %L24  
+INT2STR LF@t18 LF@t17 
+JUMP %L22  
+LABEL %L25  
+FLOAT2STR LF@t18 LF@t17 
+JUMP %L22  
+LABEL %L26  
+MOVE LF@t18 string@null 
+JUMP %L22  
+LABEL %L22  
+PUSHS LF@t18  
+POPS LF@ansStr%1  
+
+PUSHS string@Odpoved\032je\032  
+PUSHS LF@ansStr%1  
+DEFVAR LF@t20  
+DEFVAR LF@t21  
+POPS LF@t21  
+POPS LF@t20  
+PUSHS LF@t20  
+TYPES   
+PUSHS LF@t21  
+TYPES   
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L27  
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L27  
+DEFVAR LF@t22  
+CONCAT LF@t22 LF@t20 LF@t21
+PUSHS LF@t22  
+JUMP %L28  
+LABEL %L27  
+PUSHS LF@t20  
+PUSHS LF@t21  
+ADDS   
+LABEL %L28  
+POPS LF@%retval  
+RETURN   
+JUMP %L29  
+LABEL %L6  
+# Else-block  
+
+# Ifj.write call  
+PUSHS string@etter)  
+DEFVAR LF@t23  
+POPS LF@t23  
+WRITE LF@t23  
+PUSHS nil@nil  
+PUSHS nil@nil  
+POPS LF@%retval  
+RETURN   
+LABEL %L29  
+# If statement end  
+
+RETURN   
+
+
+# ####################  
+# Function declaration: unicorn (getter)  
+# ####################  
+LABEL unicorn%getter  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+
+# If statement condition  
+PUSHS GF@__a%2  
+DEFVAR LF@t24  
+POPS LF@t24  
+DEFVAR LF@t25  
+JUMPIFEQ %L30 LF@t24 nil@nil
+DEFVAR LF@t26  
+TYPE LF@t26 LF@t24 
+JUMPIFEQ %L31 LF@t26 string@bool
+JUMP %L32  
+LABEL %L30  
+MOVE LF@t25 bool@false 
+JUMP %L33  
+LABEL %L31  
+MOVE LF@t25 LF@t24 
+JUMP %L33  
+LABEL %L32  
+MOVE LF@t25 bool@true 
+JUMP %L33  
+LABEL %L33  
+PUSHS LF@t25  
+PUSHS bool@false  
+JUMPIFEQS %L34  
+# If-block  
+PUSHS GF@__a%2  
+PUSHS int@10  
+DEFVAR LF@t27  
+DEFVAR LF@t28  
+POPS LF@t28  
+POPS LF@t27  
+PUSHS LF@t27  
+TYPES   
+PUSHS LF@t28  
+TYPES   
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L35  
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L35  
+DEFVAR LF@t29  
+CONCAT LF@t29 LF@t27 LF@t28
+PUSHS LF@t29  
+JUMP %L36  
+LABEL %L35  
+PUSHS LF@t27  
+PUSHS LF@t28  
+ADDS   
+LABEL %L36  
+POPS LF@%retval  
+RETURN   
+JUMP %L37  
+LABEL %L34  
+# Else-block  
+PUSHS nil@nil  
+POPS LF@%retval  
+RETURN   
+LABEL %L37  
+# If statement end  
+
+LABEL unicorn%setter  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+DEFVAR LF@val%3  
+MOVE LF@val%3 LF@%param0 
+
+# Ifj.write call  
+PUSHS string@Jsem\032jednorozci\032setter,\032ziskal\032jsem\032  
+DEFVAR LF@t30  
+POPS LF@t30  
+WRITE LF@t30  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS LF@val%3  
+DEFVAR LF@t31  
+POPS LF@t31  
+WRITE LF@t31  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t32  
+POPS LF@t32  
+WRITE LF@t32  
+PUSHS nil@nil  
+# Assignment to variable '__a'  
+PUSHS LF@val%3  
+POPS GF@__a%2  
+
+RETURN   
+
+
+# ####################  
+# Function declaration: unicorn  
+# ####################  
+LABEL unicorn%func  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+
+
+# Ifj.write call  
+PUSHS string@Jsem\032ve\032funkci\032unicorn,\032ne\032v\032getteru\010  
+DEFVAR LF@t0  
+POPS LF@t0  
+WRITE LF@t0  
+PUSHS nil@nil  
+RETURN   
+
+
+# ####################  
+# Function declaration: main  
+# ####################  
+LABEL main%func  
+DEFVAR LF@%retval  
+MOVE LF@%retval nil@nil 
+
+
+# Ifj.write call  
+CREATEFRAME   
+PUSHFRAME   
+CALL unicorn%getter  
+POPFRAME   
+PUSHS TF@%retval  
+DEFVAR LF@t0  
+POPS LF@t0  
+WRITE LF@t0  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t1  
+POPS LF@t1  
+WRITE LF@t1  
+PUSHS nil@nil  
+PUSHS int@5  
+CREATEFRAME   
+DEFVAR TF@%param0  
+POPS TF@%param0  
+PUSHFRAME   
+CALL unicorn%setter  
+POPFRAME   
+
+# Declaration of variable 'myValue'  
+DEFVAR LF@myValue%4  
+# Assignment to variable 'myValue'  
+CREATEFRAME   
+PUSHFRAME   
+CALL unicorn%getter  
+POPFRAME   
+PUSHS TF@%retval  
+POPS LF@myValue%4  
+
+
+# Ifj.write call  
+PUSHS LF@myValue%4  
+DEFVAR LF@t2  
+POPS LF@t2  
+WRITE LF@t2  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t3  
+POPS LF@t3  
+WRITE LF@t3  
+PUSHS nil@nil  
+# Assignment to variable 'myValue'  
+CREATEFRAME   
+PUSHFRAME   
+CALL unicorn%func  
+POPFRAME   
+PUSHS TF@%retval  
+POPS LF@myValue%4  
+
+
+# Ifj.write call  
+PUSHS LF@myValue%4  
+DEFVAR LF@t4  
+POPS LF@t4  
+WRITE LF@t4  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t5  
+POPS LF@t5  
+WRITE LF@t5  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@Napis\032cislo:\010  
+DEFVAR LF@t6  
+POPS LF@t6  
+WRITE LF@t6  
+PUSHS nil@nil  
+
+# Declaration of variable 'valueFromUser'  
+DEFVAR LF@valueFromUser%5  
+# Assignment to variable 'valueFromUser'  
+
+# Ifj.read_num call  
+DEFVAR LF@t7  
+READ LF@t7 float 
+DEFVAR LF@t8  
+FLOAT2INT LF@t8 LF@t7 
+DEFVAR LF@t9  
+INT2FLOAT LF@t9 LF@t8 
+DEFVAR LF@t10  
+EQ LF@t10 LF@t7 LF@t9
+JUMPIFEQ %L38 LF@t10 bool@true
+PUSHS LF@t7  
+JUMP %L39  
+LABEL %L38  
+PUSHS LF@t8  
+LABEL %L39  
+POPS LF@valueFromUser%5  
+
+# Assignment to variable 'myValue'  
+PUSHS LF@valueFromUser%5  
+CREATEFRAME   
+DEFVAR TF@%param0  
+POPS TF@%param0  
+PUSHFRAME   
+CALL getAnswer%func  
+POPFRAME   
+PUSHS TF@%retval  
+POPS LF@myValue%4  
+
+
+# If statement condition  
+PUSHS LF@myValue%4  
+PUSHS nil@nil  
+EQS   
+DEFVAR LF@t11  
+POPS LF@t11  
+DEFVAR LF@t12  
+JUMPIFEQ %L40 LF@t11 nil@nil
+DEFVAR LF@t13  
+TYPE LF@t13 LF@t11 
+JUMPIFEQ %L41 LF@t13 string@bool
+JUMP %L42  
+LABEL %L40  
+MOVE LF@t12 bool@false 
+JUMP %L43  
+LABEL %L41  
+MOVE LF@t12 LF@t11 
+JUMP %L43  
+LABEL %L42  
+MOVE LF@t12 bool@true 
+JUMP %L43  
+LABEL %L43  
+PUSHS LF@t12  
+PUSHS bool@false  
+JUMPIFEQS %L44  
+# If-block  
+
+# Ifj.write call  
+PUSHS string@ODPOVED\032NENI!\010  
+DEFVAR LF@t14  
+POPS LF@t14  
+WRITE LF@t14  
+PUSHS nil@nil  
+RETURN   
+JUMP %L45  
+LABEL %L44  
+# Else-block  
+
+# If statement condition  
+PUSHS LF@myValue%4  
+DEFVAR LF@t15  
+POPS LF@t15  
+DEFVAR LF@t16  
+TYPE LF@t16 LF@t15 
+DEFVAR LF@t17  
+EQ LF@t17 LF@t16 string@nil
+PUSHS LF@t17  
+DEFVAR LF@t18  
+POPS LF@t18  
+DEFVAR LF@t19  
+JUMPIFEQ %L46 LF@t18 nil@nil
+DEFVAR LF@t20  
+TYPE LF@t20 LF@t18 
+JUMPIFEQ %L47 LF@t20 string@bool
+JUMP %L48  
+LABEL %L46  
+MOVE LF@t19 bool@false 
+JUMP %L49  
+LABEL %L47  
+MOVE LF@t19 LF@t18 
+JUMP %L49  
+LABEL %L48  
+MOVE LF@t19 bool@true 
+JUMP %L49  
+LABEL %L49  
+PUSHS LF@t19  
+PUSHS bool@false  
+JUMPIFEQS %L50  
+# If-block  
+JUMP %L51  
+LABEL %L50  
+# Else-block  
+LABEL %L51  
+# If statement end  
+
+LABEL %L45  
+# If statement end  
+
+
+# Ifj.write call  
+PUSHS LF@myValue%4  
+DEFVAR LF@t21  
+POPS LF@t21  
+WRITE LF@t21  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t22  
+POPS LF@t22  
+WRITE LF@t22  
+PUSHS nil@nil  
+
+# While loop start  
+DEFVAR LF@t23  
+DEFVAR LF@t24  
+DEFVAR LF@t25  
+DEFVAR LF@t26  
+DEFVAR LF@t27  
+DEFVAR LF@t28  
+DEFVAR LF@t29  
+DEFVAR LF@valStr%6  
+DEFVAR LF@t30  
+DEFVAR LF@t31  
+DEFVAR LF@t32  
+DEFVAR LF@t33  
+DEFVAR LF@t34  
+LABEL %L52  
+# While condition  
+PUSHS LF@valueFromUser%5  
+PUSHS int@0  
+PUSHS int@2  
+SUBS   
+GTS   
+POPS LF@t23  
+JUMPIFEQ %L54 LF@t23 nil@nil
+TYPE LF@t25 LF@t23 
+JUMPIFEQ %L55 LF@t25 string@bool
+JUMP %L56  
+LABEL %L54  
+MOVE LF@t24 bool@false 
+JUMP %L57  
+LABEL %L55  
+MOVE LF@t24 LF@t23 
+JUMP %L57  
+LABEL %L56  
+MOVE LF@t24 bool@true 
+JUMP %L57  
+LABEL %L57  
+PUSHS LF@t24  
+POPS LF@t26  
+JUMPIFEQ %L53 LF@t26 bool@false
+# While body  
+
+# Ifj.write call  
+PUSHS string@Jedeme\032dolu!\032  
+POPS LF@t27  
+WRITE LF@t27  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS LF@valueFromUser%5  
+POPS LF@t28  
+WRITE LF@t28  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\032->\032  
+POPS LF@t29  
+WRITE LF@t29  
+PUSHS nil@nil  
+# Assignment to variable 'valueFromUser'  
+PUSHS LF@valueFromUser%5  
+PUSHS int@1  
+SUBS   
+POPS LF@valueFromUser%5  
+
+
+# Declaration of variable 'valStr'  
+# Assignment to variable 'valStr'  
+
+# Ifj.str call  
+PUSHS LF@valueFromUser%5  
+POPS LF@t30  
+JUMPIFEQ %L62 LF@t30 nil@nil
+TYPE LF@t32 LF@t30 
+JUMPIFEQ %L59 LF@t32 string@string
+JUMPIFEQ %L60 LF@t32 string@int
+JUMPIFEQ %L61 LF@t32 string@float
+MOVE LF@t31 string@ 
+JUMP %L58  
+LABEL %L59  
+MOVE LF@t31 LF@t30 
+JUMP %L58  
+LABEL %L60  
+INT2STR LF@t31 LF@t30 
+JUMP %L58  
+LABEL %L61  
+FLOAT2STR LF@t31 LF@t30 
+JUMP %L58  
+LABEL %L62  
+MOVE LF@t31 string@null 
+JUMP %L58  
+LABEL %L58  
+PUSHS LF@t31  
+POPS LF@valStr%6  
+
+
+# Ifj.write call  
+PUSHS LF@valStr%6  
+POPS LF@t33  
+WRITE LF@t33  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+POPS LF@t34  
+WRITE LF@t34  
+PUSHS nil@nil  
+JUMP %L52  
+LABEL %L53  
+# While loop end  
+
+
+# Declaration of variable 'x'  
+DEFVAR LF@x%7  
+# Assignment to variable 'x'  
+PUSHS int@1  
+POPS LF@x%7  
+
+
+# Declaration of variable 'x'  
+DEFVAR LF@x%8  
+# Assignment to variable 'x'  
+PUSHS string@cervena\032panda\032+\032  
+POPS LF@x%8  
+
+
+# Ifj.write call  
+PUSHS string@(  
+DEFVAR LF@t35  
+POPS LF@t35  
+WRITE LF@t35  
+PUSHS nil@nil  
+
+# If statement condition  
+PUSHS int@1  
+PUSHS int@1  
+EQS   
+DEFVAR LF@t36  
+POPS LF@t36  
+DEFVAR LF@t37  
+JUMPIFEQ %L63 LF@t36 nil@nil
+DEFVAR LF@t38  
+TYPE LF@t38 LF@t36 
+JUMPIFEQ %L64 LF@t38 string@bool
+JUMP %L65  
+LABEL %L63  
+MOVE LF@t37 bool@false 
+JUMP %L66  
+LABEL %L64  
+MOVE LF@t37 LF@t36 
+JUMP %L66  
+LABEL %L65  
+MOVE LF@t37 bool@true 
+JUMP %L66  
+LABEL %L66  
+PUSHS LF@t37  
+PUSHS bool@false  
+JUMPIFEQS %L67  
+# If-block  
+
+# Declaration of variable 'y'  
+DEFVAR LF@y%9  
+# Assignment to variable 'y'  
+PUSHS LF@x%8  
+PUSHS int@3  
+DEFVAR LF@t39  
+DEFVAR LF@t40  
+POPS LF@t40  
+POPS LF@t39  
+PUSHS LF@t39  
+TYPES   
+PUSHS LF@t40  
+TYPES   
+PUSHS string@int  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L69  
+PUSHS string@string  
+EQS   
+PUSHS bool@true  
+JUMPIFNEQS %L69  
+DEFVAR LF@t41  
+MOVE LF@t41 string@ 
+LABEL %L71  
+PUSHS LF@t40  
+PUSHS int@0  
+GTS   
+PUSHS bool@true  
+JUMPIFNEQS   %L72
+PUSHS LF@t40  
+PUSHS int@1  
+SUBS   
+POPS LF@t40  
+CONCAT LF@t41 LF@t41 LF@t39
+JUMP   %L71
+LABEL %L72  
+PUSHS LF@t41  
+JUMP %L70  
+LABEL %L69  
+PUSHS LF@t39  
+PUSHS LF@t40  
+MULS   
+LABEL %L70  
+POPS LF@y%9  
+
+
+# Declaration of variable 'x'  
+DEFVAR LF@x%10  
+# Assignment to variable 'x'  
+PUSHS LF@y%9  
+POPS LF@x%10  
+
+
+# Ifj.write call  
+PUSHS LF@x%10  
+DEFVAR LF@t42  
+POPS LF@t42  
+WRITE LF@t42  
+PUSHS nil@nil  
+JUMP %L73  
+LABEL %L67  
+# Else-block  
+LABEL %L73  
+# If statement end  
+
+
+# Ifj.write call  
+PUSHS string@konec)\032  
+DEFVAR LF@t43  
+POPS LF@t43  
+WRITE LF@t43  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS LF@x%8  
+DEFVAR LF@t44  
+POPS LF@t44  
+WRITE LF@t44  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS LF@x%7  
+DEFVAR LF@t45  
+POPS LF@t45  
+WRITE LF@t45  
+PUSHS nil@nil  
+
+# Ifj.write call  
+PUSHS string@\010  
+DEFVAR LF@t46  
+POPS LF@t46  
+WRITE LF@t46  
+PUSHS nil@nil  
+RETURN   
+
+

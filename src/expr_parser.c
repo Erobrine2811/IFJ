@@ -165,7 +165,7 @@ static tPrec precedence_table[10][10] = {
 /* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
 /* PLUS_MINUS */ { '<',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
 /* REL */        { '<',     '<',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
-/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '<',   'E',     '<',    '>',    '<',   '>'  },
+/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
 /* IS */         { '<',     '<',        '<',    '<',     'E',   '<',     '<',    '>',    '<',   '>'  },
 /* TYPE */       { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',   '>'  },
 /* LPAREN */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    '=',    '<',   'E'  },
@@ -318,6 +318,60 @@ static int reduce_expr(tExprStack *stack)
             return 1;
         }
     }
+
+    // E -> E is TYPE
+    if (n1 && n2 && n3) {
+        if (n1->is_terminal && n1->symbol == E_TYPE &&
+            n2->is_terminal && n2->symbol == E_IS &&
+            !n3->is_terminal)
+        {
+            // Pop E, is, TYPE
+        char* type_str = n1->value;
+        expr_pop(stack);
+        expr_pop(stack);
+        expr_pop(stack);
+
+        Operand* expr_val = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        emit(OP_DEFVAR, expr_val, NULL, NULL, &threeACcode);
+        emit(OP_POPS, expr_val, NULL, NULL, &threeACcode);
+
+        Operand* type_val = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        emit(OP_DEFVAR, type_val, NULL, NULL, &threeACcode);
+        emit(OP_TYPE, type_val, expr_val, NULL, &threeACcode);
+
+        Operand* result = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+        emit(OP_DEFVAR, result, NULL, NULL, &threeACcode);
+
+        if (strcmp(type_str, "Num") == 0) {
+            Operand* is_int_label = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* end_label = create_operand_from_label(threeAC_create_label(&threeACcode));
+            
+            emit(OP_JUMPIFEQ, is_int_label, type_val, create_operand_from_constant_string("int"), &threeACcode);
+            
+            emit(OP_EQ, result, type_val, create_operand_from_constant_string("float"), &threeACcode);
+            emit(OP_JUMP, end_label, NULL, NULL, &threeACcode);
+
+            emit(OP_LABEL, is_int_label, NULL, NULL, &threeACcode);
+            emit(OP_MOVE, result, create_operand_from_constant_bool(true), NULL, &threeACcode);
+
+            emit(OP_LABEL, end_label, NULL, NULL, &threeACcode);
+        } else if (strcmp(type_str, "Null") == 0) {
+            emit(OP_EQ, result, type_val, create_operand_from_constant_string("nil"), &threeACcode);
+        } else if (strcmp(type_str, "String") == 0) {
+            emit(OP_EQ, result, type_val, create_operand_from_constant_string("string"), &threeACcode);
+        } else {
+            emit(OP_MOVE, result, create_operand_from_constant_bool(false), NULL, &threeACcode);
+        }
+        
+        emit(OP_PUSHS, result, NULL, NULL, &threeACcode);
+
+        if (type_str) free(type_str);
+
+        expr_push(stack, E_ID, false);
+        stack->top->dataType = TYPE_UNDEF;
+        return 1;
+    }
+}
 
     // E -> E op E
     if (n1 && n2 && n3)
@@ -526,7 +580,21 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
             }
             else if (look_sym == E_TYPE)
             {
-                expr_stack.top->value = NULL;
+                char *type_keyword = NULL;
+                if (lookahead->type == T_KW_NUM) {
+                    type_keyword = "Num";
+                } else if (lookahead->type == T_KW_STRING) {
+                    type_keyword = "String";
+                } else if (lookahead->type == T_KW_NULL_TYPE) {
+                    type_keyword = "Null";
+                }
+                
+                if (type_keyword) {
+                    expr_stack.top->value = safeMalloc(strlen(type_keyword) + 1);
+                    strcpy(expr_stack.top->value, type_keyword);
+                } else {
+                    expr_stack.top->value = NULL;
+                }
             }
             else if (look_sym == E_PLUS_MINUS || look_sym == E_MUL_DIV || look_sym == E_REL || look_sym == E_EQ_NEQ)
             {
