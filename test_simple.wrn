@@ -2,14 +2,9 @@ import "ifj25" for Ifj
 
 class Program {
     static main() {
-      var c = 10
-      while (c > 0) {
-        test(10, c)
-        c = c - 1
-        Ifj.write(c)
-      }
-    }
-    static test(a, b) {
-      return a - b
+      var c = "a"
+      var d = 2
+      var e = c * d
+      Ifj.write(e)
     }
 }

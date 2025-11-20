@@ -499,6 +499,13 @@ Operand* create_operand_from_constant_int(int value) {
     return op;
 }
 
+Operand* create_operand_from_constant_float(double value) {
+    Operand *op = safeMalloc(sizeof(Operand));
+    op->type = OPP_CONST_FLOAT;
+    op->value.floatval = value;
+    return op;
+}
+
 Operand* create_operand_from_constant_string(const char *value) {
     Operand *op = safeMalloc(sizeof(Operand));
     op->type = OPP_CONST_STRING;

@@ -174,6 +174,7 @@ char *threeAC_get_current_label(ThreeACList *list);
 
 Operand* create_operand_from_constant_string(const char *value);
 Operand* create_operand_from_constant_int(int value);
+Operand* create_operand_from_constant_float(double value);
 Operand* create_operand_from_constant_bool(bool value);
 Operand* create_operand_from_label(const char *label);
 Operand* create_operand_from_variable(const char *varname, bool isGlobal);
