@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 INTERPRETER_PATH="/pub/courses/ifj/ic25int/linux/ic25int"
-IFJ25_BIN="./ifj25"
+IFJ25_BIN="/Users/erobrine/Documents/school/3/ifj/ifj25"
 SIMPLE_TESTS_DIR="tests/simple/"
 ADVANCED_TESTS_DIR="tests/advanced/"
 
@@ -19,25 +19,17 @@ declare -a TEST_NAMES
 declare -a TEST_CATEGORIES
 
 # --- Functions ---
-get_test_category() {
-    local test_file=$1
-    if [[ "$test_file" == *"simple.wren"* ]] || [[ "$test_file" == *"frame.wren"* ]] || [[ "$test_file" == *"ex4.wren"* ]]; then
-        echo "simple"
-    else
-        echo "advanced"
-    fi
-}
+
 
 run_test() {
-    local test_name=$1
-    local test_dir="$TESTS_DIR/$test_name"
-    local source_file="$test_dir/source.wren"
-    local expected_output_file="$test_dir/expected_output"
+    local test_dir_path=$1
+    local test_category=$2
+    local test_name=$(basename "$test_dir_path")
+    local source_file="$(dirname "$test_dir_path")/source.wren"
+    local expected_output_file="$test_dir_path/expected_output.txt"
     local actual_output_file="$TEMP_DIR/$test_name.actual_output"
-    local compiled_code_file="$test_dir/compiled.out"
-    local input_file="$test_dir/input.in"
-    local category_file="$test_dir/category.txt"
-    local test_category=$(cat "$category_file")
+    local compiled_code_file="$TEMP_DIR/$test_name.compiled.out"
+    local input_file="$test_dir_path/source.in"
 
     echo -e "${BLUE}--- Running test: $test_name ($test_category) ---${NC}"
 
@@ -48,6 +40,7 @@ run_test() {
         TEST_CATEGORIES+=("$test_category")
         return
     fi
+
 
     if ! "$IFJ25_BIN" "$source_file" > "$compiled_code_file" 2>&1; then
         echo -e "${RED}FAIL: $test_name - ifj25 compilation failed.${NC}"
@@ -90,23 +83,18 @@ run_test() {
     TEST_CATEGORIES+=("$test_category")
 }
 
-# --- Main execution ---
-mkdir -p "$TEMP_DIR"
+TEMP_DIR=$(mktemp -d)
 
-echo -e "${YELLOW}--- SKIPPING BUILD ---${NC}"
-echo -e "${YELLOW}Please make sure you have built the project with 'make clean && make' before running this script.${NC}"
+# --- Run Simple Tests ---
+echo -e "${BLUE}--- Running Simple Tests ---${NC}"
+find "$SIMPLE_TESTS_DIR" -name "expected_output.txt" -print0 | xargs -0 -n 1 dirname | sort | while read -r test_dir_path; do
+    run_test "$test_dir_path" "simple"
+done
 
-generate_tests
-
-TEST_DIRS=$(find "$TESTS_DIR" -mindepth 1 -maxdepth 1 -type d -print0 | xargs -0 -n 1 basename | sort)
-
-if [ -z "$TEST_DIRS" ]; then
-    echo -e "${YELLOW}No test directories found in $TESTS_DIR.${NC}"
-    exit 0
-fi
-
-for test_dir in $TEST_DIRS; do
-    run_test "$test_dir"
+# --- Run Advanced Tests ---
+echo -e "${BLUE}--- Running Advanced Tests ---${NC}"
+find "$ADVANCED_TESTS_DIR" -name "expected_output.txt" -print0 | xargs -0 -n 1 dirname | sort | while read -r test_dir_path; do
+    run_test "$test_dir_path" "advanced"
 done
 
 echo -e "${BLUE}--- Test Summary ---${NC}"
