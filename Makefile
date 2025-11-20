@@ -16,4 +16,6 @@ clean:
 	rm -f $(OBJ) $(TARGET)
 
 test:
+	make clean
+	make
 	./scripts/run_tests.sh
