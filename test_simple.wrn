@@ -2,25 +2,18 @@ import "ifj25" for Ifj
 
 class Program {
     static main() {
-        //Ifj.write("Type num: ")
-        //var a = Ifj.read_num()
-        //Ifj.write(a)
-        //Ifj.write("Type str: ")
-        //var b = Ifj.read_str()
-        //Ifj.write(b)
+      var x = "aklasjfla"
 
+      while (x == null) {
 
-        //var a = 3
-        //a = Ifj.str(a)
-        //a = a + "ahoj\n"
-        //Ifj.write(a)
+        var confirm = Ifj.read_str()
 
-        //var a = 3.5
-        //a = Ifj.floor(a)
-        //Ifj.write(a)
-
-        var index = 97
-        var c = Ifj.chr(index)
-        Ifj.write(c)
-    }
+        var res = Ifj.strcmp(confirm, "y")
+        
+        if (res == 0) {
+          x = null
+        } else {
+          x = x + x
+        }
+      }
 }

@@ -23,8 +23,6 @@ int main(int argc, char *argv[]) {
     fclose(file);
 
     if (result == 0) {
-        printf("Compilation successful.\n");
-        printf("\n");
         list_print(&threeACcode);
         list_dispose(&threeACcode);
     } else {
