@@ -91,7 +91,7 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
                 emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
                 
                 char mangledName[256];
-                sprintf(mangledName, "%s%%getter", data_copy);
+                sprintf(mangledName, "%s$0%%getter", data_copy);
                 Operand* call_label = create_operand_from_label(mangledName);
                 emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
                 

@@ -10,7 +10,7 @@ JUMP %start
 LABEL %start  
 CREATEFRAME   
 PUSHFRAME   
-CALL main%func  
+CALL main$0%func  
 POPFRAME   
 EXIT int@0  
 
@@ -18,7 +18,7 @@ EXIT int@0
 # ####################  
 # Function declaration: getAnswer  
 # ####################  
-LABEL getAnswer%func  
+LABEL getAnswer$0%func  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
 
@@ -28,14 +28,14 @@ RETURN
 RETURN   
 
 
+
+# Parameter declaration  
 # ####################  
 # Function declaration: getAnswer  
 # ####################  
-LABEL getAnswer%func  
+LABEL getAnswer$1%func  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
-
-# Parameter declaration  
 DEFVAR LF@arg%0  
 MOVE LF@arg%0 LF@%param0 
 
@@ -271,7 +271,7 @@ LABEL %L6
 # Else-block  
 
 # Ifj.write call  
-PUSHS string@etter)  
+PUSHS string@Neplatny\032argument\010  
 DEFVAR LF@t23  
 POPS LF@t23  
 WRITE LF@t23  
@@ -288,7 +288,7 @@ RETURN
 # ####################  
 # Function declaration: unicorn (getter)  
 # ####################  
-LABEL unicorn%getter  
+LABEL unicorn$0%getter  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
 
@@ -354,7 +354,7 @@ RETURN
 LABEL %L37  
 # If statement end  
 
-LABEL unicorn%setter  
+LABEL unicorn$1%setter  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
 DEFVAR LF@val%3  
@@ -390,7 +390,7 @@ RETURN
 # ####################  
 # Function declaration: unicorn  
 # ####################  
-LABEL unicorn%func  
+LABEL unicorn$0%func  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
 
@@ -407,7 +407,7 @@ RETURN
 # ####################  
 # Function declaration: main  
 # ####################  
-LABEL main%func  
+LABEL main$0%func  
 DEFVAR LF@%retval  
 MOVE LF@%retval nil@nil 
 
@@ -415,7 +415,7 @@ MOVE LF@%retval nil@nil
 # Ifj.write call  
 CREATEFRAME   
 PUSHFRAME   
-CALL unicorn%getter  
+CALL unicorn$0%getter  
 POPFRAME   
 PUSHS TF@%retval  
 DEFVAR LF@t0  
@@ -434,7 +434,7 @@ CREATEFRAME
 DEFVAR TF@%param0  
 POPS TF@%param0  
 PUSHFRAME   
-CALL unicorn%setter  
+CALL unicorn$1%setter  
 POPFRAME   
 
 # Declaration of variable 'myValue'  
@@ -442,7 +442,7 @@ DEFVAR LF@myValue%4
 # Assignment to variable 'myValue'  
 CREATEFRAME   
 PUSHFRAME   
-CALL unicorn%getter  
+CALL unicorn$0%getter  
 POPFRAME   
 PUSHS TF@%retval  
 POPS LF@myValue%4  
@@ -464,7 +464,7 @@ PUSHS nil@nil
 # Assignment to variable 'myValue'  
 CREATEFRAME   
 PUSHFRAME   
-CALL unicorn%func  
+CALL unicorn$0%func  
 POPFRAME   
 PUSHS TF@%retval  
 POPS LF@myValue%4  
@@ -518,7 +518,7 @@ CREATEFRAME
 DEFVAR TF@%param0  
 POPS TF@%param0  
 PUSHFRAME   
-CALL getAnswer%func  
+CALL getAnswer$1%func  
 POPFRAME   
 PUSHS TF@%retval  
 POPS LF@myValue%4  
