@@ -1705,6 +1705,7 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
             emit(OP_PUSHS, create_operand_from_constant_string("int"),  NULL,NULL, &threeACcode);
             emit(OP_JUMPIFEQS, label_is_int, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
             emit(OP_FLOAT2INTS, NULL, NULL, NULL, &threeACcode); 
             emit(OP_JUMP, label_end_floor, NULL, NULL, &threeACcode);
             emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);

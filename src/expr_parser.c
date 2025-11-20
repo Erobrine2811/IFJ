@@ -4,6 +4,135 @@
 #include "3AC.h"
 #include "semantic.h"
 
+static char* process_string_literal(const char* raw_data) {
+    int len = strlen(raw_data);
+
+    if (strncmp(raw_data, "\"\"\"", 3) == 0) {
+        // Multiline string
+        if (len < 6) {
+            char *s = safeMalloc(1);
+            s[0] = '\0';
+            return s;
+        }
+
+        const char* content_start = raw_data + 3;
+        const char* content_end = raw_data + len - 3;
+
+        // Trim leading whitespace and a single newline
+        const char* p = content_start;
+        bool only_whitespace_before_newline = true;
+        while (p < content_end && *p != '\n') {
+            if (!isspace((unsigned char)*p)) {
+                only_whitespace_before_newline = false;
+                break;
+            }
+            p++;
+        }
+        if (only_whitespace_before_newline && p < content_end && *p == '\n') {
+            content_start = p + 1;
+        }
+
+        // Trim trailing newline and whitespace
+        p = content_end - 1;
+        bool only_whitespace_after_newline = true;
+        while (p >= content_start && *p != '\n') {
+            if (!isspace((unsigned char)*p)) {
+                only_whitespace_after_newline = false;
+                break;
+            }
+            p--;
+        }
+        if (only_whitespace_after_newline && p >= content_start && *p == '\n') {
+            content_end = p;
+        }
+        
+        if (content_start >= content_end) {
+             char *empty_str = safeMalloc(1);
+             empty_str[0] = '\0';
+             return empty_str;
+        }
+
+        size_t new_len = content_end - content_start;
+        char* trimmed_str = safeMalloc(new_len + 1);
+        strncpy(trimmed_str, content_start, new_len);
+        trimmed_str[new_len] = '\0';
+        
+        char* final_str = safeMalloc(new_len + 1);
+        int j = 0;
+        for (int i = 0; i < new_len; i++) {
+            if (trimmed_str[i] == '\\') {
+                i++;
+                if (i >= new_len) { break; }
+                switch (trimmed_str[i]) {
+                    case 'n': final_str[j++] = '\n'; break;
+                    case 'r': final_str[j++] = '\r'; break;
+                    case 't': final_str[j++] = '\t'; break;
+                    case '"': final_str[j++] = '"'; break;
+                    case '\\': final_str[j++] = '\\'; break;
+                    case 'x':
+                        if (i + 2 < new_len && isxdigit(trimmed_str[i+1]) && isxdigit(trimmed_str[i+2])) {
+                            char hex[3] = {trimmed_str[i+1], trimmed_str[i+2], '\0'};
+                            final_str[j++] = (char)strtol(hex, NULL, 16);
+                            i += 2;
+                        } else {
+                            final_str[j++] = 'x';
+                        }
+                        break;
+                    default:
+                        final_str[j++] = '\\';
+                        final_str[j++] = trimmed_str[i];
+                        break;
+                }
+            } else {
+                final_str[j++] = trimmed_str[i];
+            }
+        }
+        final_str[j] = '\0';
+        free(trimmed_str);
+        return safeRealloc(final_str, j + 1);
+
+    } else { // Regular string
+        if (len < 2) {
+            char *s = safeMalloc(1);
+            s[0] = '\0';
+            return s;
+        }
+        
+        char* unescaped_str = safeMalloc(len);
+        int j = 0;
+        for (int i = 1; i < len - 1; i++) {
+            if (raw_data[i] == '\\') {
+                i++;
+                if (i >= len - 1) { break; }
+                switch (raw_data[i]) {
+                    case 'n': unescaped_str[j++] = '\n'; break;
+                    case 'r': unescaped_str[j++] = '\r'; break;
+                    case 't': unescaped_str[j++] = '\t'; break;
+                    case '"': unescaped_str[j++] = '"'; break;
+                    case '\\': unescaped_str[j++] = '\\'; break;
+                    case 'x':
+                        if (i + 2 < len - 1 && isxdigit(raw_data[i+1]) && isxdigit(raw_data[i+2])) {
+                            char hex[3] = {raw_data[i+1], raw_data[i+2], '\0'};
+                            unescaped_str[j++] = (char)strtol(hex, NULL, 16);
+                            i += 2;
+                        } else {
+                            unescaped_str[j++] = 'x';
+                        }
+                        break;
+                    default:
+                        unescaped_str[j++] = '\\';
+                        unescaped_str[j++] = raw_data[i];
+                        break;
+                }
+            } else {
+                unescaped_str[j++] = raw_data[i];
+            }
+        }
+        unescaped_str[j] = '\0';
+        return safeRealloc(unescaped_str, j + 1);
+    }
+}
+
 // Helper to create an Operand from a token
 static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stack) {
     if (!token) return NULL;
@@ -35,44 +164,7 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
         case T_STRING:
         {
             op->type = OPP_CONST_STRING;
-            int len = strlen(data_copy);
-            if (len < 2 || data_copy[0] != '"' || data_copy[len-1] != '"') {
-                op->value.strval = data_copy;
-                break;
-            }
-
-            char* unescaped_str = safeMalloc(len);
-            int j = 0;
-            for (int i = 1; i < len - 1; i++) {
-                if (data_copy[i] == '\\') {
-                    i++;
-                    if (i >= len - 1) { break; }
-                    switch (data_copy[i]) {
-                        case 'n': unescaped_str[j++] = '\n'; break;
-                        case 'r': unescaped_str[j++] = '\r'; break;
-                        case 't': unescaped_str[j++] = '\t'; break;
-                        case '"': unescaped_str[j++] = '"'; break;
-                        case '\\': unescaped_str[j++] = '\\'; break;
-                        case 'x':
-                            if (i + 2 < len - 1 && isxdigit(data_copy[i+1]) && isxdigit(data_copy[i+2])) {
-                                char hex[3] = {data_copy[i+1], data_copy[i+2], '\0'};
-                                unescaped_str[j++] = (char)strtol(hex, NULL, 16);
-                                i += 2;
-                            } else {
-                                unescaped_str[j++] = 'x';
-                            }
-                            break;
-                        default:
-                            unescaped_str[j++] = '\\';
-                            unescaped_str[j++] = data_copy[i];
-                            break;
-                    }
-                } else {
-                    unescaped_str[j++] = data_copy[i];
-                }
-            }
-            unescaped_str[j] = '\0';
-            op->value.strval = safeRealloc(unescaped_str, j + 1);
+            op->value.strval = process_string_literal(data_copy);
             free(data_copy);
             break;
         }

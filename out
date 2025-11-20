@@ -35,7 +35,7 @@ PUSHS nil@nil
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""ahoj""  
+PUSHS string@ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -50,7 +50,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""ahoj\010\032\032\032\032""  
+PUSHS string@ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -65,7 +65,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""\032\032\032\032\032\010ahoj""  
+PUSHS string@ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -80,7 +80,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""\009\009\010ahoj\010""  
+PUSHS string@ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -95,7 +95,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""\009\009\010ahoj\010\032\032\032\032\032\032""  
+PUSHS string@ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -120,7 +120,7 @@ PUSHS nil@nil
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""\032\032\009\032\032ahoj""  
+PUSHS string@\032\032\009\032\032ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -135,7 +135,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""ahoj\010\032\032\032\032x\032""  
+PUSHS string@ahoj\010\032\032\032\032x\032  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -150,7 +150,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""\032\032\032\032\010\032\032\032\032\010ahoj""  
+PUSHS string@\032\032\032\032\010ahoj  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
@@ -165,7 +165,7 @@ PUSHS TF@%retval
 POPS GF@__d%1  
 
 # Assignment to variable 's'  
-PUSHS string@""ahoj\010\032\032\032\032\032\032\032\032\010\032\032\032\032\032\032\032\032""  
+PUSHS string@ahoj\010\032\032\032\032\032\032\032\032  
 POPS LF@s%0  
 
 # Assignment to variable '__d'  
