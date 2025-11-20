@@ -330,7 +330,6 @@ static int reduce_expr(tExprStack *stack)
             if (op == E_MUL_DIV || op == E_PLUS_MINUS || op == E_REL || op == E_EQ_NEQ)
             {
                 tDataType result_type = TYPE_UNDEF;
-                  printf("Generating code for operation %s\n", n3->value);
                 if (op == E_MUL_DIV || op == E_PLUS_MINUS) {
                     result_type = semantic_check_operation(n2->value, n3->dataType, n1->dataType);
                 }

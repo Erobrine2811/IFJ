@@ -1408,6 +1408,10 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         result_var->value.varname = threeAC_create_temp(&threeACcode);
         emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
         emit(OP_READ, result_var, create_operand_from_type("string"), NULL, &threeACcode);
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+        emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
+        free(fullName);
+        return TYPE_STRING;
 } else if (strcmp(fullName, "Ifj.strcmp") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.strcmp call", &threeACcode);
