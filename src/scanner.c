@@ -215,10 +215,14 @@ int FSM(FILE *file, tToken token)
                 else token->type = T_ID;
                 break;
             case S_STRING_START:
-                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                if (currChar == '"') nextState = S_STRING_START_2;
                 else if (currChar == '\\') nextState = S_STRING_BACKSLASH;
                 else if (currChar >= 0x20 && currChar != '"' && currChar != '\\') nextState = S_STRING;
                 else nextState = S_ERROR;
+                break;
+            case S_STRING_START_2:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                else token->type = T_STRING;
                 break;
             case S_MULTI_LINE_LITERAL_CONTENT:
                 if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_END1;
@@ -364,6 +368,7 @@ int FSM(FILE *file, tToken token)
         case S_INT_0:
         case S_NUM_HEX:
         case S_STRING_READ:
+        case S_STRING_START_2:
         case S_EXP:
             codeStr[codeStrPos-1] = '\0';
             codeStr = safeRealloc(codeStr, codeStrPos);
