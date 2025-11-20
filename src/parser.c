@@ -1049,14 +1049,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
             is_new_declaration = true;
             semantic_define_variable(stack, varName, true);
             var_data = symtable_find(global_symtable, varName);
-
-            char *commentText = safeMalloc(strlen(varName) + 40);
-            sprintf(commentText, "Implicit declaration of global variable '%s'", varName);
-            emit_comment(commentText, &threeACcode);
-            free(commentText);
-            
-            Operand *defVarOp = create_operand_from_variable(var_data->unique_name, true);
-            emit(OP_DEFVAR, defVarOp, NULL, NULL, &threeACcode);
         }
     }
     else
@@ -1382,10 +1374,9 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_WRITE, write_arg, NULL, NULL, &threeACcode);
         }
 
-        semantic_check_argument_count(funcData, argCount, fullName);
-
-        if ((*currentToken)->type == T_COMMA) {
-            exit(WRONG_ARGUMENT_COUNT_ERROR);
+        if (argCount != 1) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
         }
         
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
@@ -1399,8 +1390,10 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     } else if (strcmp(fullName, "Ifj.read_str") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.read_str call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
-        semantic_check_argument_count(funcData, 0, fullName);
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         Operand* result_var = safeMalloc(sizeof(Operand));
         result_var->type = OPP_TEMP;
@@ -1414,7 +1407,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 } else if (strcmp(fullName, "Ifj.strcmp") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.strcmp call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         Operand *s1_arg = NULL, *s2_arg = NULL;
 
@@ -1441,7 +1433,11 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_DEFVAR, s2_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, s2_arg, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 2) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         // Type checking for s1 and s2 (must be strings)
         Operand* type_s1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
@@ -1515,7 +1511,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     } else if (strcmp(fullName, "Ifj.ord") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.ord call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         Operand *s_arg = NULL, *i_arg = NULL;
 
@@ -1542,7 +1537,11 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 2) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         // Type checking for i (must be integer)
         Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
@@ -1550,10 +1549,16 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
 
         Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
         Operand* label_continue_ord = create_operand_from_label(threeAC_create_label(&threeACcode));
 
         // Check if i is not int
+        emit(OP_JUMPIFEQ, label_is_float, type_i, create_operand_from_constant_string("float"), &threeACcode);
         emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_continue_ord, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
+        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
         emit(OP_JUMP, label_continue_ord, NULL, NULL, &threeACcode);
 
         // Type error handler
@@ -1629,8 +1634,10 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     else if (strcmp(fullName, "Ifj.read_num") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.read_num call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
-        semantic_check_argument_count(funcData, 0, fullName);
+        if ((*currentToken)->type != T_RIGHT_PAREN) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         Operand* result_var = safeMalloc(sizeof(Operand));
         result_var->type = OPP_TEMP;
@@ -1682,7 +1689,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     } else if (strcmp(fullName, "Ifj.floor") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.floor call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
@@ -1705,14 +1711,17 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
             emit(OP_LABEL, label_end_floor, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 1) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_INT;
     } else if (strcmp(fullName, "Ifj.str") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.str call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
@@ -1782,28 +1791,43 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_LABEL, label_end, NULL, NULL, &threeACcode);
             emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 1) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_STRING;
     } else if (strcmp(fullName, "Ifj.length") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.length call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         if ((*currentToken)->type != T_RIGHT_PAREN) {
             argCount = 1;
-            tDataType expr_type = parse_expression(file, currentToken, stack);
-            if (expr_type != TYPE_STRING){
-                fprintf(stderr, "[SEMANTIC] Error: Ifj.length expects a string argument\n");
-                exit(TYPE_COMPATIBILITY_ERROR);
-            }
+            parse_expression(file, currentToken, stack);
             
             Operand* str_arg = safeMalloc(sizeof(Operand));
             str_arg->type = OPP_TEMP;
             str_arg->value.varname = threeAC_create_temp(&threeACcode);
             emit(OP_DEFVAR, str_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, str_arg, NULL, NULL, &threeACcode);
+
+            Operand* type_str = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+            emit(OP_DEFVAR, type_str, NULL, NULL, &threeACcode);
+            emit(OP_TYPE, type_str, str_arg, NULL, &threeACcode);
+
+            Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+            Operand* label_continue_length = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+            emit(OP_JUMPIFNEQ, label_type_error, type_str, create_operand_from_constant_string("string"), &threeACcode);
+            emit(OP_JUMP, label_continue_length, NULL, NULL, &threeACcode);
+
+            emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
+            Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
+            emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
+
+            emit(OP_LABEL, label_continue_length, NULL, NULL, &threeACcode);
           
             Operand* result_len = safeMalloc(sizeof(Operand));
             result_len->type = OPP_TEMP;
@@ -1813,14 +1837,17 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_STRLEN, result_len, str_arg, NULL, &threeACcode); // Calculate length
             emit(OP_PUSHS, result_len, NULL, NULL, &threeACcode); // Push result to stack
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 1) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
         expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
         free(fullName);
         return TYPE_NUM; // Return type is Num (integer)
     } else if (strcmp(fullName, "Ifj.substring") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.substring call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         Operand *s_arg = NULL, *i_arg = NULL, *j_arg = NULL;
 
@@ -1860,7 +1887,11 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_DEFVAR, j_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, j_arg, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 3) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         // Type checking for i and j (must be integers)
         Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
@@ -1871,12 +1902,28 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         emit(OP_TYPE, type_j, j_arg, NULL, &threeACcode);
 
         Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_is_float_i = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_check_j = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_is_float_j = create_operand_from_label(threeAC_create_label(&threeACcode));
         Operand* label_continue_substring = create_operand_from_label(threeAC_create_label(&threeACcode));
 
         // Check if i is not int
+        emit(OP_JUMPIFEQ, label_is_float_i, type_i, create_operand_from_constant_string("float"), &threeACcode);
         emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_check_j, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_is_float_i, NULL, NULL, &threeACcode);
+        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
+        emit(OP_JUMP, label_check_j, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_check_j, NULL, NULL, &threeACcode);
         // Check if j is not int
+        emit(OP_JUMPIFEQ, label_is_float_j, type_j, create_operand_from_constant_string("float"), &threeACcode);
         emit(OP_JUMPIFNEQ, label_type_error, type_j, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_continue_substring, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_is_float_j, NULL, NULL, &threeACcode);
+        emit(OP_FLOAT2INT, j_arg, j_arg, NULL, &threeACcode);
         emit(OP_JUMP, label_continue_substring, NULL, NULL, &threeACcode);
 
         // Type error handler
@@ -1993,7 +2040,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     } else if (strcmp(fullName, "Ifj.chr") == 0) {
         emit(NO_OP, NULL, NULL, NULL, &threeACcode);
         emit_comment("Ifj.chr call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
         int argCount = 0;
         Operand *i_arg = NULL;
 
@@ -2007,7 +2053,11 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
         }
-        semantic_check_argument_count(funcData, argCount, fullName);
+        
+        if (argCount != 1) {
+            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
+            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
+        }
 
         // Type checking for i (must be integer)
         Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
@@ -2015,10 +2065,16 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
 
         Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
+        Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
         Operand* label_continue_chr = create_operand_from_label(threeAC_create_label(&threeACcode));
 
         // Check if i is not int
+        emit(OP_JUMPIFEQ, label_is_float, type_i, create_operand_from_constant_string("float"), &threeACcode);
         emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
+        emit(OP_JUMP, label_continue_chr, NULL, NULL, &threeACcode);
+
+        emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
+        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
         emit(OP_JUMP, label_continue_chr, NULL, NULL, &threeACcode);
 
         // Type error handler

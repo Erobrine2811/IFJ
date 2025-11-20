@@ -72,7 +72,7 @@ int FSM(FILE *file, tToken token)
                 else if (isalpha(currChar)) nextState = S_ID;
                 else if (currChar == '0') nextState = S_INT_0;
                 else if (isdigit(currChar)) nextState = S_INT;
-                else if (currChar == '"') nextState = S_STRING;
+                else if (currChar == '"') nextState = S_STRING_START;
                 else if (currChar == EOL) nextState = S_EOL;
                 else if (currChar == EOF) nextState = S_EOF;
                 else if (currChar == '.') nextState = S_DOT;
@@ -213,6 +213,42 @@ int FSM(FILE *file, tToken token)
             case S_ID:
                 if (isalpha(currChar) || isdigit(currChar) || currChar == '_') nextState = S_ID;
                 else token->type = T_ID;
+                break;
+            case S_STRING_START:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                else if (currChar == '\\') nextState = S_STRING_BACKSLASH;
+                else if (currChar >= 0x20 && currChar != '"' && currChar != '\\') nextState = S_STRING;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_CONTENT:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_END1;
+                else if (currChar == EOL) {
+                    linePos++;
+                    colPos = 1;
+                    nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                }
+                else if (currChar != EOF) nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_END1:
+                if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_END2;
+                else if (currChar == EOL) {
+                    linePos++;
+                    colPos = 1;
+                    nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                }
+                else if (currChar != EOF) nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                else nextState = S_ERROR;
+                break;
+            case S_MULTI_LINE_LITERAL_END2:
+                if (currChar == '"') nextState = S_STRING_READ;
+                else if (currChar == EOL) {
+                    linePos++;
+                    colPos = 1;
+                    nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                }
+                else if (currChar != EOF) nextState = S_MULTI_LINE_LITERAL_CONTENT;
+                else nextState = S_ERROR;
                 break;
             case S_STRING:
                 if (currChar == '"') nextState = S_STRING_READ;
@@ -380,6 +416,11 @@ void scannerError(char currChar, tState state, unsigned int linePos, unsigned in
             break;
         case S_NUM_HEX_START:
             fprintf(stderr, "Expected a-f, A-F or a digit after 'x' in Num, found ");
+            break;
+        case S_MULTI_LINE_LITERAL_CONTENT:
+        case S_MULTI_LINE_LITERAL_END1:
+        case S_MULTI_LINE_LITERAL_END2:
+            fprintf(stderr, "Unterminated multiline string, found ");
             break;
         default:
             fprintf(stderr, "Unexpected ");
