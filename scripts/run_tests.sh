@@ -5,6 +5,7 @@ INTERPRETER_PATH="/pub/courses/ifj/ic25int/linux/ic25int"
 IFJ25_BIN="./ifj25"
 SIMPLE_TESTS_DIR="tests/simple/"
 ADVANCED_TESTS_DIR="tests/advanced/"
+BONUS_TESTS_DIR="tests/bonus/"
 
 # --- Colors for output ---
 RED='\033[0;31m'
@@ -144,6 +145,12 @@ echo -e "${BLUE}--- Running Advanced Tests ---${NC}"
 while IFS= read -r -d '' source_wren_file; do
     run_test "$source_wren_file" "advanced"
 done < <(find "$ADVANCED_TESTS_DIR" -name "source.wren" -print0 | sort -z)
+
+# --- Run Bonus Tests ---
+echo -e "${BLUE}--- Running Bonus Tests ---${NC}"
+while IFS= read -r -d '' source_wren_file; do
+    run_test "$source_wren_file" "bonus"
+done < <(find "$BONUS_TESTS_DIR" -name "source.wren" -print0 | sort -z)
 
 echo -e "${BLUE}--- Test Summary ---${NC}"
 echo "--------------------------------------------------------------------------------"
