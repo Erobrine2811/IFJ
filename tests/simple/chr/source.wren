@@ -11,10 +11,5 @@ class Program {
       r2 = Ifj.chr(65)
       Ifj.write(r2)
       Ifj.write("\n")
-
-      var r3
-      r3 = Ifj.chr(256)
-      Ifj.write(r3)
-      Ifj.write("\n")
     }
 }
