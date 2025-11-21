@@ -1743,20 +1743,14 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             parse_expression(file, currentToken, stack);
             
             
-            Operand* arg_val = safeMalloc(sizeof(Operand));
-            arg_val->type = OPP_TEMP;
-            arg_val->value.varname = threeAC_create_temp(&threeACcode);
+            Operand* arg_val = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode); // Pop argument from stack
+            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode);
 
-            Operand* result_str = safeMalloc(sizeof(Operand));
-            result_str->type = OPP_TEMP;
-            result_str->value.varname = threeAC_create_temp(&threeACcode);
+            Operand* result_str = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
 
-            Operand* type_check_var = safeMalloc(sizeof(Operand));
-            type_check_var->type = OPP_TEMP;
-            type_check_var->value.varname = threeAC_create_temp(&threeACcode);
+            Operand* type_check_var = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, type_check_var, NULL, NULL, &threeACcode);
 
             Operand* label_end = create_operand_from_label(threeAC_create_label(&threeACcode));
@@ -1764,7 +1758,6 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
             Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
             Operand* label_is_nil = create_operand_from_label(threeAC_create_label(&threeACcode));
-
 
             // Check if nil
             emit(OP_JUMPIFEQ, label_is_nil, arg_val, create_operand_from_constant_nil(), &threeACcode);

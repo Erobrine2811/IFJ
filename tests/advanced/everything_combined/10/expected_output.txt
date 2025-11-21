@@ -1,0 +1,20 @@
+null
+Jsem jednorozci setter, ziskal jsem 5
+15
+Jsem ve funkci unicorn, ne v getteru
+null
+Napis cislo:
+Odpoved je 420.00
+Jedeme dolu! 10 -> 9.00
+Jedeme dolu! 9 -> 8.00
+Jedeme dolu! 8 -> 7.00
+Jedeme dolu! 7 -> 6.00
+Jedeme dolu! 6 -> 5.00
+Jedeme dolu! 5 -> 4.00
+Jedeme dolu! 4 -> 3.00
+Jedeme dolu! 3 -> 2.00
+Jedeme dolu! 2 -> 1.00
+Jedeme dolu! 1 -> 0.00
+Jedeme dolu! 0 -> -1.00
+Jedeme dolu! -1 -> -2.00
+(cervena panda + cervena panda + cervena panda + konec) cervena panda + 1
