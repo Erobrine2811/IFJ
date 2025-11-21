@@ -1370,26 +1370,20 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             emit(OP_DEFVAR, write_arg, NULL, NULL, &threeACcode);
             emit(OP_POPS, write_arg, NULL, NULL, &threeACcode);
 
-            // If float, and if the value is an integer, convert to int for output
-            Operand* type_check_var = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, type_check_var, NULL, NULL, &threeACcode);
-            emit(OP_TYPE, type_check_var, write_arg, NULL, &threeACcode);
-            Operand* label_not_float = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_after_conversion = create_operand_from_label(threeAC_create_label(&threeACcode));
-            emit(OP_JUMPIFNEQ, label_not_float, type_check_var, create_operand_from_constant_string("float"), &threeACcode);
-            // It's a float, check if it's an integer check_value
-            Operand* int_check_value = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, int_check_value, NULL, NULL, &threeACcode);
-            emit(OP_FLOAT2INT, int_check_value, write_arg, NULL, &threeACcode);
-            Operand* float_check_value = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, float_check_value, NULL, NULL, &threeACcode);
-            emit(OP_INT2FLOAT, float_check_value, int_check_value, NULL, &threeACcode);
-            emit(OP_JUMPIFEQ, label_after_conversion, write_arg, float_check_value, &threeACcode);
-            // Convert to int for output
-            emit(OP_MOVE, write_arg, int_check_value, NULL, &threeACcode);
-            emit(OP_JUMP, label_after_conversion, NULL, NULL, &threeACcode);
-            emit(OP_LABEL, label_not_float, NULL, NULL, &threeACcode);
-            emit(OP_LABEL, label_after_conversion, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, write_arg, NULL, NULL, &threeACcode);
+            emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
+
+            Operand* after_checking = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+            emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
+            emit(OP_JUMPIFNEQS, after_checking, NULL, NULL, &threeACcode);
+
+            emit(OP_PUSHS, write_arg, NULL, NULL, &threeACcode);
+            emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+            emit(OP_JUMPIFNEQS, after_checking, NULL, NULL, &threeACcode);
+            emit(OP_FLOAT2INT, write_arg, write_arg, NULL, &threeACcode);
+            emit(OP_LABEL, after_checking, NULL, NULL, &threeACcode);
 
             emit(OP_WRITE, write_arg, NULL, NULL, &threeACcode);
         }

@@ -1,2 +1,2 @@
 null
-Value is: 20
+Value is: 20.00
