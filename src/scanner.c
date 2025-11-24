@@ -292,6 +292,13 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_FLOAT_START:
                 if (isdigit(currChar)) nextState = S_FLOAT;
+                else if (currChar == '.') {
+                    ungetc(currChar, file);
+                    currChar = '.';
+                    state = S_INT;
+                    token->type = T_INTEGER;
+                    colPos--;
+                }
                 else nextState = S_ERROR;
                 break;
             case S_FLOAT:
@@ -324,7 +331,15 @@ int FSM(FILE *file, tToken token)
                 colPos = 1;
                 break;
             case S_DOT:
-                token->type = T_DOT;
+                if (currChar == ".") nextState = S_DDOT;
+                else token->type = T_DOT;
+                break;
+            case S_DDOT:
+                if (currChar == ".") nextState = S_DDDOT;
+                else token->type = T_DDOT;
+                break;
+            case S_DDDOT:
+                token->type = T_DDDOT;
                 break;
             case S_LEFT_BRACE:
                 token->type = T_LEFT_BRACE;
@@ -551,7 +566,6 @@ bool isKeyword(tToken token)
 
     tType type = token->type;
     if (strcmp(token->data, "class") == 0) type = T_KW_CLASS;
-    else if (strcmp(token->data, "class") == 0) type = T_KW_CLASS;
     else if (strcmp(token->data, "if") == 0) type = T_KW_IF;
     else if (strcmp(token->data, "else") == 0) type = T_KW_ELSE;
     else if (strcmp(token->data, "is") == 0) type = T_KW_IS;
@@ -566,6 +580,9 @@ bool isKeyword(tToken token)
     else if (strcmp(token->data, "Num") == 0) type = T_KW_NUM;
     else if (strcmp(token->data, "String") == 0) type = T_KW_STRING;
     else if (strcmp(token->data, "Null") == 0) type = T_KW_NULL_TYPE;
+    else if (strcmp(token->data, "in") == 0) type = T_KW_IN;
+    else if (strcmp(token->data, "continue") == 0) type = T_KW_CONTINUE;
+    else if (strcmp(token->data, "break") == 0) type = T_KW_BREAK;
 
     if (token->type != type)
     {
@@ -608,7 +625,12 @@ char *typeToString(tType type)
         case T_KW_NUM:          return "Num";
         case T_KW_STRING:       return "String";
         case T_KW_NULL_TYPE:    return "Null";
+        case T_KW_BREAK:        return "return";
+        case T_KW_CONTINUE:     return "continue";
+        case T_KW_IN:           return "IN";
         case T_DOT:             return "DOT";
+        case T_DDOT:            return "DDOT";
+        case T_DDDOT:           return "DDDOT";
         case T_EOL:             return "EOL";
         case T_EOF:             return "EOF";
         case T_EQL:             return "EQL";
