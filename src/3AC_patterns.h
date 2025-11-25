@@ -32,6 +32,8 @@ tDataType generate_ifj_chr(tSymTableStack *stack);
 void generate_truthiness_check(ThreeACList *list, Operand *condition_result);
 
 void generate_numeric_op(ThreeACList *list, char* op);
+void generate_mult_op(ThreeACList *list);
+void generate_add_op(ThreeACList *list);
 
 void generate_relational_op(ThreeACList *list, char* op);
 

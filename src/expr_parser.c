@@ -168,12 +168,13 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
             break;
         case T_ID:
         {
-            char getterKey[256];
+            int getterKeyLen = strlen("getter:") + strlen(data_copy) + 3;
+            char* getterKey = safeMalloc(getterKeyLen);
             sprintf(getterKey, "getter:%s@0", data_copy);
+
             tSymbolData *getter_data = symtable_find(global_symtable, getterKey);
 
             if (getter_data) {
-                printf("Found getter key: %s\n", getterKey);
                 emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
                 emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
                 
@@ -192,37 +193,39 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
 
             // Treat as getter not yet defined
             if (!data) {
-                tSymbolData forwardDecl = {0};
-                forwardDecl.kind = SYM_FUNC;
-                forwardDecl.dataType = TYPE_UNDEF;
-                forwardDecl.returnType = TYPE_UNDEF;
-                forwardDecl.index = -1;
-                forwardDecl.defined = false;
-                forwardDecl.paramCount = 0;
-                forwardDecl.paramNames = NULL;
-                forwardDecl.unique_name = NULL;
+                data = safeMalloc(sizeof(tSymbolData));
+                data->kind = SYM_FUNC;
+                data->dataType = TYPE_UNDEF;
+                data->returnType = TYPE_UNDEF;
+                data->index = -1;
+                data->defined = false;
+                data->paramCount = 0;
+                data->paramNames = NULL;
+                data->unique_name = NULL;
 
-                if (argCount > 0)
+                if (!symtable_insert(global_symtable, getterKey, *data))
                 {
-                    forwardDecl.paramTypes = safeMalloc(sizeof(tDataType) * argCount);
-                    for (int i = 0; i < argCount; i++)
-                        forwardDecl.paramTypes[i] = TYPE_UNDEF;
-                }
-                else
-                {
-                    forwardDecl.paramTypes = NULL;
-                }
-
-                if (!symtable_insert(global_symtable, key, forwardDecl))
-                {
-                    fprintf(stderr, "[PARSER] Error inserting forward decl for '%s'\n", key);
-                    free(funcName);
-                    free(key);
+                    fprintf(stderr, "[PARSER] Error inserting forward decl for '%s'\n", getterKey);
                     exit(INTERNAL_ERROR);
                 }
+
+                emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+                emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+                
+                char mangledName[256];
+                sprintf(mangledName, "%s$0%%getter", data_copy);
+                Operand* call_label = create_operand_from_label(mangledName);
+                emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
+                
+                emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+                op = create_operand_from_tf_variable("%retval");
+                free(getterKey);
+                free(data);
+                break;
             }
 
             op = create_operand_from_variable(data->unique_name, false);
+
             break;
         }
         case T_GLOBAL_ID:
@@ -525,145 +528,20 @@ static int reduce_expr(tExprStack *stack, tToken *currentToken)
                 tDataType result_type = TYPE_UNDEF;
 
                 if (strcmp(n2->value, "+") == 0) {
-                    Operand* op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
- 
-                    Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
- 
-                    Operand* type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type1, op1, NULL, &threeACcode);
- 
-                    Operand* type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type2, op2, NULL, &threeACcode);
- 
-                    Operand* string_type = create_operand_from_constant_string("string");
-                    Operand* is_string1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_string1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_string1, type1, string_type, &threeACcode);
- 
-                    Operand* is_string2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_string2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_string2, type2, string_type, &threeACcode);
- 
-                    Operand* both_strings = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, both_strings, NULL, NULL, &threeACcode);
-                    emit(OP_AND, both_strings, is_string1, is_string2, &threeACcode);
- 
-                    Operand* numeric_add_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, numeric_add_label, both_strings, create_operand_from_constant_bool(true), &threeACcode);
- 
-                    // String concatenation
-                    Operand* concat_res = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, concat_res, NULL, NULL, &threeACcode);
-                    emit(OP_CONCAT, concat_res, op1, op2, &threeACcode);
-                    emit(OP_PUSHS, concat_res, NULL, NULL, &threeACcode);
-                    result_type = TYPE_STRING;
-                    Operand* end_add_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMP, end_add_label, NULL, NULL, &threeACcode);
-  
-                    emit(OP_LABEL, numeric_add_label, NULL, NULL, &threeACcode);
-  
-                    Operand* int_type = create_operand_from_constant_string("float");
-  
-                    Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int1, type1, int_type, &threeACcode);
-                    Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op1_ok_label, is_int1, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-                    emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
-  
-                    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int2, type2, int_type, &threeACcode);
-                    Operand* op2_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op2, op2, NULL, &threeACcode);
-                    emit(OP_LABEL, op2_ok_label, NULL, NULL, &threeACcode);
-  
-                    emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
-                    emit(OP_ADDS, NULL, NULL, NULL, &threeACcode);
-                    result_type = TYPE_FLOAT;
- 
-                    emit(OP_LABEL, end_add_label, NULL, NULL, &threeACcode);
-              }
-              else if (strcmp(n2->value, "*") == 0) 
-              {
-                    Operand* op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
-  
-                    Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
-  
-                    Operand* type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type1, op1, NULL, &threeACcode);
-  
-                    Operand* type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type2, op2, NULL, &threeACcode);
-            
-                    emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_ANDS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-                  
-                    Operand* end_mult_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    Operand* num_mult_label_check = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    Operand* num_mult_label_type = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-                    emit(OP_JUMPIFNEQS, num_mult_label_check, NULL, NULL, &threeACcode);
-  
-                    generate_string_mult(&threeACcode);
-  
-                    emit(OP_JUMP, end_mult_label, NULL, NULL, &threeACcode);
-                    emit(OP_LABEL, check_mult_label_check, NULL, NULL, &threeACcode);
-
-                    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_ORS, NULL, NULL, NULL, &threeACcode);
-
-                    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-                    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_ORS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_ANDS, NULL, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-                    emit(OP_JUMPIFEQS, num_mult_label_type, NULL, NULL, &threeACcode);
-                    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL, &threeACcode);
-
-                    emit(OP_LABEL, num_mult_label_type, NULL, NULL, &threeACcode);
-                  
-                    emit(OP_LABEL, end_mult_label, NULL, NULL, &threeACcode);
-                   
+                    generate_add_op(&threeACcode);
                     result_type = TYPE_UNDEF;
-
+                }
+                else if (strcmp(n2->value, "*") == 0) 
+                {
+                    generate_mult_op(&threeACcode);
+                    result_type = TYPE_UNDEF;
                 } 
                 else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0) 
                 {
                     generate_numeric_op(&threeACcode, n2->value);
                     result_type = TYPE_FLOAT;
                 }
-                else { // Relational operators
+                else {
                     generate_relational_op(&threeACcode, n2->value);
                     result_type = TYPE_UNDEF;
                 }
@@ -781,7 +659,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
         else if (prec == PREC_GREATER)
         {
-            if (!reduce_expr(&expr_stack))
+            if (!reduce_expr(&expr_stack, &lookahead))
             {
                 printf("Reduction failed\n");
                 exit(SYNTAX_ERROR);
@@ -794,6 +672,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
         tExprStackNode *n1 = expr_stack.top;
         tExprStackNode *n2 = n1 ? n1->next : NULL;
+
         if (n1 && n2)
         {
             if (!n1->is_terminal && n2->is_terminal && n2->symbol == E_DOLLAR)

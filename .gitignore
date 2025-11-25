@@ -1,5 +1,6 @@
 *.o
 tests/**/source.out
+tests/**/return_code.out
 tests/**/generated.ifj25code
 scanner_test
 ifj25

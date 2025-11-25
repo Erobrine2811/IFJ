@@ -1,1 +1,2 @@
+Type 'y' to pass the test: 
 FAIL

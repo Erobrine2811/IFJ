@@ -396,19 +396,32 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     char *key = safeMalloc(keyLength);
     sprintf(key, "getter:%s@0", funcName);
 
-    tSymbolData getterData = {0};
-    getterData.kind = SYM_FUNC;
-    getterData.dataType = TYPE_UNDEF;
-    getterData.index = -1;
-    getterData.defined = false;
-    getterData.paramCount = 0;
-    getterData.paramNames = NULL;
-    getterData.unique_name = NULL;
+    tSymbolData *alreadyDefined = symtable_find(global_symtable, key);
 
-    if (!symtable_insert(global_symtable, key, getterData))
+    if (alreadyDefined != NULL && alreadyDefined->defined)
     {
         free(key);
+        printf("Getter redefinition error for %s\n", funcName);
         exit(REDEFINITION_FUN_ERROR);
+    }
+
+    if (alreadyDefined == NULL)
+    {
+        tSymbolData getterData = {0};
+        getterData.kind = SYM_FUNC;
+        getterData.dataType = TYPE_UNDEF;
+        getterData.index = -1;
+        getterData.defined = false;
+        getterData.paramCount = 0;
+        getterData.paramNames = NULL;
+        getterData.unique_name = NULL;
+
+        if (!symtable_insert(global_symtable, key, getterData))
+        {
+            free(key);
+            printf("Getter redefinition error for %s\n", funcName);
+            exit(REDEFINITION_FUN_ERROR);
+        }
     }
 
     tSymTable *getterSymtable = safeMalloc(sizeof(tSymTable));
@@ -417,10 +430,10 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 
     int mangled_len = strlen(funcName) + strlen("$0%getter") + 1;
     char *mangledName = safeMalloc(mangled_len);
-    Operand *labelOp = safeMalloc(sizeof(Operand));
-    labelOp->type = OPP_LABEL;
     sprintf(mangledName, "%s$0%%getter", funcName);
-    labelOp->value.label = mangledName;
+
+    Operand *labelOp = create_operand_from_label(mangledName);
+
     emit_comment("####################", &threeACcode);
     char* commentText = safeMalloc(strlen(funcName) + 25);
     sprintf(commentText, "Function declaration: %s (getter)", funcName);
@@ -435,8 +448,8 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
 
     parse_block(file, currentToken, stack, true);
-
     tSymbolData *definedGetter = symtable_find(global_symtable, key);
+
     if (definedGetter)
     {
         definedGetter->defined = true;
@@ -468,22 +481,35 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     char *key = safeMalloc(keyLength);
     sprintf(key, "setter:%s@1", funcName);
 
-    tSymbolData setterData = {0};
-    setterData.kind = SYM_FUNC;
-    setterData.dataType = TYPE_UNDEF;
-    setterData.index = -1;
-    setterData.defined = false;
-    setterData.paramCount = 1;
-    setterData.paramTypes = safeMalloc(sizeof(tDataType));
-    setterData.paramTypes[0] = TYPE_UNDEF;
-    setterData.paramNames = NULL;
-    setterData.unique_name = NULL;
+    tSymbolData *alreadyDefined = symtable_find(global_symtable, key);
 
-    if (!symtable_insert(global_symtable, key, setterData))
+    if (alreadyDefined != NULL && alreadyDefined->defined)
     {
         free(key);
-        free(setterData.paramTypes);
+        free(paramName);
+        printf("Setter redefinition error for %s\n", funcName);
         exit(REDEFINITION_FUN_ERROR);
+    }
+  
+    if (alreadyDefined == NULL)
+    {
+        tSymbolData setterData = {0};
+        setterData.kind = SYM_FUNC;
+        setterData.dataType = TYPE_UNDEF;
+        setterData.index = -1;
+        setterData.defined = false;
+        setterData.paramCount = 1;
+        setterData.paramTypes = safeMalloc(sizeof(tDataType));
+        setterData.paramTypes[0] = TYPE_UNDEF;
+        setterData.paramNames = NULL;
+        setterData.unique_name = NULL;
+
+        if (!symtable_insert(global_symtable, key, setterData))
+        {
+            free(key);
+            free(setterData.paramTypes);
+            exit(REDEFINITION_FUN_ERROR);
+        }
     }
 
     tSymTable *setterSymtable = safeMalloc(sizeof(tSymTable));
@@ -669,7 +695,7 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             generate_if_else(file, currentToken, stack, false);
             break;
         case T_KW_WHILE:
-            generate_while(file, currentToken, stack);
+            parse_while_statement(file, currentToken, stack);
             break;
         case T_KW_RETURN:
             generate_return(file, currentToken, stack);
@@ -726,37 +752,9 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     sprintf(setterKey, "setter:%s@1", varName);
 
     tSymbolData *setterSymbol = symtable_find(global_symtable, setterKey);
-    free(setterKey);
-
-    if (setterSymbol != NULL)
-    {
-        expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
-        skip_optional_eol(currentToken, file);
-        parse_expression(file, currentToken, stack);
-        
-        emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
-        
-        Operand* tf_param = create_operand_from_tf_variable("%param0");
-        emit(OP_DEFVAR, tf_param, NULL, NULL, &threeACcode);
-        
-        Operand* tf_param_pop = create_operand_from_tf_variable("%param0");
-        emit(OP_POPS, tf_param_pop, NULL, NULL, &threeACcode);
-        
-        emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-        
-        char mangledName[256];
-        sprintf(mangledName, "%s$1%%setter", varName);
-        Operand* call_label = create_operand_from_label(mangledName);
-        emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
-        
-        emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
-        
-        free(varName);
-        return;
-    }
-
     tSymbolData *var_data = NULL;
     bool is_new_declaration = false;
+
     if (isGlobal)
     {
         var_data = symtable_find(global_symtable, varName);
@@ -770,11 +768,56 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     else
     {
         var_data = find_data_in_stack(stack, varName);
-        if (var_data == NULL)
+
+        if (var_data == NULL || setterSymbol != NULL)
         {
-            fprintf(stderr, "[PARSER] Error: assignment to undefined variable '%s'\n", varName);
+
+            if (var_data == NULL && setterSymbol == NULL)
+            {
+                var_data = safeMalloc(sizeof(tSymbolData));
+                var_data->kind = SYM_FUNC;;
+                var_data->dataType = TYPE_UNDEF;
+                var_data->index = -1;
+                var_data->unique_name = NULL;
+                var_data->defined = false;
+                var_data->paramCount = 1;
+                var_data->paramNames = NULL;
+                var_data->paramTypes = safeMalloc(sizeof(tDataType));
+                var_data->paramTypes[0] = TYPE_UNDEF;
+
+                if (!symtable_insert(global_symtable, setterKey, *var_data))
+                {
+                    free(var_data);
+                    printf("Variable redefinition error for %s\n", varName);
+                    exit(REDEFINITION_FUN_ERROR);
+                }
+            }
+
+            expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
+            skip_optional_eol(currentToken, file);
+
+            parse_expression(file, currentToken, stack);
+            
+            emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
+            
+            Operand* tf_param = create_operand_from_tf_variable("%param0");
+            emit(OP_DEFVAR, tf_param, NULL, NULL, &threeACcode);
+            
+            Operand* tf_param_pop = create_operand_from_tf_variable("%param0");
+            emit(OP_POPS, tf_param_pop, NULL, NULL, &threeACcode);
+            
+            emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
+            
+            char mangledName[256];
+            sprintf(mangledName, "%s$1%%setter", varName);
+            Operand* call_label = create_operand_from_label(mangledName);
+            emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
+            
+            emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
+            
             free(varName);
-            exit(UNDEFINED_FUN_ERROR);
+            free(setterKey);
+            return;
         }
     }
 
@@ -784,6 +827,8 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         emit_comment(commentText, &threeACcode);
         free(commentText);
     }
+
+    free(setterKey);
 
 
     expect_and_consume(T_ASSIGN, currentToken, file, false, NULL);
@@ -871,6 +916,147 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
         }
         emit(OP_POPS, varOp, NULL, NULL, &threeACcode);
     }
+}
+
+void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+{
+    get_next_token(file, currentToken);
+
+    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
+    skip_optional_eol(currentToken, file);
+
+    bool if_used_backup = threeACcode.if_used;
+    threeACcode.if_used = false;
+    threeACcode.while_used = true;
+
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment("While loop start", &threeACcode);
+    InstructionNode *hoist_point = threeACcode.active;
+
+    char *loop_start_label_str = threeAC_create_label(&threeACcode);
+    char *loop_end_label_str = threeAC_create_label(&threeACcode);
+
+    Operand *loop_start_label = safeMalloc(sizeof(Operand));
+    loop_start_label->type = OPP_LABEL;
+    loop_start_label->value.label = loop_start_label_str;
+
+    Operand *loop_end_label = safeMalloc(sizeof(Operand));
+    loop_end_label->type = OPP_LABEL;
+    loop_end_label->value.label = loop_end_label_str;
+
+    emit(OP_LABEL, loop_start_label, NULL, NULL, &threeACcode);
+    emit_comment("While condition", &threeACcode);
+
+    parse_expression(file, currentToken, stack);
+
+    // Handle truthiness rules
+    Operand* expr_val_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, expr_val_while, NULL, NULL, &threeACcode);
+    emit(OP_POPS, expr_val_while, NULL, NULL, &threeACcode); // Pop expression result
+
+    Operand* final_bool_result_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, final_bool_result_while, NULL, NULL, &threeACcode);
+
+    Operand* label_is_null_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_bool_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_other_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_end_truthiness_while = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+    emit(OP_JUMPIFEQ, label_is_null_while, expr_val_while, create_operand_from_constant_nil(), &threeACcode);
+
+    Operand* type_check_var_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, type_check_var_while, NULL, NULL, &threeACcode);
+    emit(OP_TYPE, type_check_var_while, expr_val_while, NULL, &threeACcode); // Get type of expr_val
+
+    emit(OP_JUMPIFEQ, label_is_bool_while, type_check_var_while, create_operand_from_constant_string("bool"), &threeACcode);
+
+    emit(OP_JUMP, label_is_other_while, NULL, NULL, &threeACcode);
+
+    // Case: is null
+    emit(OP_LABEL, label_is_null_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(false), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    // Case: is boolean
+    emit(OP_LABEL, label_is_bool_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, expr_val_while, NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    // Case: is other (number, string, etc.)
+    emit(OP_LABEL, label_is_other_while, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(true), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, label_end_truthiness_while, NULL, NULL, &threeACcode);
+    emit(OP_PUSHS, final_bool_result_while, NULL, NULL, &threeACcode); // Push the final boolean result
+
+    Operand* condition_result = safeMalloc(sizeof(Operand));
+    condition_result->type = OPP_TEMP;
+    condition_result->value.varname = threeAC_create_temp(&threeACcode);
+    emit(OP_DEFVAR, condition_result, NULL, NULL, &threeACcode);
+    emit(OP_POPS, condition_result, NULL, NULL, &threeACcode);
+
+    Operand* const_false = safeMalloc(sizeof(Operand));
+    const_false->type = OPP_CONST_BOOL;
+    const_false->value.boolval = false;
+
+    emit(OP_JUMPIFEQ, loop_end_label, condition_result, const_false, &threeACcode);
+
+    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+
+    emit_comment("While body", &threeACcode);
+    parse_block(file, currentToken, stack, false);
+
+    emit(OP_JUMP, loop_start_label, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, loop_end_label, NULL, NULL, &threeACcode);
+    emit_comment("While loop end", &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    InstructionNode *loop_end_node = threeACcode.active;
+
+    // Hoist DEFVARs
+    InstructionNode *scan_ptr = hoist_point ? hoist_point->next : threeACcode.head;
+    while (scan_ptr != NULL && scan_ptr != loop_end_node) {
+        InstructionNode *next_scan = scan_ptr->next;
+        if (scan_ptr->opType == OP_DEFVAR && (scan_ptr->result->type == OPP_VAR || scan_ptr->result->type == OPP_TEMP)) {
+            // Unlink from current position
+            scan_ptr->prev->next = scan_ptr->next;
+            if (scan_ptr->next) {
+                scan_ptr->next->prev = scan_ptr->prev;
+            } else {
+                threeACcode.tail = scan_ptr->prev;
+            }
+
+            // Insert after hoist_point
+            if (hoist_point) {
+                scan_ptr->next = hoist_point->next;
+                if (hoist_point->next) {
+                    hoist_point->next->prev = scan_ptr;
+                }
+                hoist_point->next = scan_ptr;
+                scan_ptr->prev = hoist_point;
+            } else { // Hoisting to the very beginning of the list
+                scan_ptr->next = threeACcode.head;
+                if (threeACcode.head) {
+                    threeACcode.head->prev = scan_ptr;
+                }
+                threeACcode.head = scan_ptr;
+                scan_ptr->prev = NULL;
+            }
+            
+            if (threeACcode.tail == hoist_point) {
+                threeACcode.tail = scan_ptr;
+            }
+
+            hoist_point = scan_ptr; // The next DEFVAR will be inserted after this one
+        }
+        scan_ptr = next_scan;
+    }
+
+    threeACcode.active = loop_end_node;
+
+    threeACcode.while_used = false;
+    threeACcode.if_used = if_used_backup;
 }
 
 void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
