@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -g
-SRC = src/scanner.c src/helper.c src/parser.c src/symtable.c src/main.c src/expr_parser.c src/symstack.c src/semantic.c src/3AC.c
+SRC = src/scanner.c src/helper.c src/parser.c src/symtable.c src/main.c src/expr_parser.c src/symstack.c src/semantic.c src/3AC.c src/3AC_patterns.c
 OBJ = $(SRC:.c=.o)
 TARGET = ifj25
 

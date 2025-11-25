@@ -1,2 +1,1 @@
-Zadejte cislo pro vypocet faktorialu
-Vysledek: 3628800
+Zadejte cislo pro vypocet faktorialu: Vysledek: 3628800

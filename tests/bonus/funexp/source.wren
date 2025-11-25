@@ -2,14 +2,14 @@ import "ifj25" for Ifj
 
 class Program {
     static main() {
-      var a = 5 * get_ten() + 2 // should be 5 * 10 + 2 = 52
-      print(a) // should print 52
+      var a = 5 * get_ten() + 2
+      print(a)
 
-      a = func_in_return() + 3 // should be 4 + 10 + 3 = 17
+      a = func_in_return() + 3
       print(a) // should print 17
 
       if (get_ten() == 10) {
-        print("get_ten works") // should print this
+        print("get_ten works")
       } else {
         print("get_ten does not work")
       }

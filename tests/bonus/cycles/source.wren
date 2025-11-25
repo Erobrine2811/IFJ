@@ -3,6 +3,7 @@ import "ifj25" for Ifj
 class Program {
     static main() {
       for (index in 10..20) {
+
         print(index)
 
         if (is_even(index) == 1) {

@@ -560,6 +560,7 @@ Operand* create_operand_from_constant_nil() {
     return op;
 }
 
+
 void emit_comment(const char *text, ThreeACList *list) {
     Operand *commentOp = safeMalloc(sizeof(Operand));
     commentOp->type = OPP_COMMENT_TEXT;
