@@ -8,8 +8,6 @@ void generate_program_entrypoint(ThreeACList *list);
 
 void generate_eof(ThreeACList *list);
 
-void generate_if_else(FILE *file, tToken *currentToken, tSymTableStack *stack, bool in_loop);
-
 void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 void generate_function_call(tSymTable *g_symtable, tSymTableStack *stack, tToken *func_token, FILE *file, tToken *currentToken);

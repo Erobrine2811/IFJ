@@ -232,7 +232,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
     char *funcName = safeMalloc(strlen((*currentToken)->data) + 1);
     strcpy(funcName, (*currentToken)->data);
-   
+
     get_next_token(file, currentToken);
 
     if ((*currentToken)->type != T_LEFT_PAREN)
@@ -261,7 +261,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     tSymTable *funcSymtable = safeMalloc(sizeof(tSymTable));
     symtable_init(funcSymtable);
     symtable_stack_push(stack, funcSymtable);
-    
+
     char **paramNames = NULL;
     int paramCount = parse_parameter_list(file, currentToken, stack, &paramNames);
 
@@ -279,7 +279,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     emit_comment(commentText, &threeACcode);
     sprintf(commentText, "####################");
     emit_comment(commentText, &threeACcode);
-  free(commentText);
+    free(commentText);
     emit(OP_LABEL, labelOp, NULL, NULL , &threeACcode);
 
     Operand* retval_def = create_operand_from_variable("%retval", false);
@@ -287,7 +287,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     Operand* retval_init = create_operand_from_variable("%retval", false);
     Operand* nil_op = create_operand_from_constant_nil();
     emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
-    
+
     tSymTable *func_scope_table = symtable_stack_top(stack);
 
     for (int i = 0; i < paramCount; i++) {
@@ -302,12 +302,12 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     for (int i = 0; i < paramCount; i++) {
         char temp_param_name[20];
         sprintf(temp_param_name, "%%param%d", i);
-        
+
         tSymbolData *param_data = symtable_find(func_scope_table, paramNames[i]);
         if (!param_data) {
             exit(INTERNAL_ERROR);
         }
-        
+
         Operand* dest = create_operand_from_variable(param_data->unique_name, false);
         Operand* src = create_operand_from_variable(temp_param_name, false);
         emit(OP_MOVE, dest, src, NULL, &threeACcode);
@@ -490,7 +490,7 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
         printf("Setter redefinition error for %s\n", funcName);
         exit(REDEFINITION_FUN_ERROR);
     }
-  
+
     if (alreadyDefined == NULL)
     {
         tSymbolData setterData = {0};
@@ -587,7 +587,7 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
 
         char *paramName = safeMalloc(strlen((*currentToken)->data) + 1);
         strcpy(paramName, (*currentToken)->data);
-        
+
         paramCount++;
         *paramNames = safeRealloc(*paramNames, paramCount * sizeof(char*));
         (*paramNames)[paramCount - 1] = safeMalloc(strlen(paramName) + 1);
@@ -692,7 +692,7 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             parse_block(file, currentToken, stack, false);
             break;
         case T_KW_IF:
-            generate_if_else(file, currentToken, stack, false);
+            parse_if_statement(file, currentToken, stack);
             break;
         case T_KW_WHILE:
             parse_while_statement(file, currentToken, stack);
@@ -718,7 +718,100 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 }
 
 
+void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+{
+    get_next_token(file, currentToken); // consume 'if'
 
+    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
+    skip_optional_eol(currentToken, file);
+
+    bool while_used_backup = threeACcode.while_used;
+    threeACcode.while_used = false;
+    threeACcode.if_used = true;
+
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    emit_comment("If statement condition", &threeACcode);
+    parse_expression(file, currentToken, stack);
+
+    // Handle truthiness rules
+    Operand* expr_val_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, expr_val_if, NULL, NULL, &threeACcode);
+    emit(OP_POPS, expr_val_if, NULL, NULL, &threeACcode); // Pop expression result
+
+    Operand* final_bool_result_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, final_bool_result_if, NULL, NULL, &threeACcode);
+
+    Operand* label_is_null_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_bool_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_is_other_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+    Operand* label_end_truthiness_if = create_operand_from_label(threeAC_create_label(&threeACcode));
+
+    // Check if null
+    emit(OP_JUMPIFEQ, label_is_null_if, expr_val_if, create_operand_from_constant_nil(), &threeACcode);
+
+    // Check if boolean (using TYPE instruction)
+    Operand* type_check_var_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    emit(OP_DEFVAR, type_check_var_if, NULL, NULL, &threeACcode);
+    emit(OP_TYPE, type_check_var_if, expr_val_if, NULL, &threeACcode); // Get type of expr_val
+
+    emit(OP_JUMPIFEQ, label_is_bool_if, type_check_var_if, create_operand_from_constant_string("bool"), &threeACcode);
+
+    // If not null and not bool, it's true
+    emit(OP_JUMP, label_is_other_if, NULL, NULL, &threeACcode);
+
+    // Case: is null
+    emit(OP_LABEL, label_is_null_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(false), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    // Case: is boolean
+    emit(OP_LABEL, label_is_bool_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, expr_val_if, NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    // Case: is other (number, string, etc.)
+    emit(OP_LABEL, label_is_other_if, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(true), NULL, &threeACcode);
+    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
+
+    emit(OP_LABEL, label_end_truthiness_if, NULL, NULL, &threeACcode);
+    emit(OP_PUSHS, final_bool_result_if, NULL, NULL, &threeACcode); // Push the final boolean result
+
+    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+
+    char *label1_str = threeAC_create_label(&threeACcode);
+    Operand *label1 = create_operand_from_label(label1_str);
+
+    emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFEQS, label1, NULL, NULL, &threeACcode);
+
+    emit_comment("If-block", &threeACcode);
+    parse_block(file, currentToken, stack, false);
+    skip_optional_eol(currentToken, file);
+
+    expect_and_consume(T_KW_ELSE, currentToken, file, false, NULL);
+
+    char *label2_str = threeAC_create_label(&threeACcode);
+    Operand *label2 = create_operand_from_label(label2_str);
+
+    emit(OP_JUMP, label2, NULL, NULL, &threeACcode);
+    emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
+
+    emit_comment("Else-block", &threeACcode);
+    parse_block(file, currentToken, stack, false);
+
+    emit(OP_LABEL, label2, NULL, NULL, &threeACcode);
+
+    free(label2_str);
+
+    free(label1_str);
+
+    emit_comment("If statement end", &threeACcode);
+    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+
+    threeACcode.if_used = false;
+    threeACcode.while_used = while_used_backup;
+}
 
 
 void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
@@ -732,7 +825,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 {
     tToken nextToken = peek_token(file);
 
-    if (nextToken && nextToken->type == T_LEFT_PAREN)
+    if (nextToken && nextToken->type == T_LEFT_PAREN && (*currentToken)->type == T_ID)
     {
         parse_function_call(file, currentToken, stack);
         if ((*currentToken)->type == T_EOL) {
@@ -797,24 +890,24 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
             skip_optional_eol(currentToken, file);
 
             parse_expression(file, currentToken, stack);
-            
+
             emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
-            
+
             Operand* tf_param = create_operand_from_tf_variable("%param0");
             emit(OP_DEFVAR, tf_param, NULL, NULL, &threeACcode);
-            
+
             Operand* tf_param_pop = create_operand_from_tf_variable("%param0");
             emit(OP_POPS, tf_param_pop, NULL, NULL, &threeACcode);
-            
+
             emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-            
+
             char mangledName[256];
             sprintf(mangledName, "%s$1%%setter", varName);
             Operand* call_label = create_operand_from_label(mangledName);
             emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
-            
+
             emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
-            
+
             free(varName);
             free(setterKey);
             return;
@@ -836,20 +929,8 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
     nextToken = peek_token(file);
     tDataType expr_type;
-    if (((*currentToken)->type == T_ID || (*currentToken)->type == T_GLOBAL_ID) && nextToken && nextToken->type == T_LEFT_PAREN)
-    {
-        parse_function_call(file, currentToken, stack);
-        expr_type = TYPE_UNDEF;
-    }
-    else if ((*currentToken)->type == T_KW_IFJ)
-    {
-        tDataType returnType = parse_ifj_call(file, currentToken, stack);
-        expr_type = returnType;
-    }
-    else
-    {
-        expr_type = parse_expression(file, currentToken, stack);
-    }
+
+    expr_type = parse_expression(file, currentToken, stack);
 
     if (var_data) {
         var_data->dataType = expr_type;
@@ -899,16 +980,8 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
         get_next_token(file, currentToken);
         tDataType expr_type;
         tToken nextToken = peek_token(file);
-        if (((*currentToken)->type == T_ID || (*currentToken)->type == T_GLOBAL_ID) && nextToken && nextToken->type == T_LEFT_PAREN) {
-            parse_function_call(file, currentToken, stack);
-            expr_type = TYPE_UNDEF;
-        } else if ((*currentToken)->type == T_KW_IFJ) {
-            parse_ifj_call(file, currentToken, stack);
-            expr_type = TYPE_UNDEF;
-        }
-        else {
-            expr_type = parse_expression(file, currentToken, stack);
-        }
+
+        expr_type = parse_expression(file, currentToken, stack);
 
         tSymbolData* var_data = isGlobal ? symtable_find(global_symtable, variable_name) : find_data_in_stack(stack, variable_name);
         if (var_data) {
@@ -1043,7 +1116,7 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
                 threeACcode.head = scan_ptr;
                 scan_ptr->prev = NULL;
             }
-            
+
             if (threeACcode.tail == hoist_point) {
                 threeACcode.tail = scan_ptr;
             }
@@ -1102,7 +1175,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     // 3. Call function
     emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-    
+
     int mangled_len = strlen(funcName) + 1 + 10 + strlen("%func") + 1;
     char *mangledName = safeMalloc(mangled_len);
     sprintf(mangledName, "%s$%d%%func", funcName, argCount);
@@ -1183,60 +1256,6 @@ tDataType get_type_from_token(tToken token)
     }
 }
 
-void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
-{
-    switch ((*currentToken)->type)
-    {
-        case T_INTEGER:
-        case T_FLOAT:
-        case T_STRING:
-        case T_KW_NULL_VALUE:
-        case T_GLOBAL_ID:
-        {
-            char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
-            strcpy(paramCopy, (*currentToken)->data);
-            get_next_token(file, currentToken);
-            break;
-        }
-        case T_ID:
-        {
-            int keyLength = strlen("getter:") + strlen((*currentToken)->data) + 3;
-            char *getterKey = safeMalloc(keyLength);
-            sprintf(getterKey, "getter:%s@0", (*currentToken)->data);
-
-            char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
-            strcpy(paramCopy, (*currentToken)->data);
-
-            if (symtable_find(global_symtable, getterKey))
-            {
-                free(getterKey);
-                get_next_token(file, currentToken);
-                break;
-            }
-            free(getterKey);
-
-            tToken nextToken = peek_token(file);
-            if (nextToken->type == T_LEFT_PAREN)
-            {
-                parse_function_call(file, currentToken, stack);
-            }
-            else
-            {
-                get_next_token(file, currentToken);
-            }
-            break;
-        }
-
-        case T_KW_IFJ:
-            parse_ifj_call(file, currentToken, stack);
-            break;
-
-        default:
-            fprintf(stderr, "[PARSER] Invalid term '%s'\n", (*currentToken)->data);
-            exit(SYNTAX_ERROR);
-    }
-}
-
 tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
@@ -1251,7 +1270,7 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     char *fullName = safeMalloc(fullNameLen);
     sprintf(fullName, "Ifj.%s", (*currentToken)->data);
     get_next_token(file, currentToken);
- 
+
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
@@ -1286,40 +1305,40 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     if (strcmp(fullName, "Ifj.write") == 0)
     {
       returnType = generate_ifj_write(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.read_str") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.read_str") == 0)
     {
       returnType = generate_ifj_read_str(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.strcmp") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.strcmp") == 0)
     {
       returnType = generate_ifj_strcmp(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.ord") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.ord") == 0)
     {
       returnType = generate_ifj_ord(stack);
     }
-    else if (strcmp(fullName, "Ifj.read_num") == 0) 
+    else if (strcmp(fullName, "Ifj.read_num") == 0)
     {
       returnType = generate_ifj_read_num(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.floor") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.floor") == 0)
     {
       returnType = generate_ifj_floor(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.str") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.str") == 0)
     {
       returnType = generate_ifj_str(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.length") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.length") == 0)
     {
       returnType = generate_ifj_length(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.substring") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.substring") == 0)
     {
       returnType = generate_ifj_substring(stack);
-    } 
-    else if (strcmp(fullName, "Ifj.chr") == 0) 
+    }
+    else if (strcmp(fullName, "Ifj.chr") == 0)
     {
       returnType = generate_ifj_chr(stack);
     }

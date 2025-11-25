@@ -6,3 +6,4 @@ scanner_test
 ifj25
 ic25int
 *.dSYM/
+expr_parser_old.txt
