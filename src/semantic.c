@@ -45,6 +45,7 @@ void semantic_check_argument_count(tSymbolData *funcData, int argCount, const ch
 
 
 extern tSymTable *global_symtable;
+
 void semantic_define_variable(tSymTableStack *stack, const char *variable_name, bool isGlobal) { 
     tSymbolData data = {0};
     data.kind = SYM_VAR;

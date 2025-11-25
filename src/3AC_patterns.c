@@ -728,98 +728,74 @@ void generate_truthiness_check(ThreeACList *list, Operand *expr_val) {
 }
 
 void generate_string_mult(ThreeACList *list) {
-    Operand* op2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, op2, NULL, NULL, list);
-    emit(OP_POPS, op2, NULL, NULL, list);
-
-    Operand* op1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, op1, NULL, NULL, list);
-    emit(OP_POPS, op1, NULL, NULL, list);
-
-    Operand* type1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, type1, NULL, NULL, list);
-    emit(OP_TYPE, type1, op1, NULL, list);
-
-    Operand* type2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, type2, NULL, NULL, list);
-    emit(OP_TYPE, type2, op2, NULL, list);
-
-    Operand* string_type = create_operand_from_constant_string("string");
-    Operand* int_type = create_operand_from_constant_string("int");
-    Operand* float_type = create_operand_from_constant_string("float");
-
-    Operand* is_string1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_string1, NULL, NULL, list);
-    emit(OP_EQ, is_string1, type1, string_type, list);
-
-    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_int2, NULL, NULL, list);
-    emit(OP_EQ, is_int2, type2, int_type, list);
-
-    Operand* is_float2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_float2, NULL, NULL, list);
-    emit(OP_EQ, is_float2, type2, float_type, list);
-
-    Operand* is_numeric2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_numeric2, NULL, NULL, list);
-    emit(OP_OR, is_numeric2, is_int2, is_float2, list);
-
-    Operand* is_repetition = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_repetition, NULL, NULL, list);
-    emit(OP_AND, is_repetition, is_string1, is_numeric2, list);
-
-    Operand* numeric_mul_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMPIFNEQ, numeric_mul_label, is_repetition, create_operand_from_constant_bool(true), list);
-
-    // String repetition path
-    Operand* str_op = op1;
-    Operand* num_op = op2;
-
-    // Convert numeric operand to int if it's a float
-    Operand* num_op_type = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, num_op_type, NULL, NULL, list);
-    emit(OP_TYPE, num_op_type, num_op, NULL, list);
-    Operand* is_float_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMPIFEQ, is_float_label, num_op_type, float_type, list);
-    Operand* conversion_done_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMP, conversion_done_label, NULL, NULL, list);
-    emit(OP_LABEL, is_float_label, NULL, NULL, list);
-    emit(OP_FLOAT2INT, num_op, num_op, NULL, list);
-    emit(OP_LABEL, conversion_done_label, NULL, NULL, list);
-
-    Operand* result_str = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, result_str, NULL, NULL, list);
-    emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, list);
-    
-    Operand* loop_start = create_operand_from_label(threeAC_create_label(list));
-    Operand* loop_end = create_operand_from_label(threeAC_create_label(list));
-    Operand* condition = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, condition, NULL, NULL, list);
-
-    emit(OP_LABEL, loop_start, NULL, NULL, list);
-    
-    emit(OP_GT, condition, num_op, create_operand_from_constant_int(0), &threeACcode);
-    emit(OP_JUMPIFNEQ, loop_end, condition, create_operand_from_constant_bool(true), list);
-    
-    emit(OP_CONCAT, result_str, result_str, str_op, list);
-    
-    emit(OP_SUB, num_op, num_op, create_operand_from_constant_int(1), &threeACcode);
-    emit(OP_JUMP, loop_start, NULL, NULL, list);
-    
-    emit(OP_LABEL, loop_end, NULL, NULL, list);
-    emit(OP_PUSHS, result_str, NULL, NULL, list);
-
-    Operand* end_mul_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMP, end_mul_label, NULL, NULL, list);
-
-    // Numeric multiplication path
-    emit(OP_LABEL, numeric_mul_label, NULL, NULL, list);
-    
-    emit(OP_PUSHS, op1, NULL, NULL, list);
-    emit(OP_PUSHS, op2, NULL, NULL, list);
-    generate_numeric_op(list, "*");
-
-    emit(OP_LABEL, end_mul_label, NULL, NULL, list);
+    // Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, is_int2, NULL, NULL, list);
+    // emit(OP_EQ, is_int2, type2, int_type, list);
+    //
+    // Operand* is_float2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, is_float2, NULL, NULL, list);
+    // emit(OP_EQ, is_float2, type2, float_type, list);
+    //
+    // Operand* is_numeric2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, is_numeric2, NULL, NULL, list);
+    // emit(OP_OR, is_numeric2, is_int2, is_float2, list);
+    //
+    // Operand* is_repetition = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, is_repetition, NULL, NULL, list);
+    // emit(OP_AND, is_repetition, is_string1, is_numeric2, list);
+    //
+    // Operand* numeric_mul_label = create_operand_from_label(threeAC_create_label(list));
+    // emit(OP_JUMPIFNEQ, numeric_mul_label, is_repetition, create_operand_from_constant_bool(true), list);
+    //
+    // // String repetition path
+    // Operand* str_op = op1;
+    // Operand* num_op = op2;
+    //
+    // // Convert numeric operand to int if it's a float
+    // Operand* num_op_type = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, num_op_type, NULL, NULL, list);
+    // emit(OP_TYPE, num_op_type, num_op, NULL, list);
+    // Operand* is_float_label = create_operand_from_label(threeAC_create_label(list));
+    // emit(OP_JUMPIFEQ, is_float_label, num_op_type, float_type, list);
+    // Operand* conversion_done_label = create_operand_from_label(threeAC_create_label(list));
+    // emit(OP_JUMP, conversion_done_label, NULL, NULL, list);
+    // emit(OP_LABEL, is_float_label, NULL, NULL, list);
+    // emit(OP_FLOAT2INT, num_op, num_op, NULL, list);
+    // emit(OP_LABEL, conversion_done_label, NULL, NULL, list);
+    //
+    // Operand* result_str = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, result_str, NULL, NULL, list);
+    // emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, list);
+    //
+    // Operand* loop_start = create_operand_from_label(threeAC_create_label(list));
+    // Operand* loop_end = create_operand_from_label(threeAC_create_label(list));
+    // Operand* condition = create_operand_from_variable(threeAC_create_temp(list), false);
+    // emit(OP_DEFVAR, condition, NULL, NULL, list);
+    //
+    // emit(OP_LABEL, loop_start, NULL, NULL, list);
+    //
+    // emit(OP_GT, condition, num_op, create_operand_from_constant_int(0), &threeACcode);
+    // emit(OP_JUMPIFNEQ, loop_end, condition, create_operand_from_constant_bool(true), list);
+    //
+    // emit(OP_CONCAT, result_str, result_str, str_op, list);
+    //
+    // emit(OP_SUB, num_op, num_op, create_operand_from_constant_int(1), &threeACcode);
+    // emit(OP_JUMP, loop_start, NULL, NULL, list);
+    //
+    // emit(OP_LABEL, loop_end, NULL, NULL, list);
+    // emit(OP_PUSHS, result_str, NULL, NULL, list);
+    //
+    // Operand* end_mul_label = create_operand_from_label(threeAC_create_label(list));
+    // emit(OP_JUMP, end_mul_label, NULL, NULL, list);
+    //
+    // // Numeric multiplication path
+    // emit(OP_LABEL, numeric_mul_label, NULL, NULL, list);
+    //
+    // emit(OP_PUSHS, op1, NULL, NULL, list);
+    // emit(OP_PUSHS, op2, NULL, NULL, list);
+    // generate_numeric_op(list, "*");
+    //
+    // emit(OP_LABEL, end_mul_label, NULL, NULL, list);
 }
 
 

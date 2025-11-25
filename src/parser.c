@@ -506,9 +506,7 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     char *mangledName = safeMalloc(mangled_len);
     sprintf(mangledName, "%s$1%%setter", funcName);
 
-    Operand *labelOp = safeMalloc(sizeof(Operand));
-    labelOp->type = OPP_LABEL;
-    labelOp->value.label = mangledName;
+    Operand *labelOp = create_operand_from_label(mangledName);
     emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
     Operand* retval_def = create_operand_from_variable("%retval", false);
@@ -517,11 +515,10 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     Operand* nil_op = create_operand_from_constant_nil();
     emit(OP_MOVE, retval_init, nil_op, NULL, &threeACcode);
 
-    // Parameter handling for setter
     Operand* setter_param_dest = create_operand_from_variable(paramData.unique_name, false);
-    Operand* setter_param_src = create_operand_from_variable("%param0", false); // Changed from TF to LF
-    emit(OP_DEFVAR, setter_param_dest, NULL, NULL, &threeACcode); // Define the local variable
-    emit(OP_MOVE, setter_param_dest, setter_param_src, NULL, &threeACcode); // Move LF@%param0 to local variable
+    Operand* setter_param_src = create_operand_from_variable("%param0", false);
+    emit(OP_DEFVAR, setter_param_dest, NULL, NULL, &threeACcode);
+    emit(OP_MOVE, setter_param_dest, setter_param_src, NULL, &threeACcode);
 
     parse_block(file, currentToken, stack, true);
 
@@ -901,7 +898,6 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
-    // 2. Create frame and pass parameters
     emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
 
     for (int i = 0; i < argCount; i++) {
