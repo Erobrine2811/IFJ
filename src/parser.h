@@ -35,16 +35,14 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void check_node_defined(tSymNode *node);
 void check_undefined_functions();
 int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack, char ***paramNames);
-void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-void parse_return_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody);
 void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack);
 tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check_value, const char* value);
+void skip_optional_eol(tToken *currentToken, FILE *file);
 
 tSymbolData *find_data_in_stack(tSymTableStack *stack, const char *key);
 

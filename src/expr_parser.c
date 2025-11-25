@@ -2,6 +2,7 @@
 #include "parser.h"
 #include <stdio.h>
 #include "3AC.h"
+#include "3AC_patterns.h"
 #include "semantic.h"
 
 static char* process_string_literal(const char* raw_data) {
@@ -152,8 +153,8 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
 
     switch(token->type) {
         case T_INTEGER:
-            op->type = OPP_CONST_FLOAT;
-            op->value.floatval = (double)atoi(data_copy);
+            op->type = OPP_CONST_INT;
+            op->value.intval = atoi(data_copy);
             free(data_copy);
             break;
         case T_FLOAT:
@@ -554,8 +555,9 @@ static int reduce_expr(tExprStack *stack)
 
                         // Numeric addition
                         emit(OP_LABEL, numeric_add_label, NULL, NULL, &threeACcode);
-                        // Convert op1 if int
-                        Operand* int_type = create_operand_from_constant_string("int");
+
+                        Operand* int_type = create_operand_from_constant_string("float");
+
                         Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
                         emit(OP_DEFVAR, is_int1, NULL, NULL, &threeACcode);
                         emit(OP_EQ, is_int1, type1, int_type, &threeACcode);
@@ -564,7 +566,6 @@ static int reduce_expr(tExprStack *stack)
                         emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
                         emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
 
-                        // Convert op2 if int
                         Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
                         emit(OP_DEFVAR, is_int2, NULL, NULL, &threeACcode);
                         emit(OP_EQ, is_int2, type2, int_type, &threeACcode);
@@ -572,7 +573,7 @@ static int reduce_expr(tExprStack *stack)
                         emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), &threeACcode);
                         emit(OP_INT2FLOAT, op2, op2, NULL, &threeACcode);
                         emit(OP_LABEL, op2_ok_label, NULL, NULL, &threeACcode);
-                        
+
                         emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
                         emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
                         emit(OP_ADDS, NULL, NULL, NULL, &threeACcode);
@@ -581,251 +582,14 @@ static int reduce_expr(tExprStack *stack)
                         emit(OP_LABEL, end_add_label, NULL, NULL, &threeACcode);
                   }
                   else if (strcmp(n2->value, "*") == 0) {
-                    Operand* op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
-
-                    Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
-
-                    Operand* type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type1, op1, NULL, &threeACcode);
-
-                    Operand* type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type2, op2, NULL, &threeACcode);
-
-                    Operand* string_type = create_operand_from_constant_string("string");
-                    Operand* int_type = create_operand_from_constant_string("int");
-                    Operand* float_type = create_operand_from_constant_string("float");
-
-                    Operand* is_string1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_string1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_string1, type1, string_type, &threeACcode);
-
-                    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int2, type2, int_type, &threeACcode);
-
-                    Operand* is_float2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_float2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_float2, type2, float_type, &threeACcode);
-
-                    Operand* is_numeric2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_numeric2, NULL, NULL, &threeACcode);
-                    emit(OP_OR, is_numeric2, is_int2, is_float2, &threeACcode);
-
-                    Operand* is_repetition = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_repetition, NULL, NULL, &threeACcode);
-                    emit(OP_AND, is_repetition, is_string1, is_numeric2, &threeACcode);
-
-                    Operand* numeric_mul_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, numeric_mul_label, is_repetition, create_operand_from_constant_bool(true), &threeACcode);
-
-                    // String repetition path
-                    Operand* str_op = op1;
-                    Operand* num_op = op2;
-
-                    // Convert numeric operand to int if it's a float
-                    Operand* num_op_type = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, num_op_type, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, num_op_type, num_op, NULL, &threeACcode);
-                    Operand* is_float_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFEQ, is_float_label, num_op_type, float_type, &threeACcode);
-                    Operand* conversion_done_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMP, conversion_done_label, NULL, NULL, &threeACcode);
-                    emit(OP_LABEL, is_float_label, NULL, NULL, &threeACcode);
-                    emit(OP_FLOAT2INT, num_op, num_op, NULL, &threeACcode);
-                    emit(OP_LABEL, conversion_done_label, NULL, NULL, &threeACcode);
-
-                    Operand* result_str = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
-                    emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode);
-                    
-                    Operand* loop_start = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    Operand* loop_end = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    Operand* condition = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, condition, NULL, NULL, &threeACcode);
-
-                    emit(OP_LABEL, loop_start, NULL, NULL, &threeACcode);
-                    
-                    emit(OP_GT, condition, num_op, create_operand_from_constant_int(0), &threeACcode);
-                    emit(OP_JUMPIFNEQ, loop_end, condition, create_operand_from_constant_bool(true), &threeACcode);
-                    
-                    emit(OP_CONCAT, result_str, result_str, str_op, &threeACcode);
-                    
-                    emit(OP_SUB, num_op, num_op, create_operand_from_constant_int(1), &threeACcode);
-                    emit(OP_JUMP, loop_start, NULL, NULL, &threeACcode);
-                    
-                    emit(OP_LABEL, loop_end, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
-                    result_type = TYPE_STRING;
-                    Operand* end_mul_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMP, end_mul_label, NULL, NULL, &threeACcode);
-
-                    // Numeric multiplication path
-                    emit(OP_LABEL, numeric_mul_label, NULL, NULL, &threeACcode);
-                    
-                    Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int1, type1, int_type, &threeACcode);
-
-                    // Convert op1 if int
-                    Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op1_ok_label, is_int1, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-                    emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
-
-                    // Convert op2 if int
-                    Operand* op2_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op2, op2, NULL, &threeACcode);
-                    emit(OP_LABEL, op2_ok_label, NULL, NULL, &threeACcode);
-
-                    emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
-                    emit(OP_MULS, NULL, NULL, NULL, &threeACcode);
-                    result_type = TYPE_FLOAT;
-
-                    emit(OP_LABEL, end_mul_label, NULL, NULL, &threeACcode);
+                    generate_string_mult(&threeACcode);
+                    result_type = TYPE_UNDEF; // The result type is handled within the generator
                 } else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0) {
-                    Operand* op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
-
-                    Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
-
-                    Operand* type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type1, op1, NULL, &threeACcode);
-
-                    Operand* type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type2, op2, NULL, &threeACcode);
-
-                    Operand* int_type = create_operand_from_constant_string("int");
-
-                    // Convert op1 if int
-                    Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int1, type1, int_type, &threeACcode);
-                    Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op1_ok_label, is_int1, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-                    emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
-
-                    // Convert op2 if int
-                    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int2, type2, int_type, &threeACcode);
-                    Operand* op2_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op2, op2, NULL, &threeACcode);
-                    emit(OP_LABEL, op2_ok_label, NULL, NULL, &threeACcode);
-
-                    emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
-
-                    if (strcmp(n2->value, "-") == 0) {
-                        emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
-                    } else { // Division
-                        emit(OP_DIVS, NULL, NULL, NULL, &threeACcode);
-                    }
+                    generate_numeric_op(&threeACcode, n2->value);
                     result_type = TYPE_FLOAT;
                 }
                 else { // Relational operators
-                    Operand* op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op2, NULL, NULL, &threeACcode);
-
-                    Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-                    emit(OP_POPS, op1, NULL, NULL, &threeACcode);
-
-                    Operand* type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type1, op1, NULL, &threeACcode);
-
-                    Operand* type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
-                    emit(OP_TYPE, type2, op2, NULL, &threeACcode);
-
-                    Operand* int_type = create_operand_from_constant_string("int");
-                    Operand* float_type = create_operand_from_constant_string("float");
-
-                    Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int1, type1, int_type, &threeACcode);
-
-                    Operand* is_float1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_float1, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_float1, type1, float_type, &threeACcode);
-
-                    Operand* is_numeric1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_numeric1, NULL, NULL, &threeACcode);
-                    emit(OP_OR, is_numeric1, is_int1, is_float1, &threeACcode);
-
-                    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_int2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_int2, type2, int_type, &threeACcode);
-
-                    Operand* is_float2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_float2, NULL, NULL, &threeACcode);
-                    emit(OP_EQ, is_float2, type2, float_type, &threeACcode);
-
-                    Operand* is_numeric2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, is_numeric2, NULL, NULL, &threeACcode);
-                    emit(OP_OR, is_numeric2, is_int2, is_float2, &threeACcode);
-
-                    Operand* both_numeric = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-                    emit(OP_DEFVAR, both_numeric, NULL, NULL, &threeACcode);
-                    emit(OP_AND, both_numeric, is_numeric1, is_numeric2, &threeACcode);
-
-                    Operand* non_numeric_comp_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, non_numeric_comp_label, both_numeric, create_operand_from_constant_bool(true), &threeACcode);
-
-                    // Numeric comparison path
-                    Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op1_ok_label, is_int1, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-                    emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
-
-                    Operand* op2_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), &threeACcode);
-                    emit(OP_INT2FLOAT, op2, op2, NULL, &threeACcode);
-                    emit(OP_LABEL, op2_ok_label, NULL, NULL, &threeACcode);
-                    
-                    Operand* end_comp_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-                    emit(OP_JUMP, end_comp_label, NULL, NULL, &threeACcode);
-
-                    // Non-numeric comparison path
-                    emit(OP_LABEL, non_numeric_comp_label, NULL, NULL, &threeACcode);
-
-                    emit(OP_LABEL, end_comp_label, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-                    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
-
-                    OperationType opType;
-                    bool use_not = false;
-
-                    if (strcmp(n2->value, "<") == 0) opType = OP_LTS;
-                    else if (strcmp(n2->value, ">") == 0) opType = OP_GTS;
-                    else if (strcmp(n2->value, "==") == 0) opType = OP_EQS;
-                    else if (strcmp(n2->value, "!=") == 0) { opType = OP_EQS; use_not = true; }
-                    else if (strcmp(n2->value, "<=") == 0) { opType = OP_GTS; use_not = true; }
-                    else if (strcmp(n2->value, ">=") == 0) { opType = OP_LTS; use_not = true; }
-                    else {
-                        return 0; // Should not happen
-                    }
-                
-                    emit(opType, NULL, NULL, NULL, &threeACcode);
-                    if (use_not) {
-                        emit(OP_NOTS, NULL, NULL, NULL, &threeACcode);
-                    }
+                    generate_relational_op(&threeACcode, n2->value);
                     result_type = TYPE_UNDEF;
                 }
              

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "semantic.h"
 #include "3AC.h"
+#include "3AC_patterns.h"
 static tToken peek_buffer = NULL;
 
 static tBuiltinDef builtin_defs[] = {
@@ -161,36 +162,7 @@ void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
     consume_eol(file, currentToken);
 
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    Operand* startJumpLabel = safeMalloc(sizeof(Operand));
-    startJumpLabel->type = OPP_LABEL;
-    startJumpLabel->value.label = safeMalloc(strlen("%start") + 1);
-    strcpy(startJumpLabel->value.label, "%start");
-    emit(OP_JUMP, startJumpLabel, NULL, NULL, &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    char* commentText = safeMalloc(strlen("Program entry point") + 25);
-    sprintf(commentText, "####################");
-    emit_comment(commentText, &threeACcode);
-    sprintf(commentText, "Program entry point");
-    emit_comment(commentText, &threeACcode);
-    sprintf(commentText, "####################");
-    emit_comment(commentText, &threeACcode);
-    free(commentText);
-    emit(OP_LABEL, startJumpLabel, NULL, NULL , &threeACcode);
-    Operand* mainLabel = safeMalloc(sizeof(Operand));
-    mainLabel->type = OPP_LABEL;
-    mainLabel->value.label = safeMalloc(strlen("main$0%func") + 1);
-    strcpy(mainLabel->value.label, "main$0%func");
-    emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
-    emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-    emit(OP_CALL, mainLabel, NULL, NULL, &threeACcode);
-    emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
-    Operand *exitValue = safeMalloc(sizeof(Operand));
-    exitValue->type = OPP_CONST_INT;
-    exitValue->value.intval = 0;
-    emit(OP_EXIT, exitValue, NULL, NULL, &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
+    generate_program_entrypoint(&threeACcode);
 
     parse_func_list(file, currentToken, stack);
 
@@ -697,13 +669,13 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             parse_block(file, currentToken, stack, false);
             break;
         case T_KW_IF:
-            parse_if_statement(file, currentToken, stack);
+            generate_if_else(file, currentToken, stack, false);
             break;
         case T_KW_WHILE:
-            parse_while_statement(file, currentToken, stack);
+            generate_while(file, currentToken, stack);
             break;
         case T_KW_RETURN:
-            parse_return_statement(file, currentToken, stack);
+            generate_return(file, currentToken, stack);
             break;
         case T_KW_VAR:
             parse_variable_declaration(file, currentToken, stack);
@@ -722,269 +694,16 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     }
 }
 
-void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
-{
-    get_next_token(file, currentToken); // consume 'if'
 
-    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
 
-    bool while_used_backup = threeACcode.while_used;
-    threeACcode.while_used = false;
-    threeACcode.if_used = true;
 
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit_comment("If statement condition", &threeACcode);
-    parse_expression(file, currentToken, stack);
-
-    // Handle truthiness rules
-    Operand* expr_val_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, expr_val_if, NULL, NULL, &threeACcode);
-    emit(OP_POPS, expr_val_if, NULL, NULL, &threeACcode); // Pop expression result
-
-    Operand* final_bool_result_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, final_bool_result_if, NULL, NULL, &threeACcode);
-
-    Operand* label_is_null_if = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_is_bool_if = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_is_other_if = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_end_truthiness_if = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-    // Check if null
-    emit(OP_JUMPIFEQ, label_is_null_if, expr_val_if, create_operand_from_constant_nil(), &threeACcode);
-
-    // Check if boolean (using TYPE instruction)
-    Operand* type_check_var_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, type_check_var_if, NULL, NULL, &threeACcode);
-    emit(OP_TYPE, type_check_var_if, expr_val_if, NULL, &threeACcode); // Get type of expr_val
-
-    emit(OP_JUMPIFEQ, label_is_bool_if, type_check_var_if, create_operand_from_constant_string("bool"), &threeACcode);
-
-    // If not null and not bool, it's true
-    emit(OP_JUMP, label_is_other_if, NULL, NULL, &threeACcode);
-
-    // Case: is null
-    emit(OP_LABEL, label_is_null_if, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(false), NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
-
-    // Case: is boolean
-    emit(OP_LABEL, label_is_bool_if, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_if, expr_val_if, NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
-
-    // Case: is other (number, string, etc.)
-    emit(OP_LABEL, label_is_other_if, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_if, create_operand_from_constant_bool(true), NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_if, NULL, NULL, &threeACcode);
-
-    emit(OP_LABEL, label_end_truthiness_if, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, final_bool_result_if, NULL, NULL, &threeACcode); // Push the final boolean result
-
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-
-    char *label1_str = threeAC_create_label(&threeACcode);
-    Operand *label1 = create_operand_from_label(label1_str);
-
-    emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFEQS, label1, NULL, NULL, &threeACcode);
-
-    emit_comment("If-block", &threeACcode);
-    parse_block(file, currentToken, stack, false);
-    skip_optional_eol(currentToken, file);
-
-    if ((*currentToken)->type == T_KW_ELSE)
-    {
-        get_next_token(file, currentToken); // consume 'else'
-
-        char *label2_str = threeAC_create_label(&threeACcode);
-        Operand *label2 = create_operand_from_label(label2_str);
-
-        emit(OP_JUMP, label2, NULL, NULL, &threeACcode);
-        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
-
-        emit_comment("Else-block", &threeACcode);
-        parse_block(file, currentToken, stack, false);
-
-        emit(OP_LABEL, label2, NULL, NULL, &threeACcode);
-
-        free(label2_str);
-    }
-    else
-    {
-        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
-    }
-
-    free(label1_str);
-
-    emit_comment("If statement end", &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-
-    threeACcode.if_used = false;
-    threeACcode.while_used = while_used_backup;
-}
-
-void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
-{
-    get_next_token(file, currentToken); // consume 'while'
-
-    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
-
-    bool if_used_backup = threeACcode.if_used;
-    threeACcode.if_used = false;
-    threeACcode.while_used = true;
-
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit_comment("While loop start", &threeACcode);
-    InstructionNode *hoist_point = threeACcode.active;
-
-    char *loop_start_label_str = threeAC_create_label(&threeACcode);
-    char *loop_end_label_str = threeAC_create_label(&threeACcode);
-
-    Operand *loop_start_label = safeMalloc(sizeof(Operand));
-    loop_start_label->type = OPP_LABEL;
-    loop_start_label->value.label = loop_start_label_str;
-
-    Operand *loop_end_label = safeMalloc(sizeof(Operand));
-    loop_end_label->type = OPP_LABEL;
-    loop_end_label->value.label = loop_end_label_str;
-
-    emit(OP_LABEL, loop_start_label, NULL, NULL, &threeACcode);
-    emit_comment("While condition", &threeACcode);
-
-    parse_expression(file, currentToken, stack);
-
-    // Handle truthiness rules
-    Operand* expr_val_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, expr_val_while, NULL, NULL, &threeACcode);
-    emit(OP_POPS, expr_val_while, NULL, NULL, &threeACcode); // Pop expression result
-
-    Operand* final_bool_result_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, final_bool_result_while, NULL, NULL, &threeACcode);
-
-    Operand* label_is_null_while = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_is_bool_while = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_is_other_while = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand* label_end_truthiness_while = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-    // Check if null
-    emit(OP_JUMPIFEQ, label_is_null_while, expr_val_while, create_operand_from_constant_nil(), &threeACcode);
-
-    // Check if boolean (using TYPE instruction)
-    Operand* type_check_var_while = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, type_check_var_while, NULL, NULL, &threeACcode);
-    emit(OP_TYPE, type_check_var_while, expr_val_while, NULL, &threeACcode); // Get type of expr_val
-
-    emit(OP_JUMPIFEQ, label_is_bool_while, type_check_var_while, create_operand_from_constant_string("bool"), &threeACcode);
-
-    // If not null and not bool, it's true
-    emit(OP_JUMP, label_is_other_while, NULL, NULL, &threeACcode);
-
-    // Case: is null
-    emit(OP_LABEL, label_is_null_while, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(false), NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
-
-    // Case: is boolean
-    emit(OP_LABEL, label_is_bool_while, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_while, expr_val_while, NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
-
-    // Case: is other (number, string, etc.)
-    emit(OP_LABEL, label_is_other_while, NULL, NULL, &threeACcode);
-    emit(OP_MOVE, final_bool_result_while, create_operand_from_constant_bool(true), NULL, &threeACcode);
-    emit(OP_JUMP, label_end_truthiness_while, NULL, NULL, &threeACcode);
-
-    emit(OP_LABEL, label_end_truthiness_while, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, final_bool_result_while, NULL, NULL, &threeACcode); // Push the final boolean result
-
-    Operand* condition_result = safeMalloc(sizeof(Operand));
-    condition_result->type = OPP_TEMP;
-    condition_result->value.varname = threeAC_create_temp(&threeACcode);
-    emit(OP_DEFVAR, condition_result, NULL, NULL, &threeACcode);
-    emit(OP_POPS, condition_result, NULL, NULL, &threeACcode);
-
-    Operand* const_false = safeMalloc(sizeof(Operand));
-    const_false->type = OPP_CONST_BOOL;
-    const_false->value.boolval = false;
-
-    emit(OP_JUMPIFEQ, loop_end_label, condition_result, const_false, &threeACcode);
-
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-
-    emit_comment("While body", &threeACcode);
-    parse_block(file, currentToken, stack, false);
-
-    emit(OP_JUMP, loop_start_label, NULL, NULL, &threeACcode);
-
-    emit(OP_LABEL, loop_end_label, NULL, NULL, &threeACcode);
-    emit_comment("While loop end", &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    InstructionNode *loop_end_node = threeACcode.active;
-
-    // Hoist DEFVARs
-    InstructionNode *scan_ptr = hoist_point ? hoist_point->next : threeACcode.head;
-    while (scan_ptr != NULL && scan_ptr != loop_end_node) {
-        InstructionNode *next_scan = scan_ptr->next;
-        if (scan_ptr->opType == OP_DEFVAR && (scan_ptr->result->type == OPP_VAR || scan_ptr->result->type == OPP_TEMP)) {
-            // Unlink from current position
-            scan_ptr->prev->next = scan_ptr->next;
-            if (scan_ptr->next) {
-                scan_ptr->next->prev = scan_ptr->prev;
-            } else {
-                threeACcode.tail = scan_ptr->prev;
-            }
-
-            // Insert after hoist_point
-            if (hoist_point) {
-                scan_ptr->next = hoist_point->next;
-                if (hoist_point->next) {
-                    hoist_point->next->prev = scan_ptr;
-                }
-                hoist_point->next = scan_ptr;
-                scan_ptr->prev = hoist_point;
-            } else { // Hoisting to the very beginning of the list
-                scan_ptr->next = threeACcode.head;
-                if (threeACcode.head) {
-                    threeACcode.head->prev = scan_ptr;
-                }
-                threeACcode.head = scan_ptr;
-                scan_ptr->prev = NULL;
-            }
-            
-            if (threeACcode.tail == hoist_point) {
-                threeACcode.tail = scan_ptr;
-            }
-
-            hoist_point = scan_ptr; // The next DEFVAR will be inserted after this one
-        }
-        scan_ptr = next_scan;
-    }
-
-    threeACcode.active = loop_end_node;
-
-    threeACcode.while_used = false;
-    threeACcode.if_used = if_used_backup;
-}
 
 void parse_for_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken);
 }
 
-void parse_return_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
-{
-    get_next_token(file, currentToken);
 
-    if ((*currentToken)->type != T_EOL)
-    {
-        threeACcode.return_used = true;
-        parse_expression(file, currentToken, stack);
-    } else {
-        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
-    }
-}
 
 void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
@@ -1170,17 +889,16 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
-        while(1) {
+        parse_expression(file, currentToken, stack);
+        argCount++;
+        while((*currentToken)->type == T_COMMA) {
+            get_next_token(file, currentToken);
+            skip_optional_eol(currentToken, file);
             parse_expression(file, currentToken, stack);
             argCount++;
-            if ((*currentToken)->type == T_COMMA) {
-                get_next_token(file, currentToken);
-                skip_optional_eol(currentToken, file);
-            } else {
-                break;
-            }
         }
     }
+
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     // 2. Create frame and pass parameters
@@ -1295,7 +1013,6 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
         {
             char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
             strcpy(paramCopy, (*currentToken)->data);
-            // emit(OP_PARAM, NULL, NULL, paramCopy, &threeACcode);
             get_next_token(file, currentToken);
             break;
         }
@@ -1307,7 +1024,7 @@ void parse_term(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
             char *paramCopy = safeMalloc(strlen((*currentToken)->data) + 1);
             strcpy(paramCopy, (*currentToken)->data);
-            // emit(OP_PARAM, NULL, NULL, paramCopy, &threeACcode);
+
             if (symtable_find(global_symtable, getterKey))
             {
                 free(getterKey);
@@ -1356,785 +1073,75 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
     skip_optional_eol(currentToken, file);
 
-    if (strcmp(fullName, "Ifj.write") == 0)
-    {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.write call", &threeACcode);
-        tSymbolData *funcData = symtable_find(global_symtable, fullName);
-        int argCount = 0;
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            argCount = 1;
-            parse_expression(file, currentToken, stack);
-            
-            Operand* write_arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, write_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, write_arg, NULL, NULL, &threeACcode);
 
-            emit(OP_PUSHS, write_arg, NULL, NULL, &threeACcode);
-            emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
-
-            Operand* after_checking = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-            emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-            emit(OP_JUMPIFNEQS, after_checking, NULL, NULL, &threeACcode);
-
-            emit(OP_PUSHS, write_arg, NULL, NULL, &threeACcode);
-            emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-            emit(OP_JUMPIFNEQS, after_checking, NULL, NULL, &threeACcode);
-            emit(OP_FLOAT2INT, write_arg, write_arg, NULL, &threeACcode);
-            emit(OP_LABEL, after_checking, NULL, NULL, &threeACcode);
-
-            emit(OP_WRITE, write_arg, NULL, NULL, &threeACcode);
-        }
-
-        if (argCount != 1) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-        
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        
-        Operand *null_op = safeMalloc(sizeof(Operand));
-        null_op->type = OPP_CONST_NIL;
-        emit(OP_PUSHS, null_op, NULL, NULL, &threeACcode);
-
-        free(fullName);
-        return TYPE_NULL;
-    } else if (strcmp(fullName, "Ifj.read_str") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.read_str call", &threeACcode);
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        Operand* result_var = safeMalloc(sizeof(Operand));
-        result_var->type = OPP_TEMP;
-        result_var->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
-        emit(OP_READ, result_var, create_operand_from_type("string"), NULL, &threeACcode);
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
-        free(fullName);
-        return TYPE_STRING;
-} else if (strcmp(fullName, "Ifj.strcmp") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.strcmp call", &threeACcode);
-        int argCount = 0;
-        Operand *s1_arg = NULL, *s2_arg = NULL;
-
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            // Parse s1
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            s1_arg = safeMalloc(sizeof(Operand));
-            s1_arg->type = OPP_TEMP;
-            s1_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, s1_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, s1_arg, NULL, NULL, &threeACcode);
-
-            // Expect comma
-            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
-            skip_optional_eol(currentToken, file);
-
-            // Parse s2
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            s2_arg = safeMalloc(sizeof(Operand));
-            s2_arg->type = OPP_TEMP;
-            s2_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, s2_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, s2_arg, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 2) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        // Type checking for s1 and s2 (must be strings)
-        Operand* type_s1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        Operand* type_s2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        emit(OP_DEFVAR, type_s1, NULL, NULL, &threeACcode);
-        emit(OP_DEFVAR, type_s2, NULL, NULL, &threeACcode);
-        emit(OP_TYPE, type_s1, s1_arg, NULL, &threeACcode);
-        emit(OP_TYPE, type_s2, s2_arg, NULL, &threeACcode);
-
-        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_continue_strcmp = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check if s1 is not string
-        emit(OP_JUMPIFNEQ, label_type_error, type_s1, create_operand_from_constant_string("string"), &threeACcode);
-        // Check if s2 is not string
-        emit(OP_JUMPIFNEQ, label_type_error, type_s2, create_operand_from_constant_string("string"), &threeACcode);
-        emit(OP_JUMP, label_continue_strcmp, NULL, NULL, &threeACcode);
-
-        // Type error handler
-        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
-        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
-        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_continue_strcmp, NULL, NULL, &threeACcode);
-
-        Operand* result_cmp = safeMalloc(sizeof(Operand));
-        result_cmp->type = OPP_TEMP;
-        result_cmp->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_cmp, NULL, NULL, &threeACcode);
-
-        Operand* label_equal = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_less = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_greater = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_end_cmp = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check for equality
-        emit(OP_PUSHS, s1_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, s2_arg, NULL, NULL, &threeACcode);
-        emit(OP_EQS, NULL, NULL, NULL, &threeACcode); // Result (bool) is on stack
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_equal, NULL, NULL, &threeACcode);
-
-        // Check for less than
-        emit(OP_PUSHS, s1_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, s2_arg, NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode); // Result (bool) is on stack
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_less, NULL, NULL, &threeACcode);
-
-        // If not equal and not less than, then it must be greater than
-        emit(OP_LABEL, label_greater, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, result_cmp, create_operand_from_constant_int(1), NULL, &threeACcode);
-        emit(OP_JUMP, label_end_cmp, NULL, NULL, &threeACcode);
-
-        // Handle equal
-        emit(OP_LABEL, label_equal, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, result_cmp, create_operand_from_constant_int(0), NULL, &threeACcode);
-        emit(OP_JUMP, label_end_cmp, NULL, NULL, &threeACcode);
-
-        // Handle less than
-        emit(OP_LABEL, label_less, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, result_cmp, create_operand_from_constant_int(-1), NULL, &threeACcode);
-        emit(OP_JUMP, label_end_cmp, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_end_cmp, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, result_cmp, NULL, NULL, &threeACcode);
-
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_NUM;
-    } else if (strcmp(fullName, "Ifj.ord") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.ord call", &threeACcode);
-        int argCount = 0;
-        Operand *s_arg = NULL, *i_arg = NULL;
-
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            // Parse s
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            s_arg = safeMalloc(sizeof(Operand));
-            s_arg->type = OPP_TEMP;
-            s_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, s_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, s_arg, NULL, NULL, &threeACcode);
-
-            // Expect comma
-            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
-            skip_optional_eol(currentToken, file);
-
-            // Parse i
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            i_arg = safeMalloc(sizeof(Operand));
-            i_arg->type = OPP_TEMP;
-            i_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 2) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        // Type checking for i (must be integer)
-        Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
-        emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
-
-        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_continue_ord = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check if i is not int
-        emit(OP_JUMPIFEQ, label_is_float, type_i, create_operand_from_constant_string("float"), &threeACcode);
-        emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
-        emit(OP_JUMP, label_continue_ord, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
-        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
-        emit(OP_JUMP, label_continue_ord, NULL, NULL, &threeACcode);
-
-        // Type error handler
-        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
-        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
-        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_continue_ord, NULL, NULL, &threeACcode);
-
-        // Get length of s
-        Operand* len_s = safeMalloc(sizeof(Operand));
-        len_s->type = OPP_TEMP;
-        len_s->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, len_s, NULL, NULL, &threeACcode);
-        emit(OP_STRLEN, len_s, s_arg, NULL, &threeACcode);
-
-        Operand* result_ord = safeMalloc(sizeof(Operand));
-        result_ord->type = OPP_TEMP;
-        result_ord->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_ord, NULL, NULL, &threeACcode);
-
-        Operand* label_return_zero = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_end_ord = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check if s is empty (len_s == 0)
-        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
-        emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_zero, NULL, NULL, &threeACcode);
-
-        // Check if i < 0
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_zero, NULL, NULL, &threeACcode);
-
-        // Check if i >= len_s
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
-        emit(OP_GTS, NULL, NULL, NULL, &threeACcode); // i > len_s
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_zero, NULL, NULL, &threeACcode);
-
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
-        emit(OP_EQS, NULL, NULL, NULL, &threeACcode); // i == len_s
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_zero, NULL, NULL, &threeACcode);
-
-        // Get character and convert to int
-        Operand* char_val = safeMalloc(sizeof(Operand));
-        char_val->type = OPP_TEMP;
-        char_val->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, char_val, NULL, NULL, &threeACcode);
-        emit(OP_GETCHAR, char_val, s_arg, i_arg, &threeACcode);
-        emit(OP_STRI2INT, result_ord, char_val, create_operand_from_constant_int(0), &threeACcode); // Convert char to int
-
-        emit(OP_JUMP, label_end_ord, NULL, NULL, &threeACcode);
-
-        // Return zero label
-        emit(OP_LABEL, label_return_zero, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, result_ord, create_operand_from_constant_int(0), NULL, &threeACcode);
-
-        emit(OP_LABEL, label_end_ord, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, result_ord, NULL, NULL, &threeACcode);
-
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_NUM; 
-    }
-    else if (strcmp(fullName, "Ifj.read_num") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.read_num call", &threeACcode);
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        Operand* result_var = safeMalloc(sizeof(Operand));
-        result_var->type = OPP_TEMP;
-        result_var->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_var, NULL, NULL, &threeACcode);
-        emit(OP_READ, result_var, create_operand_from_type("float"), NULL, &threeACcode);
-
-        // Convert float to int
-        Operand* int_val = safeMalloc(sizeof(Operand));
-        int_val->type = OPP_TEMP;
-        int_val->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, int_val, NULL, NULL, &threeACcode);
-        emit(OP_FLOAT2INT, int_val, result_var, NULL, &threeACcode);
-
-        // Convert int back to float for comparison
-        Operand* int_to_float_check = safeMalloc(sizeof(Operand));
-        int_to_float_check->type = OPP_TEMP;
-        int_to_float_check->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, int_to_float_check, NULL, NULL, &threeACcode);
-        emit(OP_INT2FLOAT, int_to_float_check, int_val, NULL, &threeACcode);
-
-        // Compare original float with int-converted-back-to-float
-        Operand* is_int_flag = safeMalloc(sizeof(Operand));
-        is_int_flag->type = OPP_TEMP;
-        is_int_flag->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, is_int_flag, NULL, NULL, &threeACcode);
-        emit(OP_EQ, is_int_flag, result_var, int_to_float_check, &threeACcode);
-
-        // Labels for branching
-        Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_end_read_num = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // If is_int_flag is true, jump to label_is_int
-        emit(OP_JUMPIFEQ, label_is_int, is_int_flag, create_operand_from_constant_bool(true), &threeACcode);
-
-        // Else (it's a float), push the original float value
-        emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
-        emit(OP_JUMP, label_end_read_num, NULL, NULL, &threeACcode);
-
-        // If it's an int, push the integer value
-        emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, int_val, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_end_read_num, NULL, NULL, &threeACcode);
-
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_NUM;
-    } else if (strcmp(fullName, "Ifj.floor") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.floor call", &threeACcode);
-        int argCount = 0;
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            argCount = 1;
-            parse_expression(file, currentToken, stack); // Parse the argument, pushes to stack
-          
-            Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_end_floor = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* arg_val = safeMalloc(sizeof(Operand));
-            arg_val->type = OPP_TEMP;
-            arg_val->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, create_operand_from_constant_string("int"),  NULL,NULL, &threeACcode);
-            emit(OP_JUMPIFEQS, label_is_int, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_FLOAT2INTS, NULL, NULL, NULL, &threeACcode); 
-            emit(OP_JUMP, label_end_floor, NULL, NULL, &threeACcode);
-            emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_LABEL, label_end_floor, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 1) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_INT;
-    } else if (strcmp(fullName, "Ifj.str") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.str call", &threeACcode);
-        int argCount = 0;
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            argCount = 1;
-            parse_expression(file, currentToken, stack);
-            
-            
-            Operand* arg_val = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, arg_val, NULL, NULL, &threeACcode);
-            emit(OP_POPS, arg_val, NULL, NULL, &threeACcode);
-
-            Operand* result_str = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
-
-            Operand* type_check_var = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, type_check_var, NULL, NULL, &threeACcode);
-
-            Operand* label_end = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_is_string = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_is_int = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_is_nil = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-            // Check if nil
-            emit(OP_JUMPIFEQ, label_is_nil, arg_val, create_operand_from_constant_nil(), &threeACcode);
-
-            // Get type of arg_val
-            emit(OP_TYPE, type_check_var, arg_val, NULL, &threeACcode);
-
-            // Check if string
-            emit(OP_JUMPIFEQ, label_is_string, type_check_var, create_operand_from_constant_string("string"), &threeACcode);
-            // Check if int
-            emit(OP_JUMPIFEQ, label_is_int, type_check_var, create_operand_from_constant_string("int"), &threeACcode);
-            // Check if float
-            emit(OP_JUMPIFEQ, label_is_float, type_check_var, create_operand_from_constant_string("float"), &threeACcode);
-
-            // Default case (should not happen if all types are covered, but for safety)
-            emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode); // Empty string or error
-            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
-
-            // Handle string
-            emit(OP_LABEL, label_is_string, NULL, NULL, &threeACcode);
-            emit(OP_MOVE, result_str, arg_val, NULL, &threeACcode);
-            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
-
-            // Handle int
-            emit(OP_LABEL, label_is_int, NULL, NULL, &threeACcode);
-            emit(OP_INT2STR, result_str, arg_val, NULL, &threeACcode);
-            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
-
-            // Handle float
-            emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
-            emit(OP_FLOAT2STR, result_str, arg_val, NULL, &threeACcode);
-            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
-
-            // Handle nil
-            emit(OP_LABEL, label_is_nil, NULL, NULL, &threeACcode);
-            emit(OP_MOVE, result_str, create_operand_from_constant_string("null"), NULL, &threeACcode);
-            emit(OP_JUMP, label_end, NULL, NULL, &threeACcode);
-
-            emit(OP_LABEL, label_end, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 1) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_STRING;
-    } else if (strcmp(fullName, "Ifj.length") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.length call", &threeACcode);
-        int argCount = 0;
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            argCount = 1;
-            parse_expression(file, currentToken, stack);
-            
-            Operand* str_arg = safeMalloc(sizeof(Operand));
-            str_arg->type = OPP_TEMP;
-            str_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, str_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, str_arg, NULL, NULL, &threeACcode);
-
-            Operand* type_str = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, type_str, NULL, NULL, &threeACcode);
-            emit(OP_TYPE, type_str, str_arg, NULL, &threeACcode);
-
-            Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
-            Operand* label_continue_length = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-            emit(OP_JUMPIFNEQ, label_type_error, type_str, create_operand_from_constant_string("string"), &threeACcode);
-            emit(OP_JUMP, label_continue_length, NULL, NULL, &threeACcode);
-
-            emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
-            Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
-            emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
-
-            emit(OP_LABEL, label_continue_length, NULL, NULL, &threeACcode);
-          
-            Operand* result_len = safeMalloc(sizeof(Operand));
-            result_len->type = OPP_TEMP;
-            result_len->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, result_len, NULL, NULL, &threeACcode);
-
-            emit(OP_STRLEN, result_len, str_arg, NULL, &threeACcode); // Calculate length
-            emit(OP_PUSHS, result_len, NULL, NULL, &threeACcode); // Push result to stack
-        }
-        
-        if (argCount != 1) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_NUM; // Return type is Num (integer)
-    } else if (strcmp(fullName, "Ifj.substring") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.substring call", &threeACcode);
-        int argCount = 0;
-        Operand *s_arg = NULL, *i_arg = NULL, *j_arg = NULL;
-
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            // Parse s
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            s_arg = safeMalloc(sizeof(Operand));
-            s_arg->type = OPP_TEMP;
-            s_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, s_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, s_arg, NULL, NULL, &threeACcode);
-
-            // Expect comma
-            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
-            skip_optional_eol(currentToken, file);
-
-            // Parse i
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            i_arg = safeMalloc(sizeof(Operand));
-            i_arg->type = OPP_TEMP;
-            i_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
-
-            // Expect comma
-            expect_and_consume(T_COMMA, currentToken, file, false, NULL);
-            skip_optional_eol(currentToken, file);
-
-            // Parse j
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            j_arg = safeMalloc(sizeof(Operand));
-            j_arg->type = OPP_TEMP;
-            j_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, j_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, j_arg, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 3) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        // Type checking for i and j (must be integers)
-        Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        Operand* type_j = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
-        emit(OP_DEFVAR, type_j, NULL, NULL, &threeACcode);
-        emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
-        emit(OP_TYPE, type_j, j_arg, NULL, &threeACcode);
-
-        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_is_float_i = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_check_j = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_is_float_j = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_continue_substring = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check if i is not int
-        emit(OP_JUMPIFEQ, label_is_float_i, type_i, create_operand_from_constant_string("float"), &threeACcode);
-        emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
-        emit(OP_JUMP, label_check_j, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_is_float_i, NULL, NULL, &threeACcode);
-        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
-        emit(OP_JUMP, label_check_j, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_check_j, NULL, NULL, &threeACcode);
-        // Check if j is not int
-        emit(OP_JUMPIFEQ, label_is_float_j, type_j, create_operand_from_constant_string("float"), &threeACcode);
-        emit(OP_JUMPIFNEQ, label_type_error, type_j, create_operand_from_constant_string("int"), &threeACcode);
-        emit(OP_JUMP, label_continue_substring, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_is_float_j, NULL, NULL, &threeACcode);
-        emit(OP_FLOAT2INT, j_arg, j_arg, NULL, &threeACcode);
-        emit(OP_JUMP, label_continue_substring, NULL, NULL, &threeACcode);
-
-        // Type error handler
-        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
-        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
-        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_continue_substring, NULL, NULL, &threeACcode);
-
-        // Get length of s
-        Operand* len_s = safeMalloc(sizeof(Operand));
-        len_s->type = OPP_TEMP;
-        len_s->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, len_s, NULL, NULL, &threeACcode);
-        emit(OP_STRLEN, len_s, s_arg, NULL, &threeACcode);
-
-        // Labels for null return
-        Operand* label_return_null = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_end_substring = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Boundary checks
-        // i < 0
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
-
-        // j < 0
-        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_int(0), NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
-
-        // i > j
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
-        emit(OP_GTS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
-
-        // i >= Ifj.length(s)  => NOT (i < Ifj.length(s))
-        emit(OP_PUSHS, i_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode); // Result is on stack: (i < len_s)
-        emit(OP_NOTS, NULL, NULL, NULL, &threeACcode); // Result is on stack: NOT (i < len_s)
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
-
-        // j > Ifj.length(s)
-        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, len_s, NULL, NULL, &threeACcode);
-        emit(OP_GTS, NULL, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, label_return_null, NULL, NULL, &threeACcode);
-
-        // Substring generation loop
-        Operand* result_str = safeMalloc(sizeof(Operand));
-        result_str->type = OPP_TEMP;
-        result_str->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, result_str, create_operand_from_constant_string(""), NULL, &threeACcode);
-
-        Operand* loop_counter = safeMalloc(sizeof(Operand));
-        loop_counter->type = OPP_TEMP;
-        loop_counter->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, loop_counter, NULL, NULL, &threeACcode);
-        emit(OP_MOVE, loop_counter, i_arg, NULL, &threeACcode); // Initialize loop_counter with i
-
-        // Hoist current_char definition outside the loop
-        Operand* current_char = safeMalloc(sizeof(Operand));
-        current_char->type = OPP_TEMP;
-        current_char->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, current_char, NULL, NULL, &threeACcode);
-
-        Operand* loop_start_label_sub = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* loop_end_label_sub = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        emit(OP_LABEL, loop_start_label_sub, NULL, NULL, &threeACcode);
-
-        // Loop condition: loop_counter < j
-        emit(OP_PUSHS, loop_counter, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, j_arg, NULL, NULL, &threeACcode);
-        emit(OP_LTS, NULL, NULL, NULL, &threeACcode); // Result (bool) is on stack
-        emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
-        emit(OP_JUMPIFEQS, loop_end_label_sub, NULL, NULL, &threeACcode);
-
-        // Get character at loop_counter
-        emit(OP_GETCHAR, current_char, s_arg, loop_counter, &threeACcode);
-
-        // Concatenate to result_str
-        emit(OP_CONCAT, result_str, result_str, current_char, &threeACcode);
-
-        // Increment loop_counter
-        emit(OP_ADD, loop_counter, loop_counter, create_operand_from_constant_int(1), &threeACcode);
-
-        emit(OP_JUMP, loop_start_label_sub, NULL, NULL, &threeACcode);
-        emit(OP_LABEL, loop_end_label_sub, NULL, NULL, &threeACcode);
-
-        emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
-        emit(OP_JUMP, label_end_substring, NULL, NULL, &threeACcode);
-
-        // Return null label
-        emit(OP_LABEL, label_return_null, NULL, NULL, &threeACcode);
-        emit(OP_PUSHS, create_operand_from_constant_nil(), NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_end_substring, NULL, NULL, &threeACcode);
-
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_STRING;
-    
-    } else if (strcmp(fullName, "Ifj.chr") == 0) {
-        emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-        emit_comment("Ifj.chr call", &threeACcode);
-        int argCount = 0;
-        Operand *i_arg = NULL;
-
-        if ((*currentToken)->type != T_RIGHT_PAREN) {
-            // Parse i
-            argCount++;
-            parse_expression(file, currentToken, stack);
-            i_arg = safeMalloc(sizeof(Operand));
-            i_arg->type = OPP_TEMP;
-            i_arg->value.varname = threeAC_create_temp(&threeACcode);
-            emit(OP_DEFVAR, i_arg, NULL, NULL, &threeACcode);
-            emit(OP_POPS, i_arg, NULL, NULL, &threeACcode);
-        }
-        
-        if (argCount != 1) {
-            Operand* exit_code = create_operand_from_constant_int(WRONG_ARGUMENT_COUNT_ERROR);
-            emit(OP_EXIT, exit_code, NULL, NULL, &threeACcode);
-        }
-
-        // Type checking for i (must be integer)
-        Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-        emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
-        emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
-
-        Operand* label_type_error = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_is_float = create_operand_from_label(threeAC_create_label(&threeACcode));
-        Operand* label_continue_chr = create_operand_from_label(threeAC_create_label(&threeACcode));
-
-        // Check if i is not int
-        emit(OP_JUMPIFEQ, label_is_float, type_i, create_operand_from_constant_string("float"), &threeACcode);
-        emit(OP_JUMPIFNEQ, label_type_error, type_i, create_operand_from_constant_string("int"), &threeACcode);
-        emit(OP_JUMP, label_continue_chr, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_is_float, NULL, NULL, &threeACcode);
-        emit(OP_FLOAT2INT, i_arg, i_arg, NULL, &threeACcode);
-        emit(OP_JUMP, label_continue_chr, NULL, NULL, &threeACcode);
-
-        // Type error handler
-        emit(OP_LABEL, label_type_error, NULL, NULL, &threeACcode);
-        Operand* error_code_operand = create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR);
-        emit(OP_EXIT, error_code_operand, NULL, NULL, &threeACcode);
-
-        emit(OP_LABEL, label_continue_chr, NULL, NULL, &threeACcode);
-
-        Operand* result_str = safeMalloc(sizeof(Operand));
-        result_str->type = OPP_TEMP;
-        result_str->value.varname = threeAC_create_temp(&threeACcode);
-        emit(OP_DEFVAR, result_str, NULL, NULL, &threeACcode);
-
-        emit(OP_INT2CHAR, result_str, i_arg, NULL, &threeACcode);
-        emit(OP_PUSHS, result_str, NULL, NULL, &threeACcode);
-
-        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-        free(fullName);
-        return TYPE_STRING;
-    }
-    
-    tDataType argTypes[3];
     int argCount = 0;
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
-        argTypes[argCount] = get_type_from_token(*currentToken);
-        parse_term(file, currentToken, stack);
+        parse_expression(file, currentToken, stack);
         argCount++;
-
-        while ((*currentToken)->type == T_COMMA)
-        {
+        while((*currentToken)->type == T_COMMA) {
             get_next_token(file, currentToken);
-         
             skip_optional_eol(currentToken, file);
-
-            parse_term(file, currentToken, stack);
-            argTypes[argCount] = get_type_from_token(*currentToken);
+            parse_expression(file, currentToken, stack);
             argCount++;
         }
     }
 
-    
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     tSymbolData *funcData = symtable_find(global_symtable, fullName);
+    if (funcData == NULL || funcData->kind != SYM_FUNC)
+    {
+        fprintf(stderr, "[SEMANTIC] Error: undefined IFJ function '%s'\n", fullName);
+        free(fullName);
+        exit(UNDEFINED_FUN_ERROR);
+    }
 
-    semantic_check_ifj_call(funcData, argTypes, argCount, fullName);
-    
-    char *count = safeMalloc(12);
-    sprintf(count, "%d", argCount);
-    emit(OP_CALL, fullName , count, threeAC_create_temp(&threeACcode), &threeACcode);
-    threeACcode.expression_result = threeACcode.active->result;
+    semantic_check_argument_count(funcData, argCount, fullName);
+
+    tDataType returnType;
+
+    if (strcmp(fullName, "Ifj.write") == 0)
+    {
+      returnType = generate_ifj_write(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.read_str") == 0) 
+    {
+      returnType = generate_ifj_read_str(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.strcmp") == 0) 
+    {
+      returnType = generate_ifj_strcmp(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.ord") == 0) 
+    {
+      returnType = generate_ifj_ord(stack);
+    }
+    else if (strcmp(fullName, "Ifj.read_num") == 0) 
+    {
+      returnType = generate_ifj_read_num(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.floor") == 0) 
+    {
+      returnType = generate_ifj_floor(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.str") == 0) 
+    {
+      returnType = generate_ifj_str(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.length") == 0) 
+    {
+      returnType = generate_ifj_length(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.substring") == 0) 
+    {
+      returnType = generate_ifj_substring(stack);
+    } 
+    else if (strcmp(fullName, "Ifj.chr") == 0) 
+    {
+      returnType = generate_ifj_chr(stack);
+    }
+
     free(fullName);
+    return returnType;
 }

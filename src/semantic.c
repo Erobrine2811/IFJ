@@ -41,24 +41,7 @@ void semantic_check_argument_count(tSymbolData *funcData, int argCount, const ch
     }
 }
 
-void semantic_check_ifj_call(tSymbolData *funcData, tDataType *argTypes, int argCount, const char *name) 
-{ 
-    semantic_check_if_func_exists(funcData, name);
-    semantic_check_argument_count(funcData, argCount, name);
 
-    for (int i = 0; i < argCount; i++) 
-    {   
-        tDataType expected = funcData->paramTypes[i];
-        tDataType given = argTypes[i];
-
-      
-        if (expected != TYPE_UNDEF && given != TYPE_UNDEF && expected != given) 
-        { 
-            fprintf(stderr, "[SEMANTIC] Type mismatch in function '%s' argument %d: expected %s, got %s\n", name, i + 1, transform_to_data_type(expected), transform_to_data_type(given)); 
-            exit(WRONG_ARGUMENT_COUNT_ERROR); 
-        }
-    }
-}
 
 
 extern tSymTable *global_symtable;
