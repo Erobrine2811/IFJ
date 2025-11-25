@@ -926,6 +926,36 @@ void generate_numeric_op(ThreeACList *list, char* op) {
     emit(OP_DEFVAR, type2, NULL, NULL, list);
     emit(OP_TYPE, type2, op2, NULL, list);
 
+    Operand* type_error_label = create_operand_from_label(threeAC_create_label(list));
+    Operand* after_num_type_check_label = create_operand_from_label(threeAC_create_label(list));
+
+    emit(OP_PUSHS, type1, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_PUSHS, type1, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_ORS, NULL, NULL, NULL, list);
+    emit(OP_PUSHS, type2, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_PUSHS, type2, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_ORS, NULL, NULL, NULL, list);
+
+    emit(OP_ANDS, NULL, NULL, NULL, list);
+
+    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, list);
+    emit(OP_JUMPIFNEQS, type_error_label, NULL, NULL, list);
+
+    emit(OP_JUMP, after_num_type_check_label, NULL, NULL, list);
+
+    emit(OP_LABEL, type_error_label, NULL, NULL, list);
+    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL, list);
+
+    emit(OP_LABEL, after_num_type_check_label, NULL, NULL, list);
+
     Operand* int_type = create_operand_from_constant_string("int");
 
     Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(list), false);
@@ -974,58 +1004,78 @@ void generate_relational_op(ThreeACList *list, char* op) {
     Operand* type2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, type2, NULL, NULL, list);
     emit(OP_TYPE, type2, op2, NULL, list);
+    if (strcmp(op, "==") != 0 && strcmp(op, "!=") != 0) {
+            Operand* type_error_label = create_operand_from_label(threeAC_create_label(list));
+            Operand* after_num_type_check_label = create_operand_from_label(threeAC_create_label(list));
 
-    Operand* int_type = create_operand_from_constant_string("int");
-    Operand* float_type = create_operand_from_constant_string("float");
+            emit(OP_PUSHS, type1, NULL, NULL, list);
+            emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+            emit(OP_EQS, NULL, NULL, NULL, list);
+            emit(OP_PUSHS, type1, NULL, NULL, list);
+            emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+            emit(OP_EQS, NULL, NULL, NULL, list);
+            emit(OP_ORS, NULL, NULL, NULL, list);
 
-    Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_int1, NULL, NULL, list);
-    emit(OP_EQ, is_int1, type1, int_type, list);
+            emit(OP_PUSHS, type2, NULL, NULL, list);
+            emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+            emit(OP_EQS, NULL, NULL, NULL, list);
+            emit(OP_PUSHS, type2, NULL, NULL, list);
+            emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+            emit(OP_EQS, NULL, NULL, NULL, list);
+            emit(OP_ORS, NULL, NULL, NULL, list);
 
-    Operand* is_float1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_float1, NULL, NULL, list);
-    emit(OP_EQ, is_float1, type1, float_type, list);
+            emit(OP_ANDS, NULL, NULL, NULL, list);
 
-    Operand* is_numeric1 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_numeric1, NULL, NULL, list);
-    emit(OP_OR, is_numeric1, is_int1, is_float1, list);
+            emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, list);
+            emit(OP_JUMPIFNEQS, type_error_label, NULL, NULL, list);
 
-    Operand* is_int2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_int2, NULL, NULL, list);
-    emit(OP_EQ, is_int2, type2, int_type, list);
+            emit(OP_JUMP, after_num_type_check_label, NULL, NULL, list);
 
-    Operand* is_float2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_float2, NULL, NULL, list);
-    emit(OP_EQ, is_float2, type2, float_type, list);
+            emit(OP_LABEL, type_error_label, NULL, NULL, list);
+            emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL, list);
 
-    Operand* is_numeric2 = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, is_numeric2, NULL, NULL, list);
-    emit(OP_OR, is_numeric2, is_int2, is_float2, list);
+            emit(OP_LABEL, after_num_type_check_label, NULL, NULL, list);
+        }
 
-    Operand* both_numeric = create_operand_from_variable(threeAC_create_temp(list), false);
-    emit(OP_DEFVAR, both_numeric, NULL, NULL, list);
-    emit(OP_AND, both_numeric, is_numeric1, is_numeric2, list);
+    Operand* op1_to_float_if_int = create_operand_from_label(threeAC_create_label(list));
+    emit(OP_PUSHS, type1, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_JUMPIFNEQS, op1_to_float_if_int, NULL, NULL, list);
 
-    Operand* non_numeric_comp_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMPIFNEQ, non_numeric_comp_label, both_numeric, create_operand_from_constant_bool(true), list);
+    emit(OP_PUSHS, op1, NULL, NULL, list);
+    emit(OP_INT2FLOATS, NULL, NULL, NULL, list);
+    emit(OP_POPS, op1, NULL, NULL, list);
+    emit(OP_MOVE, type1, create_operand_from_constant_string("float"), NULL, list);
 
-    // Numeric comparison path
-    Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMPIFNEQ, op1_ok_label, is_int1, create_operand_from_constant_bool(true), list);
-    emit(OP_INT2FLOAT, op1, op1, NULL, list);
-    emit(OP_LABEL, op1_ok_label, NULL, NULL, list);
+    emit(OP_LABEL, op1_to_float_if_int, NULL, NULL, list);
 
-    Operand* op2_ok_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMPIFNEQ, op2_ok_label, is_int2, create_operand_from_constant_bool(true), list);
-    emit(OP_INT2FLOAT, op2, op2, NULL, list);
-    emit(OP_LABEL, op2_ok_label, NULL, NULL, list);
+    Operand* op2_to_float_if_int = create_operand_from_label(threeAC_create_label(list));
+    emit(OP_PUSHS, type2, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_JUMPIFNEQS, op2_to_float_if_int, NULL, NULL, list);
 
-    Operand* end_comp_label = create_operand_from_label(threeAC_create_label(list));
-    emit(OP_JUMP, end_comp_label, NULL, NULL, list);
+    emit(OP_PUSHS, op2, NULL, NULL, list);
+    emit(OP_INT2FLOATS, NULL, NULL, NULL, list);
+    emit(OP_POPS, op2, NULL, NULL, list);
+    emit(OP_MOVE, type2, create_operand_from_constant_string("float"), NULL, list);
 
-    emit(OP_LABEL, non_numeric_comp_label, NULL, NULL, list);
+    emit(OP_LABEL, op2_to_float_if_int, NULL, NULL, list);
+    Operand* perform_op_label_on_same_type = create_operand_from_label(threeAC_create_label(list));
+    Operand* end_rel_op_label = create_operand_from_label(threeAC_create_label(list));
 
-    emit(OP_LABEL, end_comp_label, NULL, NULL, list);
+    emit(OP_JUMPIFEQ, perform_op_label_on_same_type, type1, type2, list);
+
+    if (strcmp(op, "!=") == 0) 
+    {
+        emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, list);
+    }
+    else {
+        emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, list);
+    } 
+
+    emit(OP_JUMP, end_rel_op_label, NULL, NULL, list);
+
+    emit(OP_LABEL, perform_op_label_on_same_type, NULL, NULL, list);
     emit(OP_PUSHS, op1, NULL, NULL, list);
     emit(OP_PUSHS, op2, NULL, NULL, list);
 
@@ -1039,8 +1089,10 @@ void generate_relational_op(ThreeACList *list, char* op) {
     else if (strcmp(op, "<=") == 0) { opType = OP_GTS; use_not = true; }
     else if (strcmp(op, ">=") == 0) { opType = OP_LTS; use_not = true; }
 
+    
     emit(opType, NULL, NULL, NULL, list);
     if (use_not) {
         emit(OP_NOTS, NULL, NULL, NULL, list);
     }
+    emit(OP_LABEL, end_rel_op_label, NULL, NULL, list);
 }
