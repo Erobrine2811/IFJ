@@ -621,8 +621,6 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
         tPrec prec = precedence_table[stack_sym][look_sym];
         
-        printf("Stack symbol: %d, Lookahead symbol: %d, Precedence: %d\n", stack_sym, look_sym, prec);
-
         if (prec == PREC_LESS || prec == PREC_EQUAL) {
             expr_push(&expr_stack, look_sym, true);
 
