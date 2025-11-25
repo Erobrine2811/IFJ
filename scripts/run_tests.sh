@@ -198,16 +198,6 @@ run_test() {
         fi
 
         local file_to_compare="$actual_output_file"
-        if [ -f "$input_file" ]; then
-            if grep -q 'read_num' "$source_wren_file" || grep -q 'read_str' "$source_wren_file"; then
-                local lines_in_actual_output=$(wc -l < "$actual_output_file")
-                if [ "$lines_in_actual_output" -gt 1 ]; then
-                    local filtered_actual_output_file="$TEMP_DIR/$current_test_name.filtered_actual_output"
-                    tail -n +2 "$actual_output_file" > "$filtered_actual_output_file"
-                    file_to_compare="$filtered_actual_output_file"
-                fi
-            fi
-        fi
 
         if diff -u "$expected_output_file" "$file_to_compare" > /dev/null; then
             echo -e "${GREEN}PASS: $current_test_name${NC}"
