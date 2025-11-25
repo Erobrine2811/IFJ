@@ -5,4 +5,8 @@ class Program {
       var str = "Hello world!\n"
       Ifj.write(str)
     }
+
+    static test_without_return() {
+      Ifj.write("This is a text function without return.\n")
+    }
 }
