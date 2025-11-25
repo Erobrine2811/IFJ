@@ -41,8 +41,8 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody);
-void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack);
-tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement);
+tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement);
 void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check_value, const char* value);
 void skip_optional_eol(tToken *currentToken, FILE *file);
 

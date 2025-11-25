@@ -59,7 +59,6 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
 {
     if ((*currentToken)->type != type)
     {
-      printf("%s\n", (*currentToken)->data);
         exit(SYNTAX_ERROR);
     }
 
@@ -708,7 +707,7 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             parse_assignment_statement(file, currentToken, stack);
             break;
         case T_KW_IFJ:
-            parse_ifj_call(file, currentToken, stack);
+            parse_ifj_call(file, currentToken, stack, true);
             break;
         default:
             fprintf(stderr, "[PARSER] Syntax error: unexpected token '%s'\n", (*currentToken)->data);
@@ -827,7 +826,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
     if (nextToken && nextToken->type == T_LEFT_PAREN && (*currentToken)->type == T_ID)
     {
-        parse_function_call(file, currentToken, stack);
+        parse_function_call(file, currentToken, stack, true);
         if ((*currentToken)->type == T_EOL) {
             consume_eol(file, currentToken);
         }
@@ -1132,7 +1131,7 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     threeACcode.if_used = if_used_backup;
 }
 
-void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement)
 {
     char *funcName = safeMalloc(strlen((*currentToken)->data) + 1);
     strcpy(funcName, (*currentToken)->data);
@@ -1155,7 +1154,18 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         }
     }
 
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+    if (isStatement)
+    {
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+    }
+    else
+    {
+        if ((*currentToken)->type != T_RIGHT_PAREN)
+        {
+            fprintf(stderr, "[SYNTAX] Error: expected ')'\n");
+            exit(SYNTAX_ERROR);
+        }
+    }
 
     emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
 
@@ -1256,7 +1266,7 @@ tDataType get_type_from_token(tToken token)
     }
 }
 
-tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack)
+tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement)
 {
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
     expect_and_consume(T_DOT, currentToken, file, false, NULL);
@@ -1288,7 +1298,19 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         }
     }
 
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+    if (isStatement)
+    {
+        expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
+    }
+    else
+    {
+        if ((*currentToken)->type != T_RIGHT_PAREN)
+        {
+            fprintf(stderr, "[SYNTAX] Error: expected ')'\n");
+            exit(SYNTAX_ERROR);
+        }
+    }
+
 
     tSymbolData *funcData = symtable_find(global_symtable, fullName);
     if (funcData == NULL || funcData->kind != SYM_FUNC)

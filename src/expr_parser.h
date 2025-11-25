@@ -21,7 +21,6 @@ typedef enum {
     E_ID,
     E_LITERAL,
     E_FUNC,
-    E_COMMA,
     E_DOLLAR
 } tSymbol;
 
