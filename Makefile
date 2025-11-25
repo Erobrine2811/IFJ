@@ -19,3 +19,6 @@ test:
 	make clean
 	make
 	./scripts/run_tests.sh
+
+submission:
+	./scripts/prepare_submission.sh

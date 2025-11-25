@@ -6,3 +6,6 @@ scanner_test
 ifj25
 ic25int
 *.dSYM/
+*.zip
+submission_test_dir
+completed_project

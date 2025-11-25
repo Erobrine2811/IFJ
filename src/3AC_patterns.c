@@ -973,6 +973,37 @@ void generate_numeric_op(ThreeACList *list, char* op) {
     emit(OP_DEFVAR, type2, NULL, NULL, list);
     emit(OP_TYPE, type2, op2, NULL, list);
 
+    Operand* type_error_label = create_operand_from_label(threeAC_create_label(list));
+    Operand* after_num_type_check_label = create_operand_from_label(threeAC_create_label(list));
+
+    emit(OP_PUSHS, type1, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_PUSHS, type1, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_ORS, NULL, NULL, NULL, list);
+
+    emit(OP_PUSHS, type2, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_PUSHS, type2, NULL, NULL, list);
+    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
+    emit(OP_EQS, NULL, NULL, NULL, list);
+    emit(OP_ORS, NULL, NULL, NULL, list);
+
+    emit(OP_ANDS, NULL, NULL, NULL, list);
+
+    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, list);
+    emit(OP_JUMPIFNEQS, type_error_label, NULL, NULL, list);
+
+    emit(OP_JUMP, after_num_type_check_label, NULL, NULL, list);
+
+    emit(OP_LABEL, type_error_label, NULL, NULL, list);
+    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL, list);
+
+    emit(OP_LABEL, after_num_type_check_label, NULL, NULL, list);
+
     Operand* int_type = create_operand_from_constant_string("int");
 
     Operand* is_int1 = create_operand_from_variable(threeAC_create_temp(list), false);
