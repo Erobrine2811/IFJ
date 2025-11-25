@@ -14,6 +14,7 @@ make clean
 # Define directories and files
 SUBMISSION_DIR="completed_project"
 ARCHIVE_FILE="xcapkoe00.zip"
+VALIDATION_DIR="submission_test_dir"
 
 # Create a clean submission directory
 echo "--- Preparing submission directory: $SUBMISSION_DIR ---"
@@ -60,6 +61,7 @@ rm -f "$ARCHIVE_FILE"
 cd "$SUBMISSION_DIR"
 zip -r "../$ARCHIVE_FILE" .
 cd ..
+rm -rf "$SUBMISSION_DIR"
 
 # Clean up and prepare for validation
 echo "--- Preparing to run validation script ---"
@@ -70,7 +72,6 @@ mkdir -p "$VALIDATION_DIR"
 VALIDATION_COMMAND="./scripts/is_it_ok.sh $ARCHIVE_FILE $VALIDATION_DIR"
 echo "--- EXECUTING VALIDATION: $VALIDATION_COMMAND ---"
 ./scripts/is_it_ok.sh "$ARCHIVE_FILE" "$VALIDATION_DIR"
-
 
 echo "--- SCRIPT FINISHED ---"
 set +x
