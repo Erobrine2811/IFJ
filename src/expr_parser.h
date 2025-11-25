@@ -19,6 +19,7 @@ typedef enum {
     E_LPAREN,
     E_RPAREN,
     E_ID,
+    E_LITERAL,
     E_DOLLAR
 } tSymbol;
 

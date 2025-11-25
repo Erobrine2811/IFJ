@@ -251,9 +251,8 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *sym_stac
 
     switch(token->type) {
         case T_INTEGER:
-            return TYPE_INT;
         case T_FLOAT:
-            return TYPE_FLOAT;
+            return TYPE_NUM;
         case T_STRING:
             return TYPE_STRING;
         case T_KW_NULL_VALUE:
@@ -272,18 +271,19 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *sym_stac
     }
 }
 
-static tPrec precedence_table[10][10] = {
-/*                MUL_DIV  PLUS_MINUS  REL     EQ_NEQ   IS     TYPE    LPAREN  RPAREN  ID     DOLLAR */
-/* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
-/* PLUS_MINUS */ { '<',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
-/* REL */        { '<',     '<',        '>',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
-/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '>',   'E',     '<',    '>',    '<',   '>'  },
-/* IS */         { '<',     '<',        '<',    '<',     'E',   '<',     '<',    '>',    '<',   '>'  },
-/* TYPE */       { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',   '>'  },
-/* LPAREN */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    '=',    '<',   'E'  },
-/* RPAREN */     { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',   '>'  },
-/* ID */         { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',   '>'  },
-/* DOLLAR */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    'E',    '<',   'E'  },
+static tPrec precedence_table[11][11] = {
+/*                MUL_DIV  PLUS_MINUS  REL     EQ_NEQ   IS     TYPE    LPAREN  RPAREN     ID   LITERAL  DOLLAR */
+/* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
+/* PLUS_MINUS */ { '<',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
+/* REL */        { '<',     '<',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
+/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
+/* IS */         { '<',     '<',        '<',    '<',     'E',   '<',     '<',    '>',    '<',    '<',    '>'  },
+/* TYPE */       { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',    '>'  },
+/* LPAREN */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    '=',    '<',    '<',    'E'  },
+/* RPAREN */     { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',    '>'  },
+/* ID */         { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',    '>'  },
+/* LITERAL */    { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',    '>'  },
+/* DOLLAR */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    'E',    '<',    '<',    'E'  },
 };
 
 static tSymbol get_precedence_type(tType type)
@@ -322,12 +322,13 @@ static tSymbol get_precedence_type(tType type)
         case T_RIGHT_PAREN:
             return E_RPAREN;
 
-        case T_ID:
-        case T_GLOBAL_ID:
         case T_INTEGER:
         case T_FLOAT:
         case T_STRING:
         case T_KW_NULL_VALUE:
+            return E_LITERAL;
+        case T_ID:
+        case T_GLOBAL_ID:
             return E_ID;
 
         case T_EOF:
@@ -393,13 +394,13 @@ static int is_token_expr_end(tToken *token)
     }
 }
 
-static int reduce_expr(tExprStack *stack, tToken *currentToken)
+static int reduce_expr(tExprStack *stack)
 {
     tExprStackNode *n1 = stack->top;
     if (n1 == NULL) return 0;
 
     // E -> i
-    if (n1->is_terminal && n1->symbol == E_ID)
+    if (n1->is_terminal && (n1->symbol == E_ID || n1->symbol == E_LITERAL))
     {
         tDataType type = n1->dataType;
         n1->is_terminal = false;
@@ -425,39 +426,8 @@ static int reduce_expr(tExprStack *stack, tToken *currentToken)
             expr_pop(stack);
             expr_pop(stack);
             expr_pop(stack);
-            expr_push(stack, E_ID, false);
+            expr_push(stack, n2->symbol, false);
             stack->top->dataType = type;
-            return 1;
-        }
-    }
-
-    // E -> - E (unary minus)
-    if (n1 && n2 && n3 && !n1->is_terminal && n2->is_terminal && n3->is_terminal) {
-        if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0) {
-            expr_pop(stack);
-            if (n2->value) free(n2->value);
-            expr_pop(stack);
-
-            Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-            emit(OP_POPS, op1, NULL, NULL, &threeACcode);
-
-            Operand* type_op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, type_op1, NULL, NULL, &threeACcode);
-            emit(OP_TYPE, type_op1, op1, NULL, &threeACcode);
-            Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-            emit(OP_JUMPIFNEQ, op1_ok_label, type_op1, create_operand_from_constant_string("int"), &threeACcode);
-            emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-            emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
-
-            // Push 0.0 and op1, then subtract
-            Operand* zero_float = create_operand_from_constant_float(0.0);
-            emit(OP_PUSHS, zero_float, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-            emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
-
-            expr_push(stack, E_ID, false);
-            stack->top->dataType = TYPE_FLOAT;
             return 1;
         }
     }
@@ -468,6 +438,7 @@ static int reduce_expr(tExprStack *stack, tToken *currentToken)
             n2->is_terminal && n2->symbol == E_IS &&
             !n3->is_terminal)
         {
+
             char* type_str = n1->value;
             expr_pop(stack);
             expr_pop(stack);
@@ -522,35 +493,48 @@ static int reduce_expr(tExprStack *stack, tToken *currentToken)
            n2->is_terminal &&
            !n3->is_terminal)
         {
+            tDataType result_type = TYPE_UNDEF;
+
+            //Static semantic analysis of literal types
+            if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
+            {
+                result_type = semantic_check_literal_operation(n2->value, n1->dataType, n3->dataType);
+            }
+
             tSymbol op = n2->symbol;
             if (op == E_MUL_DIV || op == E_PLUS_MINUS || op == E_REL || op == E_EQ_NEQ)
             {
-                tDataType result_type = TYPE_UNDEF;
 
                 if (strcmp(n2->value, "+") == 0) {
                     generate_add_op(&threeACcode);
-                    result_type = TYPE_UNDEF;
                 }
                 else if (strcmp(n2->value, "*") == 0) 
                 {
                     generate_mult_op(&threeACcode);
-                    result_type = TYPE_UNDEF;
                 } 
                 else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0) 
                 {
                     generate_numeric_op(&threeACcode, n2->value);
-                    result_type = TYPE_FLOAT;
+                    result_type = TYPE_NUM;
                 }
                 else {
                     generate_relational_op(&threeACcode, n2->value);
-                    result_type = TYPE_UNDEF;
                 }
              
                 expr_pop(stack); 
                 if (n2->value) free(n2->value);
                 expr_pop(stack);  
                 expr_pop(stack);  
-                expr_push(stack, E_ID, false);
+
+                if (n1->symbol == E_ID || n3->symbol == E_ID) 
+                {
+                  expr_push(stack, E_ID, false);
+                }
+                else 
+                {
+                  expr_push(stack, E_LITERAL, false);
+                }
+
                 stack->top->dataType = result_type;
                 return 1;
             }
@@ -581,11 +565,10 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
         tPrec prec = precedence_table[stack_sym][look_sym];
 
-
         if (prec == PREC_LESS || prec == PREC_EQUAL) {
             expr_push(&expr_stack, look_sym, true);
 
-            if (look_sym == E_ID) 
+            if (look_sym == E_ID || look_sym == E_LITERAL)
             {
                 Operand *op = create_operand_from_token(lookahead, stack);
                 emit(OP_PUSHS, op, NULL, NULL, &threeACcode);
@@ -659,7 +642,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
         else if (prec == PREC_GREATER)
         {
-            if (!reduce_expr(&expr_stack, &lookahead))
+            if (!reduce_expr(&expr_stack))
             {
                 printf("Reduction failed\n");
                 exit(SYNTAX_ERROR);

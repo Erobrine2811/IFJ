@@ -44,6 +44,6 @@ void semantic_check_argument_count(tSymbolData *funcData, int argCount, const ch
  * @param right The data type of the right operand.
  * @return The data type of the result of the operation.
  */
-tDataType semantic_check_operation(char* op, tDataType left, tDataType right);
+tDataType semantic_check_literal_operation(char* op, tDataType left, tDataType right);
 
 #endif

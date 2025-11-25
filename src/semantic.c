@@ -7,11 +7,7 @@
 
 char* transform_to_data_type(int type) { 
     switch (type) { 
-        case TYPE_INT:
-            return "INT";
-        case TYPE_FLOAT:
-            return "FLOAT";
-        case TYPE_NUM: 
+        case TYPE_NUM:
             return "NUM"; 
         case TYPE_STRING: 
             return "STRING"; 
@@ -70,7 +66,7 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
     }
 }
 
-tDataType semantic_check_operation(char* op, tDataType left, tDataType right) {
+tDataType semantic_check_literal_operation(char* op, tDataType left, tDataType right) {
     if (left == TYPE_UNDEF || right == TYPE_UNDEF) {
         return TYPE_UNDEF;
     }
@@ -80,16 +76,15 @@ tDataType semantic_check_operation(char* op, tDataType left, tDataType right) {
         exit(TYPE_COMPATIBILITY_ERROR);
     }
 
-    bool left_is_num = (left == TYPE_INT || left == TYPE_FLOAT || left == TYPE_NUM);
-    bool right_is_num = (right == TYPE_INT || right == TYPE_FLOAT || right == TYPE_NUM);
+    bool left_is_num = left == TYPE_NUM;
+    bool right_is_num = right == TYPE_NUM;
 
     if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || strcmp(op, "*") == 0 || strcmp(op, "/") == 0) {
         if (left_is_num && right_is_num) {
-            if (left == TYPE_FLOAT || right == TYPE_FLOAT || left == TYPE_NUM || right == TYPE_NUM) return TYPE_NUM;
-            return TYPE_INT;
+            return TYPE_NUM;
         }
         if (strcmp(op, "+") == 0 && left == TYPE_STRING && right == TYPE_STRING) return TYPE_STRING;
-        if (strcmp(op, "*") == 0 && ((left == TYPE_STRING && right == TYPE_INT) || (left == TYPE_INT && right == TYPE_STRING))) return TYPE_STRING;
+        if (strcmp(op, "*") == 0 && ((left == TYPE_STRING && right == TYPE_NUM) || (left == TYPE_NUM && right == TYPE_STRING))) return TYPE_STRING;
         fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }

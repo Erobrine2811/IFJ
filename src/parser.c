@@ -11,7 +11,7 @@ static tBuiltinDef builtin_defs[] = {
     {"Ifj.write", TYPE_NULL, 1, {TYPE_UNDEF}},
     {"Ifj.read_num", TYPE_NUM, 0, {}},
     {"Ifj.read_str", TYPE_STRING, 0, {}},
-    {"Ifj.floor", TYPE_INT, 1, {TYPE_NUM}},
+    {"Ifj.floor", TYPE_NUM, 1, {TYPE_NUM}},
     {"Ifj.str", TYPE_STRING, 1, {TYPE_UNDEF}},
     {"Ifj.length", TYPE_NUM, 1, {TYPE_STRING}},
     {"Ifj.substring", TYPE_STRING, 3, {TYPE_STRING, TYPE_NUM, TYPE_NUM}},

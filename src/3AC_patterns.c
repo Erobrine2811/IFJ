@@ -412,7 +412,7 @@ tDataType generate_ifj_floor(tSymTableStack *stack) {
     emit(OP_LABEL, label_end_floor, NULL, NULL, &threeACcode);
 
 
-    return TYPE_INT;
+    return TYPE_NUM;
 }
 
 tDataType generate_ifj_str(tSymTableStack *stack) {
