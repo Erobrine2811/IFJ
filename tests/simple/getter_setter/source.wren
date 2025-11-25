@@ -4,8 +4,9 @@ class Program {
     static myValue {
         if (__my_hidden_value == null) {
             return "null"
+        } else {
+            return __my_hidden_value
         }
-        return __my_hidden_value
     }
 
     static myValue=(val) {

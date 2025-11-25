@@ -59,6 +59,9 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
 {
     if ((*currentToken)->type != type)
     {
+        printf("Unexpected token: %d\n", (*currentToken)->type);
+        printf("Unexpected token: %d:%d\n", (*currentToken)->linePos, (*currentToken)->colPos);
+        printf("Expected token: %d\n", type);
         exit(SYNTAX_ERROR);
     }
 
@@ -665,7 +668,7 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
     }
 
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
+    consume_eol(file, currentToken);
 
     while ((*currentToken)->type != T_RIGHT_BRACE && (*currentToken)->type != T_EOF)
     {
@@ -786,7 +789,6 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     emit_comment("If-block", &threeACcode);
     parse_block(file, currentToken, stack, false);
-    skip_optional_eol(currentToken, file);
 
     expect_and_consume(T_KW_ELSE, currentToken, file, false, NULL);
 

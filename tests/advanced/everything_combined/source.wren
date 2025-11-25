@@ -10,6 +10,7 @@ class Program {
         if (arg is Num) {   // podmineny prikaz, operator porovnani typu
             if (arg - 1 > 32 * 84.1 / 2.4) {  // porovnavaci vyraz ma na obou stranach zase vyrazy
                 Ifj.write("Celkem velke cislo!\n")
+            } else {
             }
             arg = arg * 42  // prikaz prirazeni
             var ansStr 

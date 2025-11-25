@@ -394,13 +394,14 @@ static void expr_pop_until_marker(tExprStack *stack)
 
 static int is_token_expr_end(tToken *token)
 {
-    // Expression end tokens: ), EOL, }, EOF
+    // Expression end tokens: ), ,, EOL, }, EOF
     if (token == NULL) return 1;
     switch ((*token)->type)
     {
         case T_RIGHT_PAREN:
         case T_EOL:
         case T_RIGHT_BRACE:
+        case T_COMMA:
         case T_EOF:
             return 1;
         default:
@@ -619,6 +620,8 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         tSymbol look_sym = get_precedence_type(lookahead, file);
 
         tPrec prec = precedence_table[stack_sym][look_sym];
+        
+        printf("Stack symbol: %d, Lookahead symbol: %d, Precedence: %d\n", stack_sym, look_sym, prec);
 
         if (prec == PREC_LESS || prec == PREC_EQUAL) {
             expr_push(&expr_stack, look_sym, true);
@@ -718,6 +721,9 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
         else
         {
+            printf("Unexpected token: %d\n", lookahead->type);
+            printf("Unexpected token: %d:%d\n", lookahead->linePos, lookahead->colPos);
+            
             exit(SYNTAX_ERROR);
         }
 
