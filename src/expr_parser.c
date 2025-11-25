@@ -397,6 +397,7 @@ static int is_token_expr_end(tToken *token)
 static int reduce_expr(tExprStack *stack)
 {
     tExprStackNode *n1 = stack->top;
+
     if (n1 == NULL) return 0;
 
     // E -> i
@@ -431,6 +432,47 @@ static int reduce_expr(tExprStack *stack)
             return 1;
         }
     }
+
+ // E -> - E (unary minus)
+    if (n1 && n2 && n3 && !n1->is_terminal && n2->is_terminal && n3->is_terminal) {
+        if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0) {
+            if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
+            {
+                if (n1->dataType != TYPE_NUM || n3->dataType != TYPE_NUM) {
+                    fprintf(stderr, "[SEMANTIC] Error: Unary minus applied to non-numeric literal.\n");
+                    exit(TYPE_COMPATIBILITY_ERROR);
+                }
+            }
+
+            expr_pop(stack);
+            if (n2->value) free(n2->value);
+            expr_pop(stack);
+
+            Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+            emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
+            emit(OP_POPS, op1, NULL, NULL, &threeACcode);
+
+            Operand* type_op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+            emit(OP_DEFVAR, type_op1, NULL, NULL, &threeACcode);
+            emit(OP_TYPE, type_op1, op1, NULL, &threeACcode);
+
+            Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
+            emit(OP_JUMPIFNEQ, op1_ok_label, type_op1, create_operand_from_constant_string("int"), &threeACcode);
+            emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
+            emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
+
+            // Push 0.0 and op1, then subtract
+            Operand* zero_float = create_operand_from_constant_float(0.0);
+            emit(OP_PUSHS, zero_float, NULL, NULL, &threeACcode);
+            emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
+            emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
+
+            expr_push(stack, n3->symbol, false);
+            stack->top->dataType = TYPE_NUM;
+            return 1;
+        }
+    }
+  
 
     // E -> E is TYPE
     if (n1 && n2 && n3) {
