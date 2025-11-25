@@ -4,6 +4,7 @@ class Program {
     static main() {
       var str = "Hello world!\n"
       Ifj.write(str)
+      test_without_return()
     }
 
     static test_without_return() {
