@@ -1,0 +1,11 @@
+*.o
+tests/**/source.out
+tests/**/return_code.out
+tests/**/generated.ifj25code
+scanner_test
+ifj25
+ic25int
+*.dSYM/
+*.zip
+submission_test_dir
+completed_project

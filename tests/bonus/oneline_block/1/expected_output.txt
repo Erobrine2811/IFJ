@@ -1,0 +1,3 @@
+Regular function call result: 6
+Oneline function call result: 6
+Both functions returned the same result.

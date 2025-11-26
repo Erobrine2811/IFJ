@@ -23,12 +23,14 @@ typedef enum {
 typedef struct {
     tSymbolType kind;
     tDataType dataType;
+    char *unique_name;
 
     int index;
 
     bool defined;
     tDataType returnType;
     tDataType *paramTypes;
+    char **paramNames;
     int paramCount;
 } tSymbolData;
 
@@ -48,6 +50,6 @@ void symtable_init(tSymTable *t);
 void symtable_free(tSymTable *t);
 
 bool symtable_insert(tSymTable *t, char *key, tSymbolData data);
-tSymbolData *symtable_find(tSymTable *t, char *key);
+tSymbolData *symtable_find(tSymTable *t, const char *key);
 
 #endif
