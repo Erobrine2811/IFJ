@@ -215,6 +215,11 @@ void insert_builtin_functions()
 
 void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
+    if ((*currentToken)->type != T_KW_STATIC)
+    {
+        exit(SYNTAX_ERROR);
+    }
+
     while ((*currentToken)->type == T_KW_STATIC)
     {
         parse_function_declaration(file, currentToken, stack);
@@ -673,7 +678,7 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
     while ((*currentToken)->type != T_RIGHT_BRACE && (*currentToken)->type != T_EOF)
     {
         parse_statement(file, currentToken, stack);
-        skip_optional_eol(currentToken, file);
+        consume_eol(file, currentToken);
     }
 
     expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
@@ -980,7 +985,6 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     {
         get_next_token(file, currentToken);
         tDataType expr_type;
-        tToken nextToken = peek_token(file);
 
         expr_type = parse_expression(file, currentToken, stack);
 

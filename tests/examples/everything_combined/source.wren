@@ -75,7 +75,7 @@ class Program {
         myValue = getAnswer(valueFromUser)  // zavola pretizenou funkci getAnswer(arg)
         if (myValue == null) {
             Ifj.write("ODPOVED NENI!\n")
-            return  // konec programu
+            return // konec programu
         } else {
             if (myValue is Null) {
                 // tato podminka je semanticky ekvivalentni podmince myValue == null,

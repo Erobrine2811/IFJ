@@ -4,7 +4,7 @@
 INTERPRETER_PATH="/pub/courses/ifj/ic25int/linux/ic25int"
 IFJ25_BIN="./ifj25"
 SIMPLE_TESTS_DIR="tests/simple/"
-ADVANCED_TESTS_DIR="tests/advanced/"
+EXAMPLES_TESTS_DIR="tests/examples/"
 BONUS_TESTS_DIR="tests/bonus/"
 ERRORS_TESTS_DIR="tests/errors/"
 
@@ -68,11 +68,11 @@ run_error_test() {
 
         local expected_error_file="$variation_dir/expected_error.txt"
         local expected_errors=$(cat "$expected_error_file" | tr -d '[:space:]')
-        
+
         # Run the compiler and capture output and exit code
         "$IFJ25_BIN" "$source_wren_file" > "$source_out_file_tmp" 2>&1
         local exit_code=$?
-        
+
         cp "$source_out_file_tmp" "$source_out_target"
         echo "$exit_code" > "$return_code_target"
 
@@ -123,7 +123,7 @@ run_test() {
         # Save compilation error to generated.ifj25code
         cp "$compiled_code_file_for_test" "$generated_ifj25code_target"
         echo -e "${BLUE}Compilation error saved to: $generated_ifj25code_target${NC}"
-        
+
         cp "$compiled_code_file_for_test" "$source_out_target_base"
         echo "$exit_code" > "$return_code_target_base"
 
@@ -175,7 +175,7 @@ run_test() {
         echo -e "${BLUE}--- Running variation: $current_test_name ---${NC}"
 
         mkdir -p "$(dirname "$actual_output_file")"
-        
+
         local interpreter_exit_code
         if [ -f "$input_file" ]; then
             cat "$input_file" | "$INTERPRETER_PATH" "$compiled_code_file_for_test" > "$actual_output_file" 2>&1
@@ -220,11 +220,11 @@ while IFS= read -r -d '' source_wren_file; do
     run_test "$source_wren_file" "simple"
 done < <(find "$SIMPLE_TESTS_DIR" -name "source.wren" -print0 | sort -z)
 
-# --- Run Advanced Tests ---
-echo -e "${BLUE}--- Running Advanced Tests ---${NC}"
+# --- Run Examples Tests ---
+echo -e "${BLUE}--- Running Example Tests ---${NC}"
 while IFS= read -r -d '' source_wren_file; do
-    run_test "$source_wren_file" "advanced"
-done < <(find "$ADVANCED_TESTS_DIR" -name "source.wren" -print0 | sort -z)
+    run_test "$source_wren_file" "examples"
+done < <(find "$EXAMPLES_TESTS_DIR" -name "source.wren" -print0 | sort -z)
 
 # --- Run Bonus Tests ---
 echo -e "${BLUE}--- Running Bonus Tests ---${NC}"

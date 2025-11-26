@@ -87,14 +87,10 @@ void generate_function_call(tSymTable *g_symtable, tSymTableStack *stack, tToken
 void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack) {
     get_next_token(file, currentToken);
 
-    if ((*currentToken)->type != T_EOL) {
-        parse_expression(file, currentToken, stack);
-        Operand* retval_var = create_operand_from_variable("%retval", false);
-        emit(OP_POPS, retval_var, NULL, NULL, &threeACcode);
-        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
-    } else {
-        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
-    }
+    parse_expression(file, currentToken, stack);
+    Operand* retval_var = create_operand_from_variable("%retval", false);
+    emit(OP_POPS, retval_var, NULL, NULL, &threeACcode);
+    emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
 }
 
 tDataType generate_ifj_write(tSymTableStack *stack) {

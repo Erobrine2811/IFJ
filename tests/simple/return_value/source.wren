@@ -13,6 +13,6 @@ class Program {
     }
 
     static add(a, b) {
-        return a + b
+        return
     }
 }
