@@ -47,7 +47,7 @@ static char* process_string_literal(const char* raw_data) {
         if (only_whitespace_after_newline && p >= content_start && *p == '\n') {
             content_end = p;
         }
-
+        
         if (content_start >= content_end) {
              char *empty_str = safeMalloc(1);
              empty_str[0] = '\0';
@@ -58,7 +58,7 @@ static char* process_string_literal(const char* raw_data) {
         char* trimmed_str = safeMalloc(new_len + 1);
         strncpy(trimmed_str, content_start, new_len);
         trimmed_str[new_len] = '\0';
-
+        
         char* final_str = safeMalloc(new_len + 1);
         int j = 0;
         for (int i = 0; i < new_len; i++) {
@@ -99,7 +99,7 @@ static char* process_string_literal(const char* raw_data) {
             s[0] = '\0';
             return s;
         }
-
+        
         char* unescaped_str = safeMalloc(len);
         int j = 0;
         for (int i = 1; i < len - 1; i++) {
@@ -178,12 +178,12 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
             if (getter_data) {
                 emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
                 emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-
+                
                 char mangledName[256];
                 sprintf(mangledName, "%s$0%%getter", data_copy);
                 Operand* call_label = create_operand_from_label(mangledName);
                 emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
-
+                
                 emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
                 op = create_operand_from_tf_variable("%retval");
 
@@ -212,12 +212,12 @@ static Operand* create_operand_from_token(tToken token, tSymTableStack *sym_stac
 
                 emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
                 emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
-
+                
                 char mangledName[256];
                 sprintf(mangledName, "%s$0%%getter", data_copy);
                 Operand* call_label = create_operand_from_label(mangledName);
                 emit(OP_CALL, call_label, NULL, NULL, &threeACcode);
-
+                
                 emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
                 op = create_operand_from_tf_variable("%retval");
                 free(getterKey);
@@ -399,9 +399,9 @@ static int is_token_expr_end(tToken *token)
     switch ((*token)->type)
     {
         case T_RIGHT_PAREN:
+        case T_COMMA:
         case T_EOL:
         case T_RIGHT_BRACE:
-        case T_COMMA:
         case T_EOF:
             return 1;
         default:
@@ -412,6 +412,7 @@ static int is_token_expr_end(tToken *token)
 static int reduce_expr(tExprStack *stack)
 {
     tExprStackNode *n1 = stack->top;
+
     if (n1 == NULL) return 0;
 
     // E -> i
@@ -513,9 +514,9 @@ static int reduce_expr(tExprStack *stack)
             if (strcmp(type_str, "Num") == 0) {
                 Operand* is_int_label = create_operand_from_label(threeAC_create_label(&threeACcode));
                 Operand* end_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-
+                
                 emit(OP_JUMPIFEQ, is_int_label, type_val, create_operand_from_constant_string("int"), &threeACcode);
-
+                
                 emit(OP_EQ, result, type_val, create_operand_from_constant_string("float"), &threeACcode);
                 emit(OP_JUMP, end_label, NULL, NULL, &threeACcode);
 
@@ -530,7 +531,7 @@ static int reduce_expr(tExprStack *stack)
             } else {
                 emit(OP_MOVE, result, create_operand_from_constant_bool(false), NULL, &threeACcode);
             }
-
+            
             emit(OP_PUSHS, result, NULL, NULL, &threeACcode);
 
             if (type_str) free(type_str);
@@ -609,7 +610,6 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
     while (!done)
     {
-
         tExprStackNode *top_terminal = expr_top_terminal(&expr_stack);
         if (top_terminal == NULL)
         {
@@ -620,7 +620,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         tSymbol look_sym = get_precedence_type(lookahead, file);
 
         tPrec prec = precedence_table[stack_sym][look_sym];
-        
+
         if (prec == PREC_LESS || prec == PREC_EQUAL) {
             expr_push(&expr_stack, look_sym, true);
 
@@ -721,7 +721,6 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         {
             printf("Unexpected token: %d\n", lookahead->type);
             printf("Unexpected token: %d:%d\n", lookahead->linePos, lookahead->colPos);
-            
             exit(SYNTAX_ERROR);
         }
 

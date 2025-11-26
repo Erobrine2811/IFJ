@@ -88,6 +88,12 @@ tDataType semantic_check_literal_operation(char* op, tDataType left, tDataType r
         fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
         exit(TYPE_COMPATIBILITY_ERROR);
     }
+    if (strcmp(op, ">") == 0 || strcmp(op, "<") == 0 || strcmp(op, ">=") == 0 || strcmp(op, "<=") == 0) {
+        if (!left_is_num || !right_is_num) {
+            fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: incompatible types %s and %s\n", op, transform_to_data_type(left), transform_to_data_type(right));
+            exit(TYPE_COMPATIBILITY_ERROR);
+        }
+    }
 
     if (strcmp(op, ">") == 0 || strcmp(op, "<") == 0 || strcmp(op, ">=") == 0 || strcmp(op, "<=") == 0) {
         if (!left_is_num || !right_is_num) {
