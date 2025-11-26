@@ -20,6 +20,7 @@ typedef enum {
     E_RPAREN,
     E_ID,
     E_LITERAL,
+    E_FUNC,
     E_DOLLAR
 } tSymbol;
 

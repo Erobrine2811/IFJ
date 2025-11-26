@@ -20,14 +20,14 @@ void generate_program_entrypoint(ThreeACList *list) {
     emit_comment("####################", list);
     emit_comment("Program entry point", list);
     emit_comment("####################", list);
-    
+
     emit(OP_LABEL, startJumpLabel, NULL, NULL , list);
     Operand* mainLabel = create_operand_from_label("main$0%func");
     emit(OP_CREATEFRAME, NULL, NULL, NULL, list);
     emit(OP_PUSHFRAME, NULL, NULL, NULL, list);
     emit(OP_CALL, mainLabel, NULL, NULL, list);
     emit(OP_POPFRAME, NULL, NULL, NULL, list);
-    
+
     Operand *exitValue = create_operand_from_constant_int(0);
     emit(OP_EXIT, exitValue, NULL, NULL, list);
     emit(NO_OP, NULL, NULL, NULL, list);
@@ -37,53 +37,6 @@ void generate_program_entrypoint(ThreeACList *list) {
 void generate_eof(ThreeACList *list) {
     // This can be used for any cleanup or finalization code.
     // For now, it will also handle built-in function implementations.
-}
-
-void generate_if_else(FILE *file, tToken *currentToken, tSymTableStack *stack, bool in_loop) {
-    get_next_token(file, currentToken); // consume 'if'
-    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
-
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit_comment("If statement condition", &threeACcode);
-    parse_expression(file, currentToken, stack);
-
-    Operand* expr_val_if = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, expr_val_if, NULL, NULL, &threeACcode);
-    emit(OP_POPS, expr_val_if, NULL, NULL, &threeACcode);
-    generate_truthiness_check(&threeACcode, expr_val_if);
-
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-
-    char *label1_str = threeAC_create_label(&threeACcode);
-    Operand *label1 = create_operand_from_label(label1_str);
-
-    emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFEQS, label1, NULL, NULL, &threeACcode);
-
-    emit_comment("If-block", &threeACcode);
-    parse_block(file, currentToken, stack, false);
-    skip_optional_eol(currentToken, file);
-
-    if ((*currentToken)->type == T_KW_ELSE) {
-        get_next_token(file, currentToken); // consume 'else'
-        char *label2_str = threeAC_create_label(&threeACcode);
-        Operand *label2 = create_operand_from_label(label2_str);
-
-        emit(OP_JUMP, label2, NULL, NULL, &threeACcode);
-        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
-
-        emit_comment("Else-block", &threeACcode);
-        parse_block(file, currentToken, stack, false);
-        emit(OP_LABEL, label2, NULL, NULL, &threeACcode);
-        free(label2_str);
-    } else {
-        emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
-    }
-
-    free(label1_str);
-    emit_comment("If statement end", &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
 void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack) {
@@ -134,14 +87,10 @@ void generate_function_call(tSymTable *g_symtable, tSymTableStack *stack, tToken
 void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack) {
     get_next_token(file, currentToken);
 
-    if ((*currentToken)->type != T_EOL) {
-        parse_expression(file, currentToken, stack);
-        Operand* retval_var = create_operand_from_variable("%retval", false);
-        emit(OP_POPS, retval_var, NULL, NULL, &threeACcode);
-        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
-    } else {
-        emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
-    }
+    parse_expression(file, currentToken, stack);
+    Operand* retval_var = create_operand_from_variable("%retval", false);
+    emit(OP_POPS, retval_var, NULL, NULL, &threeACcode);
+    emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
 }
 
 tDataType generate_ifj_write(tSymTableStack *stack) {
@@ -197,7 +146,7 @@ tDataType generate_ifj_read_num(tSymTableStack *stack) {
     emit(OP_READ, result_var, create_operand_from_type("float"), NULL, &threeACcode);
 
     Operand* result_is_not_int_or_null = create_operand_from_label(threeAC_create_label(&threeACcode));
-    
+
     emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
@@ -212,7 +161,7 @@ tDataType generate_ifj_read_num(tSymTableStack *stack) {
 
     emit(OP_LABEL, result_is_not_int_or_null, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, result_var, NULL, NULL, &threeACcode);
-    
+
     return TYPE_NUM;
 }
 
@@ -296,7 +245,7 @@ tDataType generate_ifj_ord(tSymTableStack *stack) {
         Operand *s_arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
         emit(OP_DEFVAR, s_arg, NULL, NULL, &threeACcode);
         emit(OP_POPS, s_arg, NULL, NULL, &threeACcode);
-        
+
         Operand* type_i = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
         emit(OP_DEFVAR, type_i, NULL, NULL, &threeACcode);
         emit(OP_TYPE, type_i, i_arg, NULL, &threeACcode);
@@ -368,7 +317,7 @@ tDataType generate_ifj_ord(tSymTableStack *stack) {
         emit(OP_LABEL, label_end_ord, NULL, NULL, &threeACcode);
         emit(OP_PUSHS, result_ord, NULL, NULL, &threeACcode);
 
-        return TYPE_NUM; 
+        return TYPE_NUM;
 }
 
 tDataType generate_ifj_floor(tSymTableStack *stack) {
@@ -1113,13 +1062,13 @@ void generate_relational_op(ThreeACList *list, char* op) {
     Operand* end_rel_op_label = create_operand_from_label(threeAC_create_label(list));
 
     emit(OP_JUMPIFEQ, perform_op_label_on_same_type, type1, type2, list);
-    if (strcmp(op, "!=") == 0) 
+    if (strcmp(op, "!=") == 0)
     {
         emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, list);
     }
     else {
         emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, list);
-    } 
+    }
 
     emit(OP_JUMP, end_rel_op_label, NULL, NULL, list);
 

@@ -4,6 +4,7 @@
 #include "3AC.h"
 #include "3AC_patterns.h"
 #include "semantic.h"
+#include "symtable.h"
 
 static char* process_string_literal(const char* raw_data) {
     int len = strlen(raw_data);
@@ -271,24 +272,27 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *sym_stac
     }
 }
 
-static tPrec precedence_table[11][11] = {
-/*                MUL_DIV  PLUS_MINUS  REL     EQ_NEQ   IS     TYPE    LPAREN  RPAREN     ID   LITERAL  DOLLAR */
-/* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
-/* PLUS_MINUS */ { '<',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
-/* REL */        { '<',     '<',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
-/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '>',   'E',     '<',    '>',    '<',    '<',    '>'  },
-/* IS */         { '<',     '<',        '<',    '<',     'E',   '<',     '<',    '>',    '<',    '<',    '>'  },
-/* TYPE */       { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',    '>'  },
-/* LPAREN */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    '=',    '<',    '<',    'E'  },
-/* RPAREN */     { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',    '>'  },
-/* ID */         { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',    '>'  },
-/* LITERAL */    { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',    '>'  },
-/* DOLLAR */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    'E',    '<',    '<',    'E'  },
+static tPrec precedence_table[12][12] = {
+/*                MUL_DIV  PLUS_MINUS   REL     EQ_NEQ   IS     TYPE    LPAREN  RPAREN     ID   LITERAL   FUNC    DOLLAR */
+/* MUL_DIV */    { '>',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',     '<',     '>'  },
+/* PLUS_MINUS */ { '<',     '>',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',     '<',     '>'  },
+/* REL */        { '<',     '<',        '>',    '>',     '>',   'E',     '<',    '>',    '<',    '<',     '<',     '>'  },
+/* EQ_NEQ */     { '<',     '<',        '<',    '>',     '>',   'E',     '<',    '>',    '<',    '<',     '<',     '>'  },
+/* IS */         { '<',     '<',        '<',    '<',     'E',   '<',     '<',    '>',    '<',    '<',     '<',     '>'  },
+/* TYPE */       { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',     'E',     '>'  },
+/* LPAREN */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    '=',    '<',    '<',     '<',     'E'  },
+/* RPAREN */     { '>',     '>',        '>',    '>',     '>',   '>',     'E',    '>',    'E',    'E',     'E',     '>'  },
+/* ID */         { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',     'E',     '>'  },
+/* LITERAL */    { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',     'E',     '>'  },
+/* FUNC */       { '>',     '>',        '>',    '>',     '>',   'E',     'E',    '>',    'E',    'E',     'E',     '>'  },
+/* DOLLAR */     { '<',     '<',        '<',    '<',     '<',   '<',     '<',    'E',    '<',    '<',     '<',     'E'  },
 };
 
-static tSymbol get_precedence_type(tType type)
+static tSymbol get_precedence_type(tToken token, FILE *file)
 {
-    switch (type)
+    if (!token) return E_DOLLAR;
+
+    switch (token->type)
     {
         case T_MUL:
         case T_DIV:
@@ -327,9 +331,20 @@ static tSymbol get_precedence_type(tType type)
         case T_STRING:
         case T_KW_NULL_VALUE:
             return E_LITERAL;
-        case T_ID:
+
         case T_GLOBAL_ID:
             return E_ID;
+        case T_ID:
+        {
+            tToken nextToken = peek_token(file);
+            if (nextToken && nextToken->type == T_LEFT_PAREN) {
+                return E_FUNC;
+            }
+            return E_ID;
+        }
+
+        case T_KW_IFJ:
+            return E_FUNC;
 
         case T_EOF:
             return E_DOLLAR;
@@ -401,7 +416,7 @@ static int reduce_expr(tExprStack *stack)
     if (n1 == NULL) return 0;
 
     // E -> i
-    if (n1->is_terminal && (n1->symbol == E_ID || n1->symbol == E_LITERAL))
+    if (n1->is_terminal && (n1->symbol == E_ID || n1->symbol == E_LITERAL || n1->symbol == E_FUNC))
     {
         tDataType type = n1->dataType;
         n1->is_terminal = false;
@@ -433,46 +448,45 @@ static int reduce_expr(tExprStack *stack)
         }
     }
 
- // E -> - E (unary minus)
-    if (n1 && n2 && n3 && !n1->is_terminal && n2->is_terminal && n3->is_terminal) {
-        if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0) {
-            if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
-            {
-                if (n1->dataType != TYPE_NUM || n3->dataType != TYPE_NUM) {
-                    fprintf(stderr, "[SEMANTIC] Error: Unary minus applied to non-numeric literal.\n");
-                    exit(TYPE_COMPATIBILITY_ERROR);
-                }
-            }
+    // E -> - E (unary minus)
+     if (n1 && n2 && n3 && !n1->is_terminal && n2->is_terminal && n3->is_terminal) {
+         if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0) {
+             if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
+             {
+                 if (n1->dataType != TYPE_NUM || n3->dataType != TYPE_NUM) {
+                     fprintf(stderr, "[SEMANTIC] Error: Unary minus applied to non-numeric literal.\n");
+                     exit(TYPE_COMPATIBILITY_ERROR);
+                 }
+             }
 
-            expr_pop(stack);
-            if (n2->value) free(n2->value);
-            expr_pop(stack);
+             expr_pop(stack);
+             if (n2->value) free(n2->value);
+             expr_pop(stack);
 
-            Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
-            emit(OP_POPS, op1, NULL, NULL, &threeACcode);
+             Operand* op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+             emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
+             emit(OP_POPS, op1, NULL, NULL, &threeACcode);
 
-            Operand* type_op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-            emit(OP_DEFVAR, type_op1, NULL, NULL, &threeACcode);
-            emit(OP_TYPE, type_op1, op1, NULL, &threeACcode);
+             Operand* type_op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+             emit(OP_DEFVAR, type_op1, NULL, NULL, &threeACcode);
+             emit(OP_TYPE, type_op1, op1, NULL, &threeACcode);
 
-            Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
-            emit(OP_JUMPIFNEQ, op1_ok_label, type_op1, create_operand_from_constant_string("int"), &threeACcode);
-            emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
-            emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
+             Operand* op1_ok_label = create_operand_from_label(threeAC_create_label(&threeACcode));
+             emit(OP_JUMPIFNEQ, op1_ok_label, type_op1, create_operand_from_constant_string("int"), &threeACcode);
+             emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
+             emit(OP_LABEL, op1_ok_label, NULL, NULL, &threeACcode);
 
-            // Push 0.0 and op1, then subtract
-            Operand* zero_float = create_operand_from_constant_float(0.0);
-            emit(OP_PUSHS, zero_float, NULL, NULL, &threeACcode);
-            emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
-            emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
+             // Push 0.0 and op1, then subtract
+             Operand* zero_float = create_operand_from_constant_float(0.0);
+             emit(OP_PUSHS, zero_float, NULL, NULL, &threeACcode);
+             emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
+             emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
 
-            expr_push(stack, n3->symbol, false);
-            stack->top->dataType = TYPE_NUM;
-            return 1;
-        }
-    }
-  
+             expr_push(stack, n3->symbol, false);
+             stack->top->dataType = TYPE_NUM;
+             return 1;
+         }
+     }
 
     // E -> E is TYPE
     if (n1 && n2 && n3) {
@@ -550,11 +564,11 @@ static int reduce_expr(tExprStack *stack)
                 if (strcmp(n2->value, "+") == 0) {
                     generate_add_op(&threeACcode);
                 }
-                else if (strcmp(n2->value, "*") == 0) 
+                else if (strcmp(n2->value, "*") == 0)
                 {
                     generate_mult_op(&threeACcode);
-                } 
-                else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0) 
+                }
+                else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0)
                 {
                     generate_numeric_op(&threeACcode, n2->value);
                     result_type = TYPE_NUM;
@@ -562,17 +576,17 @@ static int reduce_expr(tExprStack *stack)
                 else {
                     generate_relational_op(&threeACcode, n2->value);
                 }
-             
-                expr_pop(stack); 
-                if (n2->value) free(n2->value);
-                expr_pop(stack);  
-                expr_pop(stack);  
 
-                if (n1->symbol == E_ID || n3->symbol == E_ID) 
+                expr_pop(stack);
+                if (n2->value) free(n2->value);
+                expr_pop(stack);
+                expr_pop(stack);
+
+                if (n1->symbol == E_ID || n3->symbol == E_ID)
                 {
                   expr_push(stack, E_ID, false);
                 }
-                else 
+                else
                 {
                   expr_push(stack, E_LITERAL, false);
                 }
@@ -603,7 +617,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
 
         tSymbol stack_sym = top_terminal->symbol;
-        tSymbol look_sym = get_precedence_type(lookahead->type);
+        tSymbol look_sym = get_precedence_type(lookahead, file);
 
         tPrec prec = precedence_table[stack_sym][look_sym];
 
@@ -616,6 +630,19 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
                 emit(OP_PUSHS, op, NULL, NULL, &threeACcode);
                 expr_stack.top->dataType = get_data_type_from_token(lookahead, stack);
             }
+            else if (look_sym == E_FUNC)
+            {
+                tDataType returnType = TYPE_UNDEF;
+                if (lookahead->type == T_KW_IFJ)
+                {
+                    returnType = parse_ifj_call(file, &lookahead, stack, false);
+                }
+                else
+                {
+                    parse_function_call(file, &lookahead, stack, false);
+                }
+                expr_stack.top->dataType = returnType;
+            }
             else if (look_sym == E_TYPE)
             {
                 char *type_keyword = NULL;
@@ -626,7 +653,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
                 } else if (lookahead->type == T_KW_NULL_TYPE) {
                     type_keyword = "Null";
                 }
-                
+
                 if (type_keyword) {
                     expr_stack.top->value = safeMalloc(strlen(type_keyword) + 1);
                     strcpy(expr_stack.top->value, type_keyword);
@@ -636,45 +663,45 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
             }
             else if (look_sym == E_PLUS_MINUS || look_sym == E_MUL_DIV || look_sym == E_REL || look_sym == E_EQ_NEQ)
             {
-                if (lookahead->type == T_ADD) { 
+                if (lookahead->type == T_ADD) {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, "+");
                 }
-                else if (lookahead->type == T_SUB) 
-                { 
+                else if (lookahead->type == T_SUB)
+                {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, "-");
                 }
-                else if (lookahead->type == T_MUL) 
-                { 
+                else if (lookahead->type == T_MUL)
+                {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, "*");
                 }
-                else if (lookahead->type == T_DIV) 
+                else if (lookahead->type == T_DIV)
                 {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, "/");
-                } else if (lookahead->type == T_EQL) { 
+                } else if (lookahead->type == T_EQL) {
                     expr_stack.top->value = safeMalloc(3);
                     strcpy(expr_stack.top->value, "==");
-                } else if (lookahead->type == T_NEQ) { 
+                } else if (lookahead->type == T_NEQ) {
                     expr_stack.top->value = safeMalloc(3);
                     strcpy(expr_stack.top->value, "!=");
-                } else if (lookahead->type == T_LT) { 
+                } else if (lookahead->type == T_LT) {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, "<");
-                } else if (lookahead->type == T_LTE) { 
+                } else if (lookahead->type == T_LTE) {
                     expr_stack.top->value = safeMalloc(3);
                     strcpy(expr_stack.top->value, "<=");
-                } else if (lookahead->type == T_GT) { 
+                } else if (lookahead->type == T_GT) {
                     expr_stack.top->value = safeMalloc(2);
                     strcpy(expr_stack.top->value, ">");
-                } else if (lookahead->type == T_GTE) { 
+                } else if (lookahead->type == T_GTE) {
                     expr_stack.top->value = safeMalloc(3);
                     strcpy(expr_stack.top->value, ">=");
                 }
             }
-            
+
             if (lookahead->type == T_EOF)
             {
                 break;
@@ -692,6 +719,8 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
         else
         {
+            printf("Unexpected token: %d\n", lookahead->type);
+            printf("Unexpected token: %d:%d\n", lookahead->linePos, lookahead->colPos);
             exit(SYNTAX_ERROR);
         }
 

@@ -16,9 +16,24 @@ clean:
 	rm -f $(OBJ) $(TARGET)
 
 test:
-	make clean
-	make
+	 make
 	./scripts/run_tests.sh
 
 submission:
 	./scripts/prepare_submission.sh
+
+test-lex:
+	make
+	cd scripts/ && ./run_lex_tests.sh
+
+test-stx:
+	make
+	cd scripts/ && ./run_stx_tests.sh
+
+test-sem:
+	make
+	cd scripts/ && ./run_sem_tests.sh
+
+test-all:
+	make
+	cd scripts/ && ./run_all_tests.sh
