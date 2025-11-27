@@ -69,6 +69,7 @@ int FSM(FILE *file, tToken token)
                 else if (currChar == ')') nextState = S_RIGHT_PAREN;
                 else if (currChar == ',') nextState = S_COMMA;
                 else if (currChar == ':') nextState = S_COLON;
+                else if (currChar == '?') nextState = S_QUESTION;
                 else if (currChar == '_') nextState = S_UNDERLINE;
                 else if (isalpha(currChar)) nextState = S_ID;
                 else if (currChar == '0') nextState = S_INT_0;
@@ -167,6 +168,9 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_COLON:
                 token->type = T_COLON;
+                break;
+            case S_QUESTION:
+                token->type = T_QUESTION;
                 break;
             case S_GREATER:
                 if (currChar == '=') nextState = S_GREATER_EQ;
@@ -658,6 +662,7 @@ char *typeToString(tType type)
         case T_NULL:            return "NULL";
         case T_COMMA:           return "COMMA";
         case T_COLON:           return "COLON";
+        case T_QUESTION:        return "QUESTION";
         default:                return "UNKNOWN";
     }
 }
