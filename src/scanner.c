@@ -342,11 +342,11 @@ int FSM(FILE *file, tToken token)
                 colPos = 1;
                 break;
             case S_DOT:
-                if (currChar == ".") nextState = S_DDOT;
+                if (currChar == '.') nextState = S_DDOT;
                 else token->type = T_DOT;
                 break;
             case S_DDOT:
-                if (currChar == ".") nextState = S_DDDOT;
+                if (currChar == '.') nextState = S_DDDOT;
                 else token->type = T_DDOT;
                 break;
             case S_DDDOT:
