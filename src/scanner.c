@@ -482,7 +482,7 @@ int getToken(FILE *file, tToken *token)
         free((*token)->data);
         (*token)->data = NULL;
         error = FSM(file, *token);
-    } while ((error && (*token)->type != T_EOF) || (*token)->type == T_UNKNOWN || (*token)->linePos == 0);
+    } while (!error && ((*token)->type == T_UNKNOWN || (*token)->linePos == 0));
     
     isKeyword(*token);
 
