@@ -68,6 +68,7 @@ int FSM(FILE *file, tToken token)
                 else if (currChar == '(') nextState = S_LEFT_PAREN;
                 else if (currChar == ')') nextState = S_RIGHT_PAREN;
                 else if (currChar == ',') nextState = S_COMMA;
+                else if (currChar == ':') nextState = S_COLON;
                 else if (currChar == '_') nextState = S_UNDERLINE;
                 else if (isalpha(currChar)) nextState = S_ID;
                 else if (currChar == '0') nextState = S_INT_0;
@@ -115,6 +116,7 @@ int FSM(FILE *file, tToken token)
                     linePos++;
                 }
                 else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
+                else nextState = S_ERROR;
                 break;
             case S_BLOCK_COMMENT_SLASH:
                 if (currChar == '*')
@@ -131,6 +133,7 @@ int FSM(FILE *file, tToken token)
                     linePos++;
                 }
                 else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
+                else nextState = S_ERROR;
                 break;
             case S_BLOCK_COMMENT_2:
                 if (currChar == '/') 
@@ -160,6 +163,10 @@ int FSM(FILE *file, tToken token)
                     linePos++;
                 }
                 else if (currChar != EOF) nextState = S_BLOCK_COMMENT;
+                else nextState = S_ERROR;
+                break;
+            case S_COLON:
+                token->type = T_COLON;
                 break;
             case S_GREATER:
                 if (currChar == '=') nextState = S_GREATER_EQ;
@@ -442,6 +449,11 @@ void scannerError(char currChar, tState state, unsigned int linePos, unsigned in
         case S_MULTI_LINE_LITERAL_END2:
             fprintf(stderr, "Unterminated multiline string, found ");
             break;
+        case S_BLOCK_COMMENT:
+        case S_BLOCK_COMMENT_2:
+        case S_BLOCK_COMMENT_SLASH:
+            fprintf(stderr, "Unterminated block comment, found ");
+            break;
         default:
             fprintf(stderr, "Unexpected ");
             break;
@@ -599,7 +611,7 @@ char *typeToString(tType type)
 {
     switch(type)
     {
-        case T_UNKNOWN:         return "UNKNOWN";
+        case T_UNKNOWN:         return "T_UNKNOWN";
         case T_ID:              return "ID";
         case T_GLOBAL_ID:       return "GLOBAL_ID";
         case T_RIGHT_PAREN:     return "RIGHT_PAREN";
@@ -645,6 +657,7 @@ char *typeToString(tType type)
         case T_STRING:          return "STRING";
         case T_NULL:            return "NULL";
         case T_COMMA:           return "COMMA";
+        case T_COLON:           return "COLON";
         default:                return "UNKNOWN";
     }
 }
