@@ -237,7 +237,8 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_MULTI_LINE_LITERAL_CONTENT:
                 if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_END1;
-                else if (currChar == EOL) {
+                else if (currChar == EOL) 
+                {
                     linePos++;
                     colPos = 1;
                     nextState = S_MULTI_LINE_LITERAL_CONTENT;
@@ -247,7 +248,8 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_MULTI_LINE_LITERAL_END1:
                 if (currChar == '"') nextState = S_MULTI_LINE_LITERAL_END2;
-                else if (currChar == EOL) {
+                else if (currChar == EOL) 
+                {
                     linePos++;
                     colPos = 1;
                     nextState = S_MULTI_LINE_LITERAL_CONTENT;
@@ -257,7 +259,8 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_MULTI_LINE_LITERAL_END2:
                 if (currChar == '"') nextState = S_STRING_READ;
-                else if (currChar == EOL) {
+                else if (currChar == EOL) 
+                {
                     linePos++;
                     colPos = 1;
                     nextState = S_MULTI_LINE_LITERAL_CONTENT;
@@ -303,7 +306,8 @@ int FSM(FILE *file, tToken token)
                 break;
             case S_FLOAT_START:
                 if (isdigit(currChar)) nextState = S_FLOAT;
-                else if (currChar == '.') {
+                else if (currChar == '.') 
+                {
                     ungetc(currChar, file);
                     currChar = '.';
                     state = S_INT;
