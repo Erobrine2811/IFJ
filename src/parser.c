@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "error.h"
 #include "scanner.h"
 #include "symtable.h"
 #include <stdio.h>
@@ -642,9 +643,8 @@ void check_node_defined(tSymNode *node)
 
     if (node->data.kind == SYM_FUNC && !node->data.defined)
     {
-
-            fprintf(stderr, "[Parser] Error: undefined function: %s\n", node->key);
-            exit(UNDEFINED_FUN_ERROR);
+        fprintf(stderr, "[Parser] Error: undefined function: %s\n", node->key);
+        exit(UNDEFINED_FUN_ERROR);
     }
 
     check_node_defined(node->right);
@@ -1214,6 +1214,11 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     if (!func)
     {
+        if (symtable_find_function(global_symtable, key)) {
+            fprintf(stderr, "[PARSER] Error: Wrong argument count for function %s\n", funcName);
+            exit(WRONG_ARGUMENT_COUNT_ERROR);
+        }
+
         tSymbolData forwardDecl = {0};
         forwardDecl.kind = SYM_FUNC;
         forwardDecl.dataType = TYPE_UNDEF;

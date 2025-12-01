@@ -51,5 +51,6 @@ void symtable_free(tSymTable *t);
 
 bool symtable_insert(tSymTable *t, char *key, tSymbolData data);
 tSymbolData *symtable_find(tSymTable *t, const char *key);
+bool symtable_find_function(tSymTable *sym, const char *key);
 
 #endif

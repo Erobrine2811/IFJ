@@ -1,4 +1,5 @@
 #include "symtable.h"
+#include "error.h"
 
 int height(tSymNode *n) { return n ? n->height : 0; }
 
@@ -75,7 +76,7 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
         node->left = insert_rec(node->left, key, data, inserted);
     else if (cmp > 0)
         node->right = insert_rec(node->right, key, data, inserted);
-    else 
+    else
     {
         *inserted = false;
         return node;
@@ -89,12 +90,12 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
         return rotate_right(node);
     if (balance < -1 && strcmp(key, node->right->key) > 0)
         return rotate_left(node);
-    if (balance > 1 && strcmp(key, node->left->key) > 0) 
+    if (balance > 1 && strcmp(key, node->left->key) > 0)
     {
         node->left = rotate_left(node->left);
         return rotate_right(node);
     }
-    if (balance < -1 && strcmp(key, node->right->key) < 0) 
+    if (balance < -1 && strcmp(key, node->right->key) < 0)
     {
         node->right = rotate_right(node->right);
         return rotate_left(node);
@@ -103,7 +104,7 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
     return node;
 }
 
-tSymbolData *find_rec(tSymNode *node, const char *key) 
+tSymbolData *find_rec(tSymNode *node, const char *key)
 {
     if (!node) return NULL;
     int cmp = strcmp(key, node->key);
@@ -111,7 +112,43 @@ tSymbolData *find_rec(tSymNode *node, const char *key)
     return (cmp < 0) ? find_rec(node->left, key) : find_rec(node->right, key);
 }
 
-void free_rec(tSymNode *node) 
+/**
+ * Compares the function names without considering the parameters count.
+ *
+ * @param s1 The first string.
+ * @param s2 The second string.
+ * @return 'true' if the function names are identical, 'false' otherwise.
+ */
+bool compare_function_names(const char* s1, const char* s2) {
+    if (s1 == NULL || s2 == NULL) return false;
+
+    const char* at1 = strrchr(s1, '@');
+    const char* at2 = strrchr(s2, '@');
+
+    if (at1 == NULL && at2 == NULL) return strcmp(s1, s2) == 0;
+
+    if (at1 == NULL || at2 == NULL) return false;
+
+    size_t len1 = at1 - s1;
+    size_t len2 = at2 - s2;
+
+    if (len1 != len2) return false;
+
+    if (len1 == 0) return true;
+
+    return strncmp(s1, s2, len1) == 0;
+}
+
+bool find_function(tSymNode *node, const char *key)
+{
+    if (!node) return false;
+    bool cmp = compare_function_names(key, node->key);
+    int cmpFull = strcmp(key, node->key);
+    if (cmp && node->data.kind == SYM_FUNC && node->data.defined) return true;
+    return (cmpFull < 0) ? find_function(node->left, key) : find_function(node->right, key);
+}
+
+void free_rec(tSymNode *node)
 {
     if (!node) return;
     free_rec(node->left);
@@ -119,25 +156,30 @@ void free_rec(tSymNode *node)
     free_node(node);
 }
 
-void symtable_init(tSymTable *t) 
+void symtable_init(tSymTable *t)
 {
     t->root = NULL;
 }
 
-void symtable_free(tSymTable *t) 
+void symtable_free(tSymTable *t)
 {
     free_rec(t->root);
     t->root = NULL;
 }
 
-bool symtable_insert(tSymTable *t, char *key, tSymbolData data) 
+bool symtable_insert(tSymTable *t, char *key, tSymbolData data)
 {
     bool inserted = false;
     t->root = insert_rec(t->root, key, data, &inserted);
     return inserted;
 }
 
-tSymbolData *symtable_find(tSymTable *t, const char *key) 
+tSymbolData *symtable_find(tSymTable *t, const char *key)
 {
     return find_rec(t->root, key);
+}
+
+bool symtable_find_function(tSymTable *t, const char *key)
+{
+    return find_function(t->root, key);
 }
