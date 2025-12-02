@@ -10,7 +10,7 @@
                 --muted: #4b5563;
                 --accent: #0f766e;
                 --bg: #ffffff;
-                --stripe: #f8fafc;
+                --stripe: #fafafa;
             }
             html,
             body {
@@ -59,13 +59,15 @@
             }
             th,
             td {
+                font-family: ui-monospace;
                 border: 1px solid #e5e7eb;
                 padding: 8px 10px;
                 text-align: center;
                 vertical-align: middle;
             }
             th {
-                background: #0b3b61;
+                font-family: ui-monospace;
+                background: #202020;
                 color: #fff;
                 font-weight: 600;
             }
@@ -139,7 +141,7 @@
             <table aria-label="Precedence relation table">
                 <thead>
                     <tr>
-                        <th>stack \\ lookahead</th>
+                        <th>Stack \\ Input</th>
                         <th>* /</th>
                         <th>+ -</th>
                         <th>&lt; &gt; &lt;= &gt;=</th>
@@ -148,7 +150,9 @@
                         <th>TYPE</th>
                         <th>(</th>
                         <th>)</th>
-                        <th>i</th>
+                        <th>ID</th>
+                        <th>LITERAL</th>
+                        <th>FUNC</th>
                         <th>$</th>
                     </tr>
                 </thead>
@@ -160,9 +164,11 @@
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
                     </tr>
@@ -173,9 +179,11 @@
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
                     </tr>
@@ -186,9 +194,11 @@
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
                     </tr>
@@ -199,9 +209,11 @@
                         <td>&lt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
                     </tr>
@@ -211,10 +223,12 @@
                         <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&lt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&gt;</td>
                     </tr>
@@ -226,9 +240,11 @@
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
                     </tr>
                     <tr>
@@ -242,7 +258,9 @@
                         <td>&lt;</td>
                         <td>=</td>
                         <td>&lt;</td>
-                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td class="err">E</td>
                     </tr>
                     <tr>
                         <th>)</th>
@@ -252,22 +270,56 @@
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
                     </tr>
                     <tr>
-                        <th>i</th>
+                        <th>ID</th>
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
                         <td>&gt;</td>
-                        <td>E</td>
-                        <td>E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>LITERAL</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td>&gt;</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td>&gt;</td>
+                    </tr>
+                    <tr>
+                        <th>FUNC</th>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td>&gt;</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td>&gt;</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
+                        <td class="err">E</td>
                         <td>&gt;</td>
                     </tr>
                     <tr>
@@ -279,9 +331,11 @@
                         <td>&lt;</td>
                         <td>&lt;</td>
                         <td>&lt;</td>
-                        <td>E</td>
+                        <td class="err">E</td>
                         <td>&lt;</td>
-                        <td>E</td>
+                        <td>&lt;</td>
+                        <td>&lt;</td>
+                        <td class="err">E</td>
                     </tr>
                 </tbody>
             </table>
@@ -289,14 +343,15 @@
             <p class="note">
                 Priorita (od najvyššej): <code>* /</code> &gt;
                 <code>+ -</code> &gt; <code>&lt; &gt; &lt;= &gt;=</code> &gt;
-                <code>== !=</code> &gt; <code>is</code>. Všetko ľavoasociatívne.
-                Zátvorky majú špeciálne párovanie <code>(</code>
-                <span class="pill">=</span> <code>)</code>.
+                <code>== !=</code> &gt; <code>is</code>. Operátor Všetko
+                ľavoasociatívne. Zátvorky majú špeciálne párovanie
+                <code>(</code> <span class="pill">=</span> <code>)</code>.
             </p>
 
             <h3>Redukčné pravidlá (šípky znamenajú „nahradiť za E“)</h3>
             <pre><code>E ← i
 E ← ( E )
+E ← - E
 E ← E op E        ; op ∈ { +, -, *, /, &lt;, &gt;, &lt;=, &gt;=, ==, != }
 E ← E is TYPE     ; TYPE ∈ { Num, String, Null } – token typu, nie výraz</code></pre>
 
@@ -305,7 +360,7 @@ E ← E is TYPE     ; TYPE ∈ { Num, String, Null } – token typu, nie výraz<
                | T_ID | T_GLOBAL_ID | getter
 * /         := T_STAR | T_SLASH
 + -         := T_PLUS | T_MINUS
-&lt; … &gt;      := T_LT | T_GT | T_LE | T_GE
+&lt; … &gt;       := T_LT | T_GT | T_LE | T_GE
 == !=       := T_EQ | T_NEQ
 is          := T_KW_IS
 (  )        := T_LEFT_PAREN | T_RIGHT_PAREN
@@ -315,20 +370,22 @@ $           := interný sentinel ukončenia výrazu</code></pre>
             <pre><code>PROGRAM :: &lt;PROLOG&gt; &lt;CLASS_DEF&gt; &lt;EOF&gt;
 
 PROLOG :: import &lt;STRING&gt; for &lt;ID&gt; &lt;EOL&gt;
-           ; IFJ25 špecificky: import "ifj25" for Ifj
+           ; IFJ25 specifically: import "ifj25" for Ifj
 
 CLASS_DEF :: class Program { &lt;EOL&gt; &lt;FUNC_LIST&gt; }
 
-FUNC_LIST :: &lt;FUNC_DEF&gt; &lt;FUNC_LIST&gt; | ε
+FUNC_LIST :: &lt;FUNC_DEF&gt; &lt;FUNC_LIST_NEXT&gt;
 
-FUNC_DEF :: static &lt;ID&gt; ( &lt;PARAMS&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;     ; štandardná funkcia
+FUNC_LIST_NEXT :: &lt;FUNC_DEF&gt; &lt;FUNC_LIST_NEXT&gt; | ε
+
+FUNC_DEF :: static &lt;ID&gt; ( &lt;PARAMS&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;       ; standard function
           | static &lt;ID&gt; &lt;BLOCK&gt; &lt;EOL&gt;                    ; getter (0 param)
-          | static &lt;ID&gt; = ( &lt;ID&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;          ; setter (1 param)
+          | static &lt;ID&gt; = ( &lt;ID&gt; ) &lt;BLOCK&gt; &lt;EOL&gt;         ; setter (1 param)
 
 PARAMS :: &lt;ID&gt; &lt;PARAMS_NEXT&gt; | ε
 PARAMS_NEXT :: , &lt;ID&gt; &lt;PARAMS_NEXT&gt; | ε
 
-BLOCK :: { &lt;EOL&gt; &lt;STATEMENT_LIST&gt; }
+BLOCK :: { &lt;EOL&gt; &lt;STATEMENT_LIST&gt; } | { &lt;EXPRESSION&gt; }
 
 STATEMENT_LIST :: &lt;STATEMENT&gt; &lt;EOL&gt; &lt;STATEMENT_LIST&gt; | ε
 
@@ -338,24 +395,24 @@ STATEMENT :: &lt;VAR_DECL&gt;
            | &lt;WHILE_STAT&gt;
            | &lt;RETURN_STAT&gt;
            | &lt;BLOCK&gt;
+           | &lt;EXPRESSION&gt;
 
 VAR_DECL :: var &lt;ID&gt;
-          | var &lt;ID&gt; = &lt;EXPR&gt;
+          | var &lt;ID&gt; = &lt;EXPRESSION&gt;
 
-ASSIGN :: &lt;ID&gt; = &lt;EXPR&gt;
+ASSIGN :: &lt;ID&gt; = &lt;EXPRESSION&gt;
 
-IF_STAT :: if ( &lt;EXPR&gt; ) &lt;BLOCK&gt; &lt;ELSE_STAT&gt;
-ELSE_STAT :: else &lt;BLOCK&gt; | ε
+IF_STAT :: if ( &lt;EXPRESSION&gt; ) &lt;BLOCK&gt; else &lt;BLOCK&gt;
 
-WHILE_STAT :: while ( &lt;EXPR&gt; ) &lt;BLOCK&gt;
+WHILE_STAT :: while ( &lt;EXPRESSION&gt; ) &lt;BLOCK&gt;
 
-RETURN_STAT :: return &lt;EXPR&gt;
+RETURN_STAT :: return &lt;EXPRESSION&gt;
 
 FUNC_CALL :: &lt;ID&gt; ( &lt;ARG_LIST&gt; )
-ARG_LIST :: &lt;EXPR&gt; &lt;ARG_NEXT&gt; | ε
-ARG_NEXT :: , &lt;EXPR&gt; &lt;ARG_NEXT&gt; | ε
+ARG_LIST :: &lt;EXPRESSION&gt; &lt;ARG_NEXT&gt; | ε
+ARG_NEXT :: , &lt;EXPRESSION&gt; &lt;ARG_NEXT&gt; | ε
 
-EXPR :: parsed pomocou precedenčnej analýzy vyššie
+EXPRESSION :: parsed by precedence analysis
 </code></pre>
         </main>
     </body>
