@@ -379,6 +379,8 @@ int FSM(FILE *file, tToken token)
                     nextState = S_EXP_START;
                 else if (currChar == 'x')
                     nextState = S_NUM_HEX_START;
+                else if (isdigit(currChar))
+                    nextState = S_INT;
                 else
                     token->type = T_INTEGER;
                 break;
