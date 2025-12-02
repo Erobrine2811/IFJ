@@ -1,3 +1,13 @@
+/**
+ * @file symtable.c
+ *
+ * IFJ25 project
+ *
+ * Implementation of a symbol table using an AVL tree.
+ *
+ * @author Lukáš Denkócy <xdenkol00>
+ */
+
 #include "symtable.h"
 
 int height(tSymNode *n)

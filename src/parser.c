@@ -1,11 +1,15 @@
-#include "3AC.h"
+/**
+ * @file parser.c
+ *
+ * IFJ25 project
+ *
+ * Syntactic and semantic analyzer
+ *
+ * @author Lukáš Denkócy <xdenkol00>
+ */
+
 #include "3AC_patterns.h"
-#include "error.h"
 #include "parser.h"
-#include "scanner.h"
-#include "semantic.h"
-#include "symtable.h"
-#include <stdio.h>
 
 static tToken peek_buffer = NULL;
 
@@ -102,20 +106,6 @@ void consume_eol(FILE *file, tToken *currentToken)
     } while ((*currentToken)->type == T_EOL);
 }
 
-tSymbolData *find_data_in_stack(tSymTableStack *stack, const char *key)
-{
-    for (int i = stack->top; i >= 0; i--)
-    {
-        tSymTable *table = stack->tables[i];
-        tSymbolData *data = symtable_find(table, key);
-        if (data != NULL)
-        {
-            return data;
-        }
-    }
-    return NULL;
-}
-
 void parser_dispose_stack(tSymTableStack *stack)
 {
     while (!symtable_stack_is_empty(stack))
@@ -195,7 +185,6 @@ void insert_builtin_functions()
         tSymbolData builtinData = {0};
         builtinData.kind = SYM_FUNC;
         builtinData.dataType = TYPE_UNDEF;
-        builtinData.index = -1;
         builtinData.defined = true;
         builtinData.returnType = def->returnType;
         builtinData.paramCount = def->paramCount;
@@ -284,7 +273,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     char *mangledName = safeMalloc(mangledLen);
     sprintf(mangledName, "%s$%d%%func", funcName, paramCount);
 
-    Operand *labelOp = safeMalloc(sizeof(Operand));
+    tOperand *labelOp = safeMalloc(sizeof(tOperand));
     labelOp->type = OPP_LABEL;
     labelOp->value.label = mangledName;
     char *commentText = safeMalloc(strlen(funcName) + 25);
@@ -297,10 +286,10 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     free(commentText);
     emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
-    Operand *retvalDef = create_operand_from_variable("%retval", false);
+    tOperand *retvalDef = create_operand_from_variable("%retval", false);
     emit(OP_DEFVAR, retvalDef, NULL, NULL, &threeACcode);
-    Operand *retvalInit = create_operand_from_variable("%retval", false);
-    Operand *nilOp = create_operand_from_constant_nil();
+    tOperand *retvalInit = create_operand_from_variable("%retval", false);
+    tOperand *nilOp = create_operand_from_constant_nil();
     emit(OP_MOVE, retvalInit, nilOp, NULL, &threeACcode);
 
     tSymTable *funcScopeTable = symtable_stack_top(stack);
@@ -312,7 +301,7 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         {
             exit(INTERNAL_ERROR);
         }
-        Operand *paramOp = create_operand_from_variable(paramData->unique_name, false);
+        tOperand *paramOp = create_operand_from_variable(paramData->unique_name, false);
         emit(OP_DEFVAR, paramOp, NULL, NULL, &threeACcode);
     }
 
@@ -327,8 +316,8 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
             exit(INTERNAL_ERROR);
         }
 
-        Operand *dest = create_operand_from_variable(paramData->unique_name, false);
-        Operand *src = create_operand_from_variable(tempParamName, false);
+        tOperand *dest = create_operand_from_variable(paramData->unique_name, false);
+        tOperand *src = create_operand_from_variable(tempParamName, false);
         emit(OP_MOVE, dest, src, NULL, &threeACcode);
     }
 
@@ -371,7 +360,6 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         tSymbolData funcData = {0};
         funcData.kind = SYM_FUNC;
         funcData.dataType = TYPE_UNDEF;
-        funcData.index = -1;
         funcData.defined = false;
         funcData.paramCount = paramCount;
         funcData.paramNames = paramNames;
@@ -434,7 +422,6 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
         tSymbolData getterData = {0};
         getterData.kind = SYM_FUNC;
         getterData.dataType = TYPE_UNDEF;
-        getterData.index = -1;
         getterData.defined = false;
         getterData.paramCount = 0;
         getterData.paramNames = NULL;
@@ -456,7 +443,7 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     char *mangledName = safeMalloc(mangledLen);
     sprintf(mangledName, "%s$0%%getter", funcName);
 
-    Operand *labelOp = create_operand_from_label(mangledName);
+    tOperand *labelOp = create_operand_from_label(mangledName);
 
     emit_comment("####################", &threeACcode);
     char *commentText = safeMalloc(strlen(funcName) + 25);
@@ -465,10 +452,10 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     emit_comment("####################", &threeACcode);
     emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
-    Operand *retvalDef = create_operand_from_variable("%retval", false);
+    tOperand *retvalDef = create_operand_from_variable("%retval", false);
     emit(OP_DEFVAR, retvalDef, NULL, NULL, &threeACcode);
-    Operand *retvalInit = create_operand_from_variable("%retval", false);
-    Operand *nilOp = create_operand_from_constant_nil();
+    tOperand *retvalInit = create_operand_from_variable("%retval", false);
+    tOperand *nilOp = create_operand_from_constant_nil();
     emit(OP_MOVE, retvalInit, nilOp, NULL, &threeACcode);
 
     parse_block(file, currentToken, stack, true);
@@ -520,7 +507,6 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
         tSymbolData setterData = {0};
         setterData.kind = SYM_FUNC;
         setterData.dataType = TYPE_UNDEF;
-        setterData.index = -1;
         setterData.defined = false;
         setterData.paramCount = 1;
         setterData.paramTypes = safeMalloc(sizeof(tDataType));
@@ -543,7 +529,6 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     tSymbolData paramData = {0};
     paramData.kind = SYM_VAR;
     paramData.dataType = TYPE_UNDEF;
-    paramData.index = -1;
 
     int len = snprintf(NULL, 0, "%s%%%d", paramName, threeACcode.varCounter);
     paramData.unique_name = safeMalloc(len + 1);
@@ -556,17 +541,17 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     char *mangledName = safeMalloc(mangledLen);
     sprintf(mangledName, "%s$1%%setter", funcName);
 
-    Operand *labelOp = create_operand_from_label(mangledName);
+    tOperand *labelOp = create_operand_from_label(mangledName);
     emit(OP_LABEL, labelOp, NULL, NULL, &threeACcode);
 
-    Operand *retvalDef = create_operand_from_variable("%retval", false);
+    tOperand *retvalDef = create_operand_from_variable("%retval", false);
     emit(OP_DEFVAR, retvalDef, NULL, NULL, &threeACcode);
-    Operand *retvalInit = create_operand_from_variable("%retval", false);
-    Operand *nilOp = create_operand_from_constant_nil();
+    tOperand *retvalInit = create_operand_from_variable("%retval", false);
+    tOperand *nilOp = create_operand_from_constant_nil();
     emit(OP_MOVE, retvalInit, nilOp, NULL, &threeACcode);
 
-    Operand *setterParamDest = create_operand_from_variable(paramData.unique_name, false);
-    Operand *setterParamSrc = create_operand_from_variable("%param0", false);
+    tOperand *setterParamDest = create_operand_from_variable(paramData.unique_name, false);
+    tOperand *setterParamSrc = create_operand_from_variable("%param0", false);
     emit(OP_DEFVAR, setterParamDest, NULL, NULL, &threeACcode);
     emit(OP_MOVE, setterParamDest, setterParamSrc, NULL, &threeACcode);
 
@@ -621,7 +606,6 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
         tSymbolData paramData = {0};
         paramData.kind = SYM_VAR;
         paramData.dataType = TYPE_UNDEF;
-        paramData.index = -1;
 
         int len = snprintf(NULL, 0, "%s%%%d", paramName, threeACcode.varCounter);
         paramData.unique_name = safeMalloc(len + 1);
@@ -788,24 +772,24 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     parse_expression(file, currentToken, stack);
 
     // Handle truthiness rules
-    Operand *exprValIf = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *exprValIf = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, exprValIf, NULL, NULL, &threeACcode);
     emit(OP_POPS, exprValIf, NULL, NULL, &threeACcode); // Pop expression result
 
-    Operand *finalBoolResultIf =
+    tOperand *finalBoolResultIf =
         create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, finalBoolResultIf, NULL, NULL, &threeACcode);
 
-    Operand *labelIsNullIf = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsBoolIf = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsOtherIf = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndTruthinessIf = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsNullIf = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsBoolIf = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsOtherIf = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndTruthinessIf = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     // Check if null
     emit(OP_JUMPIFEQ, labelIsNullIf, exprValIf, create_operand_from_constant_nil(), &threeACcode);
 
     // Check if boolean (using TYPE instruction)
-    Operand *typeCheckVarIf =
+    tOperand *typeCheckVarIf =
         create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeCheckVarIf, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeCheckVarIf, exprValIf, NULL, &threeACcode); // Get type of expr_val
@@ -837,7 +821,7 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
 
     char *label1Str = threeAC_create_label(&threeACcode);
-    Operand *label1 = create_operand_from_label(label1Str);
+    tOperand *label1 = create_operand_from_label(label1Str);
 
     emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFEQS, label1, NULL, NULL, &threeACcode);
@@ -848,7 +832,7 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     expect_and_consume(T_KW_ELSE, currentToken, file, false, NULL);
 
     char *label2Str = threeAC_create_label(&threeACcode);
-    Operand *label2 = create_operand_from_label(label2Str);
+    tOperand *label2 = create_operand_from_label(label2Str);
 
     emit(OP_JUMP, label2, NULL, NULL, &threeACcode);
     emit(OP_LABEL, label1, NULL, NULL, &threeACcode);
@@ -905,7 +889,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     }
     else
     {
-        varData = find_data_in_stack(stack, varName);
+        varData = symtable_stack_find(stack, varName);
 
         if (varData == NULL || setterSymbol != NULL)
         {
@@ -916,7 +900,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
                 varData->kind = SYM_FUNC;
                 ;
                 varData->dataType = TYPE_UNDEF;
-                varData->index = -1;
                 varData->unique_name = NULL;
                 varData->defined = false;
                 varData->paramCount = 1;
@@ -939,17 +922,17 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
             emit(OP_CREATEFRAME, NULL, NULL, NULL, &threeACcode);
 
-            Operand *tfParam = create_operand_from_tf_variable("%param0");
+            tOperand *tfParam = create_operand_from_tf_variable("%param0");
             emit(OP_DEFVAR, tfParam, NULL, NULL, &threeACcode);
 
-            Operand *tfParamPop = create_operand_from_tf_variable("%param0");
+            tOperand *tfParamPop = create_operand_from_tf_variable("%param0");
             emit(OP_POPS, tfParamPop, NULL, NULL, &threeACcode);
 
             emit(OP_PUSHFRAME, NULL, NULL, NULL, &threeACcode);
 
             char mangledName[256];
             sprintf(mangledName, "%s$1%%setter", varName);
-            Operand *callLabel = create_operand_from_label(mangledName);
+            tOperand *callLabel = create_operand_from_label(mangledName);
             emit(OP_CALL, callLabel, NULL, NULL, &threeACcode);
 
             emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
@@ -983,7 +966,7 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
         varData->dataType = exprType;
     }
 
-    Operand *popsVarOp = create_operand_from_variable(varData->unique_name, isGlobal);
+    tOperand *popsVarOp = create_operand_from_variable(varData->unique_name, isGlobal);
     emit(OP_POPS, popsVarOp, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     free(varName);
@@ -1008,7 +991,7 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     tSymTable *targetTable = isGlobal ? global_symtable : symtable_stack_top(stack);
     tSymbolData *varSymData = symtable_find(targetTable, variableName);
 
-    Operand *varOp = safeMalloc(sizeof(Operand));
+    tOperand *varOp = safeMalloc(sizeof(tOperand));
     varOp->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
     varOp->value.varname = safeMalloc(strlen(varSymData->unique_name) + 1);
     strcpy(varOp->value.varname, varSymData->unique_name);
@@ -1030,7 +1013,7 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
         exprType = parse_expression(file, currentToken, stack);
 
         tSymbolData *varData = isGlobal ? symtable_find(global_symtable, variableName)
-                                        : find_data_in_stack(stack, variableName);
+                                        : symtable_stack_find(stack, variableName);
         if (varData)
         {
             varData->dataType = exprType;
@@ -1052,16 +1035,16 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
 
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("While loop start", &threeACcode);
-    InstructionNode *hoistPoint = threeACcode.active;
+    tInstructionNode *hoistPoint = threeACcode.active;
 
     char *loopStartLabelStr = threeAC_create_label(&threeACcode);
     char *loopEndLabelStr = threeAC_create_label(&threeACcode);
 
-    Operand *loopStartLabel = safeMalloc(sizeof(Operand));
+    tOperand *loopStartLabel = safeMalloc(sizeof(tOperand));
     loopStartLabel->type = OPP_LABEL;
     loopStartLabel->value.label = loopStartLabelStr;
 
-    Operand *loopEndLabel = safeMalloc(sizeof(Operand));
+    tOperand *loopEndLabel = safeMalloc(sizeof(tOperand));
     loopEndLabel->type = OPP_LABEL;
     loopEndLabel->value.label = loopEndLabelStr;
 
@@ -1071,24 +1054,24 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     parse_expression(file, currentToken, stack);
 
     // Handle truthiness rules
-    Operand *exprValWhile = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *exprValWhile = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, exprValWhile, NULL, NULL, &threeACcode);
     emit(OP_POPS, exprValWhile, NULL, NULL, &threeACcode); // Pop expression result
 
-    Operand *finalBoolResultWhile =
+    tOperand *finalBoolResultWhile =
         create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, finalBoolResultWhile, NULL, NULL, &threeACcode);
 
-    Operand *labelIsNullWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsBoolWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsOtherWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndTruthinessWhile =
+    tOperand *labelIsNullWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsBoolWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsOtherWhile = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndTruthinessWhile =
         create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_JUMPIFEQ, labelIsNullWhile, exprValWhile, create_operand_from_constant_nil(),
          &threeACcode);
 
-    Operand *typeCheckVarWhile =
+    tOperand *typeCheckVarWhile =
         create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeCheckVarWhile, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeCheckVarWhile, exprValWhile, NULL, &threeACcode); // Get type of expr_val
@@ -1118,13 +1101,13 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     emit(OP_LABEL, labelEndTruthinessWhile, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, finalBoolResultWhile, NULL, NULL, &threeACcode); // Push the final boolean result
 
-    Operand *conditionResult = safeMalloc(sizeof(Operand));
+    tOperand *conditionResult = safeMalloc(sizeof(tOperand));
     conditionResult->type = OPP_TEMP;
     conditionResult->value.varname = threeAC_create_temp(&threeACcode);
     emit(OP_DEFVAR, conditionResult, NULL, NULL, &threeACcode);
     emit(OP_POPS, conditionResult, NULL, NULL, &threeACcode);
 
-    Operand *constFalse = safeMalloc(sizeof(Operand));
+    tOperand *constFalse = safeMalloc(sizeof(tOperand));
     constFalse->type = OPP_CONST_BOOL;
     constFalse->value.boolval = false;
 
@@ -1140,13 +1123,13 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
     emit(OP_LABEL, loopEndLabel, NULL, NULL, &threeACcode);
     emit_comment("While loop end", &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    InstructionNode *loopEndNode = threeACcode.active;
+    tInstructionNode *loopEndNode = threeACcode.active;
 
     // Hoist DEFVARs
-    InstructionNode *scanPtr = hoistPoint ? hoistPoint->next : threeACcode.head;
+    tInstructionNode *scanPtr = hoistPoint ? hoistPoint->next : threeACcode.head;
     while (scanPtr != NULL && scanPtr != loopEndNode)
     {
-        InstructionNode *nextScan = scanPtr->next;
+        tInstructionNode *nextScan = scanPtr->next;
         if (scanPtr->opType == OP_DEFVAR &&
             (scanPtr->result->type == OPP_VAR || scanPtr->result->type == OPP_TEMP))
         {
@@ -1242,7 +1225,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         char paramName[20];
         sprintf(paramName, "%%param%d", i);
-        Operand *tfParam = create_operand_from_tf_variable(paramName);
+        tOperand *tfParam = create_operand_from_tf_variable(paramName);
         emit(OP_DEFVAR, tfParam, NULL, NULL, &threeACcode);
     }
 
@@ -1250,7 +1233,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         char paramName[20];
         sprintf(paramName, "%%param%d", i);
-        Operand *tfParam = create_operand_from_tf_variable(paramName);
+        tOperand *tfParam = create_operand_from_tf_variable(paramName);
         emit(OP_POPS, tfParam, NULL, NULL, &threeACcode);
     }
 
@@ -1260,14 +1243,14 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     int mangledLen = strlen(funcName) + 1 + 10 + strlen("%func") + 1;
     char *mangledName = safeMalloc(mangledLen);
     sprintf(mangledName, "%s$%d%%func", funcName, argCount);
-    Operand *callLabel = create_operand_from_label(mangledName);
+    tOperand *callLabel = create_operand_from_label(mangledName);
     free(mangledName);
 
     emit(OP_CALL, callLabel, NULL, NULL, &threeACcode);
     emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
 
     // 4. Push return value for expression evaluation
-    Operand *retval = create_operand_from_tf_variable("%retval");
+    tOperand *retval = create_operand_from_tf_variable("%retval");
     emit(OP_PUSHS, retval, NULL, NULL, &threeACcode);
 
     // 5. Semantic checks and forward declaration
@@ -1289,7 +1272,6 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
         forwardDecl.kind = SYM_FUNC;
         forwardDecl.dataType = TYPE_UNDEF;
         forwardDecl.returnType = TYPE_UNDEF;
-        forwardDecl.index = -1;
         forwardDecl.defined = false;
         forwardDecl.paramCount = argCount;
         forwardDecl.paramNames = NULL;

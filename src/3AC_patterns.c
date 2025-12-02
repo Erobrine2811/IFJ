@@ -8,10 +8,10 @@
 #include "scanner.h"
 #include "symtable.h"
 
-void generate_program_entrypoint(ThreeACList *list)
+void generate_program_entrypoint(tThreeACList *list)
 {
     emit(NO_OP, NULL, NULL, NULL, list);
-    Operand *startJumpLabel = create_operand_from_label("%start");
+    tOperand *startJumpLabel = create_operand_from_label("%start");
     emit(OP_JUMP, startJumpLabel, NULL, NULL, list);
     emit(NO_OP, NULL, NULL, NULL, list);
 
@@ -20,19 +20,19 @@ void generate_program_entrypoint(ThreeACList *list)
     emit_comment("####################", list);
 
     emit(OP_LABEL, startJumpLabel, NULL, NULL, list);
-    Operand *mainLabel = create_operand_from_label("main$0%func");
+    tOperand *mainLabel = create_operand_from_label("main$0%func");
     emit(OP_CREATEFRAME, NULL, NULL, NULL, list);
     emit(OP_PUSHFRAME, NULL, NULL, NULL, list);
     emit(OP_CALL, mainLabel, NULL, NULL, list);
     emit(OP_POPFRAME, NULL, NULL, NULL, list);
 
-    Operand *exitValue = create_operand_from_constant_int(0);
+    tOperand *exitValue = create_operand_from_constant_int(0);
     emit(OP_EXIT, exitValue, NULL, NULL, list);
     emit(NO_OP, NULL, NULL, NULL, list);
     emit(NO_OP, NULL, NULL, NULL, list);
 }
 
-void generate_eof(ThreeACList *list)
+void generate_eof(tThreeACList *list)
 {
     // This can be used for any cleanup or finalization code.
     // For now, it will also handle built-in function implementations.
@@ -49,15 +49,15 @@ void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     char *loopStartLabelStr = threeAC_create_label(&threeACcode);
     char *loopEndLabelStr = threeAC_create_label(&threeACcode);
-    Operand *loopStartLabel = create_operand_from_label(loopStartLabelStr);
-    Operand *loopEndLabel = create_operand_from_label(loopEndLabelStr);
+    tOperand *loopStartLabel = create_operand_from_label(loopStartLabelStr);
+    tOperand *loopEndLabel = create_operand_from_label(loopEndLabelStr);
 
     emit(OP_LABEL, loopStartLabel, NULL, NULL, &threeACcode);
     emit_comment("While condition", &threeACcode);
 
     parse_expression(file, currentToken, stack);
 
-    Operand *exprValWhile = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *exprValWhile = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, exprValWhile, NULL, NULL, &threeACcode);
     emit(OP_POPS, exprValWhile, NULL, NULL, &threeACcode);
     generate_truthiness_check(&threeACcode, exprValWhile);
@@ -94,7 +94,7 @@ void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack, bo
     }
 
     parse_expression(file, currentToken, stack);
-    Operand *retvalVar = create_operand_from_variable("%retval", false);
+    tOperand *retvalVar = create_operand_from_variable("%retval", false);
     emit(OP_POPS, retvalVar, NULL, NULL, &threeACcode);
     emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
 }
@@ -104,14 +104,14 @@ tDataType generate_ifj_write(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.write call", &threeACcode);
 
-    Operand *writeArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *writeArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, writeArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, writeArg, NULL, NULL, &threeACcode);
 
     emit(OP_PUSHS, writeArg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
 
-    Operand *afterChecking = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *afterChecking = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFNEQS, afterChecking, NULL, NULL, &threeACcode);
@@ -134,7 +134,7 @@ tDataType generate_ifj_read_str(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.read_str call", &threeACcode);
 
-    Operand *resultVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
 
     emit(OP_DEFVAR, resultVar, NULL, NULL, &threeACcode);
     emit(OP_READ, resultVar, create_operand_from_type("string"), NULL, &threeACcode);
@@ -148,11 +148,11 @@ tDataType generate_ifj_read_num(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.read_num call", &threeACcode);
 
-    Operand *resultVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultVar, NULL, NULL, &threeACcode);
     emit(OP_READ, resultVar, create_operand_from_type("float"), NULL, &threeACcode);
 
-    Operand *resultIsNotIntOrNull = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *resultIsNotIntOrNull = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, resultVar, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
@@ -177,11 +177,11 @@ tDataType generate_ifj_strcmp(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.strcmp call", &threeACcode);
 
-    Operand *s2Arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *s2Arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, s2Arg, NULL, NULL, &threeACcode);
     emit(OP_POPS, s2Arg, NULL, NULL, &threeACcode);
 
-    Operand *s1Arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *s1Arg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, s1Arg, NULL, NULL, &threeACcode);
     emit(OP_POPS, s1Arg, NULL, NULL, &threeACcode);
 
@@ -190,8 +190,8 @@ tDataType generate_ifj_strcmp(tSymTableStack *stack)
     emit(OP_PUSHS, s2Arg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
 
-    Operand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelContinueStrcmp = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelContinueStrcmp = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
@@ -205,13 +205,13 @@ tDataType generate_ifj_strcmp(tSymTableStack *stack)
 
     emit(OP_LABEL, labelContinueStrcmp, NULL, NULL, &threeACcode);
 
-    Operand *resultCmp = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultCmp = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultCmp, NULL, NULL, &threeACcode);
 
-    Operand *labelEqual = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelLess = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelGreater = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndCmp = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEqual = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelLess = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelGreater = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndCmp = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, s1Arg, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, s2Arg, NULL, NULL, &threeACcode);
@@ -246,20 +246,20 @@ tDataType generate_ifj_ord(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.ord call", &threeACcode);
 
-    Operand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, iArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, iArg, NULL, NULL, &threeACcode);
 
-    Operand *sArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *sArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, sArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, sArg, NULL, NULL, &threeACcode);
 
-    Operand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeI, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeI, iArg, NULL, &threeACcode);
 
-    Operand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelContinueOrd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelContinueOrd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, sArg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
@@ -287,15 +287,15 @@ tDataType generate_ifj_ord(tSymTableStack *stack)
 
     emit(OP_LABEL, labelContinueOrd, NULL, NULL, &threeACcode);
 
-    Operand *lenS = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *lenS = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, lenS, NULL, NULL, &threeACcode);
     emit(OP_STRLEN, lenS, sArg, NULL, &threeACcode);
 
-    Operand *resultOrd = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultOrd = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultOrd, NULL, NULL, &threeACcode);
 
-    Operand *labelReturnZero = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndOrd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelReturnZero = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndOrd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     // (lenS == 0)
     emit(OP_PUSHS, lenS, NULL, NULL, &threeACcode);
@@ -334,11 +334,11 @@ tDataType generate_ifj_floor(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.floor call", &threeACcode);
 
-    Operand *labelIsInt = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsNotNum = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndFloor = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsInt = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsNotNum = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndFloor = create_operand_from_label(threeAC_create_label(&threeACcode));
 
-    Operand *argVal = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *argVal = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
 
     emit(OP_DEFVAR, argVal, NULL, NULL, &threeACcode);
     emit(OP_POPS, argVal, NULL, NULL, &threeACcode);
@@ -379,22 +379,22 @@ tDataType generate_ifj_str(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.str call", &threeACcode);
 
-    Operand *argVal = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *argVal = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, argVal, NULL, NULL, &threeACcode);
     emit(OP_POPS, argVal, NULL, NULL, &threeACcode);
 
-    Operand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultStr, NULL, NULL, &threeACcode);
 
-    Operand *typeCheckVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *typeCheckVar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeCheckVar, NULL, NULL, &threeACcode);
 
-    Operand *labelEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
-    Operand *labelIsString = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsInt = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsFloat = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelIsNil = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsString = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsInt = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsFloat = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelIsNil = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_TYPE, typeCheckVar, argVal, NULL, &threeACcode);
 
@@ -441,14 +441,14 @@ tDataType generate_ifj_length(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.length call", &threeACcode);
 
-    Operand *strArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *strArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, strArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, strArg, NULL, NULL, &threeACcode);
 
     emit(OP_PUSHS, strArg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
 
-    Operand *labelContinueLength = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelContinueLength = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFEQS, labelContinueLength, NULL, NULL, &threeACcode);
@@ -458,7 +458,7 @@ tDataType generate_ifj_length(tSymTableStack *stack)
 
     emit(OP_LABEL, labelContinueLength, NULL, NULL, &threeACcode);
 
-    Operand *resultLen = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultLen = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultLen, NULL, NULL, &threeACcode);
 
     emit(OP_STRLEN, resultLen, strArg, NULL, &threeACcode);
@@ -472,20 +472,20 @@ tDataType generate_ifj_substring(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.substring call", &threeACcode);
 
-    Operand *jArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *jArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, jArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, jArg, NULL, NULL, &threeACcode);
 
-    Operand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, iArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, iArg, NULL, NULL, &threeACcode);
 
-    Operand *sArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *sArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, sArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, sArg, NULL, NULL, &threeACcode);
 
-    Operand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    Operand *typeJ = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *typeJ = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeI, NULL, NULL, &threeACcode);
     emit(OP_DEFVAR, typeJ, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeI, iArg, NULL, &threeACcode);
@@ -494,10 +494,11 @@ tDataType generate_ifj_substring(tSymTableStack *stack)
     emit(OP_PUSHS, sArg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
 
-    Operand *labelParamTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelContinueSubstring = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelCheckJEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelCheckIEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelParamTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelContinueSubstring =
+        create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelCheckJEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelCheckIEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
@@ -533,13 +534,13 @@ tDataType generate_ifj_substring(tSymTableStack *stack)
     emit(OP_LABEL, labelContinueSubstring, NULL, NULL, &threeACcode);
 
     // Get length of s
-    Operand *lenS = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *lenS = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, lenS, NULL, NULL, &threeACcode);
     emit(OP_STRLEN, lenS, sArg, NULL, &threeACcode);
 
     // Labels for null return
-    Operand *labelReturnNull = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelEndSubstring = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelReturnNull = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelEndSubstring = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     // Boundary checks
     // i < 0
@@ -578,19 +579,19 @@ tDataType generate_ifj_substring(tSymTableStack *stack)
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFEQS, labelReturnNull, NULL, NULL, &threeACcode);
 
-    Operand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultStr, NULL, NULL, &threeACcode);
     emit(OP_MOVE, resultStr, create_operand_from_constant_string(""), NULL, &threeACcode);
 
-    Operand *loopCounter = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *loopCounter = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, loopCounter, NULL, NULL, &threeACcode);
     emit(OP_MOVE, loopCounter, iArg, NULL, &threeACcode);
 
-    Operand *currentChar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *currentChar = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, currentChar, NULL, NULL, &threeACcode);
 
-    Operand *loopStartLabelSub = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *loopEndLabelSub = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *loopStartLabelSub = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *loopEndLabelSub = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_LABEL, loopStartLabelSub, NULL, NULL, &threeACcode);
 
@@ -623,16 +624,16 @@ tDataType generate_ifj_chr(tSymTableStack *stack)
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit_comment("Ifj.chr call", &threeACcode);
 
-    Operand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *iArg = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, iArg, NULL, NULL, &threeACcode);
     emit(OP_POPS, iArg, NULL, NULL, &threeACcode);
 
-    Operand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *typeI = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, typeI, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeI, iArg, NULL, &threeACcode);
 
-    Operand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *labelContinueChr = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelContinueChr = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, typeI, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, &threeACcode);
@@ -659,21 +660,21 @@ tDataType generate_ifj_chr(tSymTableStack *stack)
     return TYPE_STRING;
 }
 
-void generate_truthiness_check(ThreeACList *list, Operand *expr_val)
+void generate_truthiness_check(tThreeACList *list, tOperand *expr_val)
 {
-    Operand *finalBoolResult = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *finalBoolResult = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, finalBoolResult, NULL, NULL, list);
 
-    Operand *labelIsNull = create_operand_from_label(threeAC_create_label(list));
-    Operand *labelIsBool = create_operand_from_label(threeAC_create_label(list));
-    Operand *labelIsOther = create_operand_from_label(threeAC_create_label(list));
-    Operand *labelEndTruthiness = create_operand_from_label(threeAC_create_label(list));
+    tOperand *labelIsNull = create_operand_from_label(threeAC_create_label(list));
+    tOperand *labelIsBool = create_operand_from_label(threeAC_create_label(list));
+    tOperand *labelIsOther = create_operand_from_label(threeAC_create_label(list));
+    tOperand *labelEndTruthiness = create_operand_from_label(threeAC_create_label(list));
 
     // Check if null
     emit(OP_JUMPIFEQ, labelIsNull, expr_val, create_operand_from_constant_nil(), list);
 
     // Check if boolean (using TYPE instruction)
-    Operand *typeCheckVar = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *typeCheckVar = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, typeCheckVar, NULL, NULL, list);
     emit(OP_TYPE, typeCheckVar, expr_val, NULL, list);
 
@@ -701,30 +702,30 @@ void generate_truthiness_check(ThreeACList *list, Operand *expr_val)
     emit(OP_PUSHS, finalBoolResult, NULL, NULL, list); // Push the final boolean result
 }
 
-void generate_add_op(ThreeACList *list)
+void generate_add_op(tThreeACList *list)
 {
-    Operand *op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
     emit(OP_POPS, op2, NULL, NULL, &threeACcode);
 
-    Operand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
     emit(OP_POPS, op1, NULL, NULL, &threeACcode);
 
-    Operand *type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
     emit(OP_TYPE, type1, op1, NULL, &threeACcode);
 
-    Operand *type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
     emit(OP_TYPE, type2, op2, NULL, &threeACcode);
 
-    Operand *endAddLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *endAddLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
-    Operand *numAddLabelCheck = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *numAddLabelType = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *numAddLabelCheck = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *numAddLabelType = create_operand_from_label(threeAC_create_label(&threeACcode));
 
-    Operand *typeErrorLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *typeErrorLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
@@ -736,7 +737,7 @@ void generate_add_op(ThreeACList *list)
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFNEQS, numAddLabelCheck, NULL, NULL, &threeACcode);
 
-    Operand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultStr, NULL, NULL, &threeACcode);
     emit(OP_CONCAT, resultStr, op1, op2, &threeACcode);
     emit(OP_PUSHS, resultStr, NULL, NULL, &threeACcode);
@@ -744,7 +745,7 @@ void generate_add_op(ThreeACList *list)
 
     emit(OP_LABEL, numAddLabelCheck, NULL, NULL, &threeACcode);
 
-    Operand *operand1CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *operand1CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
@@ -756,7 +757,7 @@ void generate_add_op(ThreeACList *list)
 
     emit(OP_LABEL, operand1CheckEnd, NULL, NULL, &threeACcode);
 
-    Operand *operand2CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *operand2CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type2, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
@@ -783,28 +784,28 @@ void generate_add_op(ThreeACList *list)
     emit(OP_LABEL, endAddLabel, NULL, NULL, &threeACcode);
 }
 
-void generate_mult_op(ThreeACList *list)
+void generate_mult_op(tThreeACList *list)
 {
-    Operand *op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *op2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, op2, NULL, NULL, &threeACcode);
     emit(OP_POPS, op2, NULL, NULL, &threeACcode);
 
-    Operand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
     emit(OP_POPS, op1, NULL, NULL, &threeACcode);
 
-    Operand *type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *type1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, type1, NULL, NULL, &threeACcode);
     emit(OP_TYPE, type1, op1, NULL, &threeACcode);
 
-    Operand *type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *type2 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, type2, NULL, NULL, &threeACcode);
     emit(OP_TYPE, type2, op2, NULL, &threeACcode);
 
-    Operand *endMultLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *numMultLabelCheck = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *numMultLabelType = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *typeErrorLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *endMultLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *numMultLabelCheck = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *numMultLabelType = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *typeErrorLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
@@ -834,9 +835,9 @@ void generate_mult_op(ThreeACList *list)
 
     emit(OP_JUMPIFNEQS, numMultLabelCheck, NULL, NULL, &threeACcode);
 
-    Operand *replaceOperand =
+    tOperand *replaceOperand =
         create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    Operand *replaceEndLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *replaceEndLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_DEFVAR, replaceOperand, NULL, NULL, &threeACcode);
 
@@ -856,7 +857,7 @@ void generate_mult_op(ThreeACList *list)
     emit(OP_PUSHS, type2, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
 
-    Operand *op2IsIntLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *op2IsIntLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_JUMPIFNEQS, op2IsIntLabel, NULL, NULL, &threeACcode);
 
@@ -866,13 +867,13 @@ void generate_mult_op(ThreeACList *list)
 
     emit(OP_LABEL, op2IsIntLabel, NULL, NULL, &threeACcode);
 
-    Operand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *resultStr = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
     emit(OP_DEFVAR, resultStr, NULL, NULL, &threeACcode);
     emit(OP_MOVE, resultStr, create_operand_from_constant_string(""), NULL, &threeACcode);
 
-    Operand *loopStart = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *loopEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
-    Operand *condition = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+    tOperand *loopStart = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *loopEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *condition = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
 
     emit(OP_DEFVAR, condition, NULL, NULL, &threeACcode);
 
@@ -893,7 +894,7 @@ void generate_mult_op(ThreeACList *list)
 
     emit(OP_LABEL, numMultLabelCheck, NULL, NULL, &threeACcode);
 
-    Operand *operand1CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *operand1CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
@@ -905,7 +906,7 @@ void generate_mult_op(ThreeACList *list)
 
     emit(OP_LABEL, operand1CheckEnd, NULL, NULL, &threeACcode);
 
-    Operand *operand2CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *operand2CheckEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, type2, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
@@ -932,26 +933,26 @@ void generate_mult_op(ThreeACList *list)
     emit(OP_LABEL, endMultLabel, NULL, NULL, &threeACcode);
 }
 
-void generate_numeric_op(ThreeACList *list, char *op)
+void generate_numeric_op(tThreeACList *list, char *op)
 {
-    Operand *op2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *op2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, op2, NULL, NULL, list);
     emit(OP_POPS, op2, NULL, NULL, list);
 
-    Operand *op1 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *op1 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, op1, NULL, NULL, list);
     emit(OP_POPS, op1, NULL, NULL, list);
 
-    Operand *type1 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *type1 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, type1, NULL, NULL, list);
     emit(OP_TYPE, type1, op1, NULL, list);
 
-    Operand *type2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *type2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, type2, NULL, NULL, list);
     emit(OP_TYPE, type2, op2, NULL, list);
 
-    Operand *typeErrorLabel = create_operand_from_label(threeAC_create_label(list));
-    Operand *afterNumTypeCheckLabel = create_operand_from_label(threeAC_create_label(list));
+    tOperand *typeErrorLabel = create_operand_from_label(threeAC_create_label(list));
+    tOperand *afterNumTypeCheckLabel = create_operand_from_label(threeAC_create_label(list));
 
     emit(OP_PUSHS, type1, NULL, NULL, list);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
@@ -982,20 +983,20 @@ void generate_numeric_op(ThreeACList *list, char *op)
 
     emit(OP_LABEL, afterNumTypeCheckLabel, NULL, NULL, list);
 
-    Operand *intType = create_operand_from_constant_string("int");
+    tOperand *intType = create_operand_from_constant_string("int");
 
-    Operand *isInt1 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *isInt1 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, isInt1, NULL, NULL, list);
     emit(OP_EQ, isInt1, type1, intType, list);
-    Operand *op1OkLabel = create_operand_from_label(threeAC_create_label(list));
+    tOperand *op1OkLabel = create_operand_from_label(threeAC_create_label(list));
     emit(OP_JUMPIFNEQ, op1OkLabel, isInt1, create_operand_from_constant_bool(true), list);
     emit(OP_INT2FLOAT, op1, op1, NULL, list);
     emit(OP_LABEL, op1OkLabel, NULL, NULL, list);
 
-    Operand *isInt2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *isInt2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, isInt2, NULL, NULL, list);
     emit(OP_EQ, isInt2, type2, intType, list);
-    Operand *op2OkLabel = create_operand_from_label(threeAC_create_label(list));
+    tOperand *op2OkLabel = create_operand_from_label(threeAC_create_label(list));
     emit(OP_JUMPIFNEQ, op2OkLabel, isInt2, create_operand_from_constant_bool(true), list);
     emit(OP_INT2FLOAT, op2, op2, NULL, list);
     emit(OP_LABEL, op2OkLabel, NULL, NULL, list);
@@ -1021,28 +1022,28 @@ void generate_numeric_op(ThreeACList *list, char *op)
     }
 }
 
-void generate_relational_op(ThreeACList *list, char *op)
+void generate_relational_op(tThreeACList *list, char *op)
 {
-    Operand *op2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *op2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, op2, NULL, NULL, list);
     emit(OP_POPS, op2, NULL, NULL, list);
 
-    Operand *op1 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *op1 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, op1, NULL, NULL, list);
     emit(OP_POPS, op1, NULL, NULL, list);
 
-    Operand *type1 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *type1 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, type1, NULL, NULL, list);
     emit(OP_TYPE, type1, op1, NULL, list);
 
-    Operand *type2 = create_operand_from_variable(threeAC_create_temp(list), false);
+    tOperand *type2 = create_operand_from_variable(threeAC_create_temp(list), false);
     emit(OP_DEFVAR, type2, NULL, NULL, list);
     emit(OP_TYPE, type2, op2, NULL, list);
 
     if (strcmp(op, "==") != 0 && strcmp(op, "!=") != 0)
     {
-        Operand *typeErrorLabel = create_operand_from_label(threeAC_create_label(list));
-        Operand *afterNumTypeCheckLabel = create_operand_from_label(threeAC_create_label(list));
+        tOperand *typeErrorLabel = create_operand_from_label(threeAC_create_label(list));
+        tOperand *afterNumTypeCheckLabel = create_operand_from_label(threeAC_create_label(list));
 
         emit(OP_PUSHS, type1, NULL, NULL, list);
         emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, list);
@@ -1074,7 +1075,7 @@ void generate_relational_op(ThreeACList *list, char *op)
         emit(OP_LABEL, afterNumTypeCheckLabel, NULL, NULL, list);
     }
 
-    Operand *op1ToFloatIfInt = create_operand_from_label(threeAC_create_label(list));
+    tOperand *op1ToFloatIfInt = create_operand_from_label(threeAC_create_label(list));
     emit(OP_PUSHS, type1, NULL, NULL, list);
     emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
     emit(OP_JUMPIFNEQS, op1ToFloatIfInt, NULL, NULL, list);
@@ -1086,7 +1087,7 @@ void generate_relational_op(ThreeACList *list, char *op)
 
     emit(OP_LABEL, op1ToFloatIfInt, NULL, NULL, list);
 
-    Operand *op2ToFloatIfInt = create_operand_from_label(threeAC_create_label(list));
+    tOperand *op2ToFloatIfInt = create_operand_from_label(threeAC_create_label(list));
     emit(OP_PUSHS, type2, NULL, NULL, list);
     emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, list);
     emit(OP_JUMPIFNEQS, op2ToFloatIfInt, NULL, NULL, list);
@@ -1097,8 +1098,8 @@ void generate_relational_op(ThreeACList *list, char *op)
     emit(OP_MOVE, type2, create_operand_from_constant_string("float"), NULL, list);
 
     emit(OP_LABEL, op2ToFloatIfInt, NULL, NULL, list);
-    Operand *performOpLabelOnSameType = create_operand_from_label(threeAC_create_label(list));
-    Operand *endRelOpLabel = create_operand_from_label(threeAC_create_label(list));
+    tOperand *performOpLabelOnSameType = create_operand_from_label(threeAC_create_label(list));
+    tOperand *endRelOpLabel = create_operand_from_label(threeAC_create_label(list));
 
     emit(OP_JUMPIFEQ, performOpLabelOnSameType, type1, type2, list);
     if (strcmp(op, "!=") == 0)
@@ -1116,7 +1117,7 @@ void generate_relational_op(ThreeACList *list, char *op)
     emit(OP_PUSHS, op1, NULL, NULL, list);
     emit(OP_PUSHS, op2, NULL, NULL, list);
 
-    OperationType opType;
+    tOperationType opType;
     bool useNot = false;
 
     if (strcmp(op, "<") == 0)

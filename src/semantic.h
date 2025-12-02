@@ -1,5 +1,5 @@
-#ifndef SEMANTIC_H
-#define SEMANTIC_H
+#ifndef IFJ_SEMANTIC_H
+#define IFJ_SEMANTIC_H
 
 #include "3AC.h"
 #include "symstack.h"
@@ -57,4 +57,4 @@ void semantic_check_argument_types(tSymbolData *funcData, tDataType *argTypes, i
  */
 tDataType semantic_check_literal_operation(char *op, tDataType left, tDataType right);
 
-#endif
+#endif // IFJ_SEMANTIC_H

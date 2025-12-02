@@ -65,7 +65,6 @@ void semantic_define_variable(tSymTableStack *stack, const char *variableName, b
     tSymbolData data = {0};
     data.kind = SYM_VAR;
     data.dataType = TYPE_UNDEF;
-    data.index = -1;
 
     int len = snprintf(NULL, 0, "%s%%%d", variableName, threeACcode.varCounter);
     data.unique_name = safeMalloc(len + 1);
@@ -77,7 +76,7 @@ void semantic_define_variable(tSymTableStack *stack, const char *variableName, b
 
     if (success && isGlobal)
     {
-        Operand *defVarOp = create_operand_from_variable(data.unique_name, true);
+        tOperand *defVarOp = create_operand_from_variable(data.unique_name, true);
         list_add_global_def(&threeACcode, OP_DEFVAR, defVarOp, NULL, NULL);
     }
 

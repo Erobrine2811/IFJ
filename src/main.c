@@ -1,10 +1,21 @@
+/**
+ * @file main.c
+ *
+ * IFJ25 project
+ *
+ * Main program file.
+ *
+ * @author Lukáš Denkócy <xdenkol00>
+ */
+
 #include "3AC.h"
 #include "error.h"
 #include "parser.h"
+
 #include <stdio.h>
 
 // Global 3AC code list
-ThreeACList threeACcode;
+tThreeACList threeACcode;
 
 int main(int argc, char *argv[])
 {

@@ -1,5 +1,5 @@
-#ifndef GENERATOR_H
-#define GENERATOR_H
+#ifndef IFJ_GENERATOR_H
+#define IFJ_GENERATOR_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -85,7 +85,7 @@ typedef enum
     OP_EXIT,
     OP_COMMENT,
     NO_OP
-} OperationType;
+} tOperationType;
 
 typedef enum
 {
@@ -102,11 +102,11 @@ typedef enum
     OPP_CONST_BOOL,
     OPP_CONST_NIL,
     OPP_LABEL
-} OperandType;
+} tOperandType;
 
 typedef struct
 {
-    OperandType type;
+    tOperandType type;
     union
     {
         int intval;
@@ -117,24 +117,24 @@ typedef struct
         char *label;
         char *typeName;
     } value;
-} Operand;
+} tOperand;
 
 typedef struct InstructionNode
 {
-    OperationType opType;
-    Operand *result;
-    Operand *arg1;
-    Operand *arg2;
+    tOperationType opType;
+    tOperand *result;
+    tOperand *arg1;
+    tOperand *arg2;
 
     struct InstructionNode *next;
     struct InstructionNode *prev;
-} InstructionNode;
+} tInstructionNode;
 
 typedef struct
 {
-    InstructionNode *head;
-    InstructionNode *active;
-    InstructionNode *tail;
+    tInstructionNode *head;
+    tInstructionNode *active;
+    tInstructionNode *tail;
     size_t length;
     int tempCounter;
     int loopCounter;
@@ -143,53 +143,53 @@ typedef struct
     bool returnUsed;
     bool whileUsed;
     bool ifUsed;
-    InstructionNode *globalDefHead;
-    InstructionNode *globalDefTail;
-} ThreeACList;
+    tInstructionNode *globalDefHead;
+    tInstructionNode *globalDefTail;
+} tThreeACList;
 
-void list_init(ThreeACList *list);
-void list_dispose(ThreeACList *list);
-void list_first(ThreeACList *list);
-void list_last(ThreeACList *list);
-void list_next(ThreeACList *list);
-void list_previous(ThreeACList *list);
-bool list_isActive(ThreeACList *list);
-void list_setValue(ThreeACList *list, OperationType opType, Operand *arg1, Operand *arg2,
-                   Operand *result);
-void list_InsertAfter(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                      Operand *arg2);
-void list_InsertBefore(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                       Operand *arg2);
-void list_GetValue(ThreeACList *list, OperationType *opType, Operand **arg1, Operand **arg2,
-                   Operand **result);
-void list_DeleteAfter(ThreeACList *list);
-void list_DeleteBefore(ThreeACList *list);
-void list_InsertFirst(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                      Operand *arg2);
-void list_add_global_def(ThreeACList *list, OperationType op, Operand *result, Operand *arg1,
-                         Operand *arg2);
+void list_init(tThreeACList *list);
+void list_dispose(tThreeACList *list);
+void list_first(tThreeACList *list);
+void list_last(tThreeACList *list);
+void list_next(tThreeACList *list);
+void list_previous(tThreeACList *list);
+bool list_isActive(tThreeACList *list);
+void list_setValue(tThreeACList *list, tOperationType opType, tOperand *arg1, tOperand *arg2,
+                   tOperand *result);
+void list_InsertAfter(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                      tOperand *arg2);
+void list_InsertBefore(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                       tOperand *arg2);
+void list_GetValue(tThreeACList *list, tOperationType *opType, tOperand **arg1, tOperand **arg2,
+                   tOperand **result);
+void list_DeleteAfter(tThreeACList *list);
+void list_DeleteBefore(tThreeACList *list);
+void list_InsertFirst(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                      tOperand *arg2);
+void list_add_global_def(tThreeACList *list, tOperationType op, tOperand *result, tOperand *arg1,
+                         tOperand *arg2);
 
-void emit(OperationType op, Operand *result, Operand *arg1, Operand *arg2, ThreeACList *list);
-void emit_comment(const char *text, ThreeACList *list);
+void emit(tOperationType op, tOperand *result, tOperand *arg1, tOperand *arg2, tThreeACList *list);
+void emit_comment(const char *text, tThreeACList *list);
 
-char *threeAC_create_temp(ThreeACList *list);
-char *threeAC_create_label(ThreeACList *list);
-char *threeAC_get_current_label(ThreeACList *list);
+char *threeAC_create_temp(tThreeACList *list);
+char *threeAC_create_label(tThreeACList *list);
+char *threeAC_get_current_label(tThreeACList *list);
 
-Operand *create_operand_from_constant_string(const char *value);
-Operand *create_operand_from_constant_int(int value);
-Operand *create_operand_from_constant_float(double value);
-Operand *create_operand_from_constant_bool(bool value);
-Operand *create_operand_from_label(const char *label);
-Operand *create_operand_from_variable(const char *varname, bool isGlobal);
-Operand *create_operand_from_tf_variable(const char *varname);
-Operand *create_operand_from_constant_nil();
-Operand *create_operand_from_type(const char *typeName);
+tOperand *create_operand_from_constant_string(const char *value);
+tOperand *create_operand_from_constant_int(int value);
+tOperand *create_operand_from_constant_float(double value);
+tOperand *create_operand_from_constant_bool(bool value);
+tOperand *create_operand_from_label(const char *label);
+tOperand *create_operand_from_variable(const char *varname, bool isGlobal);
+tOperand *create_operand_from_tf_variable(const char *varname);
+tOperand *create_operand_from_constant_nil();
+tOperand *create_operand_from_type(const char *typeName);
 
-extern ThreeACList threeACcode;
+extern tThreeACList threeACcode;
 
-void list_print(ThreeACList *list);
-const char *operation_to_string(OperationType op);
-const char *operand_to_string(const Operand *operand);
+void list_print(tThreeACList *list);
+const char *operation_to_string(tOperationType op);
+const char *operand_to_string(const tOperand *operand);
 
-#endif
+#endif // IFJ_GENERATOR_H

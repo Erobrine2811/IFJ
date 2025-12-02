@@ -1,12 +1,12 @@
-#ifndef AC_PATTERNS_H
-#define AC_PATTERNS_H
+#ifndef IFJ_3AC_PATTERNS_H
+#define IFJ_3AC_PATTERNS_H
 
 #include "3AC.h"
 #include "parser.h"
 
-void generate_program_entrypoint(ThreeACList *list);
+void generate_program_entrypoint(tThreeACList *list);
 
-void generate_eof(ThreeACList *list);
+void generate_eof(tThreeACList *list);
 
 void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
@@ -26,14 +26,14 @@ tDataType generate_ifj_strcmp(tSymTableStack *stack);
 tDataType generate_ifj_ord(tSymTableStack *stack);
 tDataType generate_ifj_chr(tSymTableStack *stack);
 
-void generate_truthiness_check(ThreeACList *list, Operand *conditionResult);
+void generate_truthiness_check(tThreeACList *list, tOperand *conditionResult);
 
-void generate_numeric_op(ThreeACList *list, char *op);
-void generate_mult_op(ThreeACList *list);
-void generate_add_op(ThreeACList *list);
+void generate_numeric_op(tThreeACList *list, char *op);
+void generate_mult_op(tThreeACList *list);
+void generate_add_op(tThreeACList *list);
 
-void generate_relational_op(ThreeACList *list, char *op);
+void generate_relational_op(tThreeACList *list, char *op);
 
-void generate_string_mult(ThreeACList *list);
+void generate_string_mult(tThreeACList *list);
 
-#endif
+#endif // IFJ_3AC_PATTERNS_H

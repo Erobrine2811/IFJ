@@ -4,7 +4,7 @@
 #include "3AC.h"
 #include "helper.h"
 
-void list_init(ThreeACList *list)
+void list_init(tThreeACList *list)
 {
     list->length = 0;
     list->head = NULL;
@@ -20,11 +20,11 @@ void list_init(ThreeACList *list)
     list->globalDefTail = NULL;
 }
 
-void list_dispose(ThreeACList *list)
+void list_dispose(tThreeACList *list)
 {
 
-    InstructionNode *current = list->head;
-    InstructionNode *next;
+    tInstructionNode *current = list->head;
+    tInstructionNode *next;
 
     while (current != NULL)
     {
@@ -49,17 +49,17 @@ void list_dispose(ThreeACList *list)
     list->globalDefTail = NULL;
 }
 
-void list_first(ThreeACList *list)
+void list_first(tThreeACList *list)
 {
     list->active = list->head;
 }
 
-void list_last(ThreeACList *list)
+void list_last(tThreeACList *list)
 {
     list->active = list->tail;
 }
 
-void list_next(ThreeACList *list)
+void list_next(tThreeACList *list)
 {
     if (list->active != NULL)
     {
@@ -73,7 +73,7 @@ void list_next(ThreeACList *list)
         }
     }
 }
-void list_previous(ThreeACList *list)
+void list_previous(tThreeACList *list)
 {
     if (list->active != NULL)
     {
@@ -88,8 +88,8 @@ void list_previous(ThreeACList *list)
     }
 }
 
-void list_setValue(ThreeACList *list, OperationType opType, Operand *arg1, Operand *arg2,
-                   Operand *result)
+void list_setValue(tThreeACList *list, tOperationType opType, tOperand *arg1, tOperand *arg2,
+                   tOperand *result)
 {
     if (list->active != NULL)
     {
@@ -100,8 +100,8 @@ void list_setValue(ThreeACList *list, OperationType opType, Operand *arg1, Opera
     }
 }
 
-void list_getValue(ThreeACList *list, OperationType *opType, Operand **arg1, Operand **arg2,
-                   Operand **result)
+void list_getValue(tThreeACList *list, tOperationType *opType, tOperand **arg1, tOperand **arg2,
+                   tOperand **result)
 {
     if (list->active != NULL)
     {
@@ -112,15 +112,15 @@ void list_getValue(ThreeACList *list, OperationType *opType, Operand **arg1, Ope
     }
 }
 
-bool list_isActive(ThreeACList *list)
+bool list_isActive(tThreeACList *list)
 {
     return (list->active != NULL);
 }
 
-void list_InsertFirst(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                      Operand *arg2)
+void list_InsertFirst(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                      tOperand *arg2)
 {
-    InstructionNode *newNode = (InstructionNode *)safeMalloc(sizeof(InstructionNode));
+    tInstructionNode *newNode = (tInstructionNode *)safeMalloc(sizeof(tInstructionNode));
     newNode->opType = opType;
     newNode->arg1 = arg1;
     newNode->arg2 = arg2;
@@ -132,13 +132,13 @@ void list_InsertFirst(ThreeACList *list, OperationType opType, Operand *result, 
     list->length++;
 }
 
-void list_InsertAfter(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                      Operand *arg2)
+void list_InsertAfter(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                      tOperand *arg2)
 {
     if (list_isActive(list))
     {
-        InstructionNode *newNode = (InstructionNode *)safeMalloc(sizeof(InstructionNode));
-        InstructionNode *next = list->active->next;
+        tInstructionNode *newNode = (tInstructionNode *)safeMalloc(sizeof(tInstructionNode));
+        tInstructionNode *next = list->active->next;
         newNode->opType = opType;
         newNode->arg1 = arg1;
         newNode->arg2 = arg2;
@@ -163,13 +163,13 @@ void list_InsertAfter(ThreeACList *list, OperationType opType, Operand *result, 
     }
 }
 
-void list_InsertBefore(ThreeACList *list, OperationType opType, Operand *result, Operand *arg1,
-                       Operand *arg2)
+void list_InsertBefore(tThreeACList *list, tOperationType opType, tOperand *result, tOperand *arg1,
+                       tOperand *arg2)
 {
     if (list_isActive(list))
     {
-        InstructionNode *newNode = (InstructionNode *)safeMalloc(sizeof(InstructionNode));
-        InstructionNode *prev = list->active->prev;
+        tInstructionNode *newNode = (tInstructionNode *)safeMalloc(sizeof(tInstructionNode));
+        tInstructionNode *prev = list->active->prev;
         newNode->opType = opType;
         newNode->arg1 = arg1;
         newNode->arg2 = arg2;
@@ -197,11 +197,11 @@ void list_InsertBefore(ThreeACList *list, OperationType opType, Operand *result,
     }
 }
 
-void list_DeleteAfter(ThreeACList *list)
+void list_DeleteAfter(tThreeACList *list)
 {
     if (list_isActive(list) && list->active != list->tail)
     {
-        InstructionNode *nextNode = list->active->next;
+        tInstructionNode *nextNode = list->active->next;
 
         if (nextNode == list->tail)
         {
@@ -210,7 +210,7 @@ void list_DeleteAfter(ThreeACList *list)
         }
         else
         {
-            InstructionNode *nextToNext = nextNode->next;
+            tInstructionNode *nextToNext = nextNode->next;
             list->active->next = nextToNext;
             nextToNext->prev = list->active;
         }
@@ -219,11 +219,11 @@ void list_DeleteAfter(ThreeACList *list)
     }
 }
 
-void list_DeleteBefore(ThreeACList *list)
+void list_DeleteBefore(tThreeACList *list)
 {
     if (list_isActive(list) && list->active != list->head)
     {
-        InstructionNode *prevNode = list->active->prev;
+        tInstructionNode *prevNode = list->active->prev;
 
         if (prevNode == list->head)
         {
@@ -232,7 +232,7 @@ void list_DeleteBefore(ThreeACList *list)
         }
         else
         {
-            InstructionNode *prevToPrev = prevNode->prev;
+            tInstructionNode *prevToPrev = prevNode->prev;
             list->active->prev = prevToPrev;
             prevToPrev->next = list->active;
         }
@@ -241,10 +241,10 @@ void list_DeleteBefore(ThreeACList *list)
     }
 }
 
-void list_add_global_def(ThreeACList *list, OperationType op, Operand *result, Operand *arg1,
-                         Operand *arg2)
+void list_add_global_def(tThreeACList *list, tOperationType op, tOperand *result, tOperand *arg1,
+                         tOperand *arg2)
 {
-    InstructionNode *newNode = (InstructionNode *)safeMalloc(sizeof(InstructionNode));
+    tInstructionNode *newNode = (tInstructionNode *)safeMalloc(sizeof(tInstructionNode));
     newNode->opType = op;
     newNode->result = result;
     newNode->arg1 = arg1;
@@ -263,7 +263,7 @@ void list_add_global_def(ThreeACList *list, OperationType op, Operand *result, O
     list->globalDefTail = newNode;
 }
 
-const char *operation_to_string(OperationType op)
+const char *operation_to_string(tOperationType op)
 {
     switch (op)
     {
@@ -414,12 +414,12 @@ const char *operation_to_string(OperationType op)
     }
 }
 
-void list_print(ThreeACList *list)
+void list_print(tThreeACList *list)
 {
     list_first(list);
     printf(".IFJcode25\n");
 
-    InstructionNode *current_global = list->globalDefHead;
+    tInstructionNode *current_global = list->globalDefHead;
     while (current_global != NULL)
     {
         printf("DEFVAR %s\n", operand_to_string(current_global->result));
@@ -430,10 +430,10 @@ void list_print(ThreeACList *list)
     bool indent = false;
     while (list_isActive(list))
     {
-        OperationType opType;
-        Operand *arg1;
-        Operand *arg2;
-        Operand *result;
+        tOperationType opType;
+        tOperand *arg1;
+        tOperand *arg2;
+        tOperand *result;
 
         list_getValue(list, &opType, &arg1, &arg2, &result);
 
@@ -464,58 +464,58 @@ void list_print(ThreeACList *list)
     }
 }
 
-const char *operand_to_string(const Operand *operand)
+const char *operand_to_string(const tOperand *tOperand)
 {
-    if (operand == NULL)
+    if (tOperand == NULL)
         return "";
 
-    switch (operand->type)
+    switch (tOperand->type)
     {
         case OPP_TYPE:
-            return operand->value.typeName;
+            return tOperand->value.typeName;
         case OPP_COMMENT_TEXT:
-            return operand->value.strval;
+            return tOperand->value.strval;
         case OPP_GLOBAL:
         {
-            char *buf = safeMalloc(strlen(operand->value.varname) + 4);
-            sprintf(buf, "GF@%s", operand->value.varname);
+            char *buf = safeMalloc(strlen(tOperand->value.varname) + 4);
+            sprintf(buf, "GF@%s", tOperand->value.varname);
             return buf;
         }
         case OPP_TF_VAR:
         {
-            char *buf = safeMalloc(strlen(operand->value.varname) + 4);
-            sprintf(buf, "TF@%s", operand->value.varname);
+            char *buf = safeMalloc(strlen(tOperand->value.varname) + 4);
+            sprintf(buf, "TF@%s", tOperand->value.varname);
             return buf;
         }
         case OPP_VAR:
         {
-            char *buf = safeMalloc(strlen(operand->value.varname) + 4);
-            sprintf(buf, "LF@%s", operand->value.varname);
+            char *buf = safeMalloc(strlen(tOperand->value.varname) + 4);
+            sprintf(buf, "LF@%s", tOperand->value.varname);
             return buf;
         }
         case OPP_TEMP:
         {
-            char *buf = safeMalloc(strlen(operand->value.varname) + 4);
-            sprintf(buf, "LF@%s", operand->value.varname);
+            char *buf = safeMalloc(strlen(tOperand->value.varname) + 4);
+            sprintf(buf, "LF@%s", tOperand->value.varname);
             return buf;
         }
         case OPP_CONST_INT:
         {
-            int len = snprintf(NULL, 0, "%d", operand->value.intval);
+            int len = snprintf(NULL, 0, "%d", tOperand->value.intval);
             char *str = safeMalloc(len + 5);
-            sprintf(str, "int@%d", operand->value.intval);
+            sprintf(str, "int@%d", tOperand->value.intval);
             return str;
         }
         case OPP_CONST_FLOAT:
         {
-            int len = snprintf(NULL, 0, "%a", operand->value.floatval);
+            int len = snprintf(NULL, 0, "%a", tOperand->value.floatval);
             char *str = safeMalloc(len + 7);
-            sprintf(str, "float@%a", operand->value.floatval);
+            sprintf(str, "float@%a", tOperand->value.floatval);
             return str;
         }
         case OPP_CONST_STRING:
         {
-            const char *s = operand->value.strval;
+            const char *s = tOperand->value.strval;
             size_t sLen = strlen(s);
             char *escapedStr = safeMalloc(sLen * 4 + 1);
             char *p = escapedStr;
@@ -543,21 +543,21 @@ const char *operand_to_string(const Operand *operand)
         }
         case OPP_CONST_BOOL:
         {
-            int boolLen = operand->value.boolval ? 5 : 6;
+            int boolLen = tOperand->value.boolval ? 5 : 6;
             char *boolStr = safeMalloc(boolLen);
-            sprintf(boolStr, "bool@%s", operand->value.boolval ? "true" : "false");
+            sprintf(boolStr, "bool@%s", tOperand->value.boolval ? "true" : "false");
             return boolStr;
         }
         case OPP_CONST_NIL:
             return "nil@nil";
         case OPP_LABEL:
-            return operand->value.label;
+            return tOperand->value.label;
         default:
             return "UNKNOWN_OPERAND";
     }
 }
 
-char *threeAC_create_temp(ThreeACList *list)
+char *threeAC_create_temp(tThreeACList *list)
 {
     int len = snprintf(NULL, 0, "t%d", list->tempCounter);
     char *name = safeMalloc(len + 1);
@@ -565,7 +565,7 @@ char *threeAC_create_temp(ThreeACList *list)
     return name;
 }
 
-char *threeAC_create_label(ThreeACList *list)
+char *threeAC_create_label(tThreeACList *list)
 {
     int len = snprintf(NULL, 0, "%%L%d", list->loopCounter);
     char *name = safeMalloc(len + 1);
@@ -573,7 +573,7 @@ char *threeAC_create_label(ThreeACList *list)
     return name;
 }
 
-char *threeAC_get_current_label(ThreeACList *list)
+char *threeAC_get_current_label(tThreeACList *list)
 {
     if (list->loopCounter == 0)
         return NULL;
@@ -585,92 +585,92 @@ char *threeAC_get_current_label(ThreeACList *list)
     return label;
 }
 
-Operand *create_operand_from_constant_int(int value)
+tOperand *create_operand_from_constant_int(int value)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_CONST_INT;
     op->value.intval = value;
     return op;
 }
 
-Operand *create_operand_from_constant_float(double value)
+tOperand *create_operand_from_constant_float(double value)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_CONST_FLOAT;
     op->value.floatval = value;
     return op;
 }
 
-Operand *create_operand_from_constant_string(const char *value)
+tOperand *create_operand_from_constant_string(const char *value)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_CONST_STRING;
     op->value.strval = safeMalloc(strlen(value) + 1);
     strcpy(op->value.strval, value);
     return op;
 }
 
-Operand *create_operand_from_constant_bool(bool value)
+tOperand *create_operand_from_constant_bool(bool value)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_CONST_BOOL;
     op->value.boolval = value;
     return op;
 }
 
-Operand *create_operand_from_label(const char *label)
+tOperand *create_operand_from_label(const char *label)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_LABEL;
     op->value.label = safeMalloc(strlen(label) + 1);
     strcpy(op->value.label, label);
     return op;
 }
 
-Operand *create_operand_from_variable(const char *varname, bool isGlobal)
+tOperand *create_operand_from_variable(const char *varname, bool isGlobal)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = isGlobal ? OPP_GLOBAL : OPP_VAR;
     op->value.varname = safeMalloc(strlen(varname) + 1);
     strcpy(op->value.varname, varname);
     return op;
 }
 
-Operand *create_operand_from_tf_variable(const char *varname)
+tOperand *create_operand_from_tf_variable(const char *varname)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_TF_VAR;
     op->value.varname = safeMalloc(strlen(varname) + 1);
     strcpy(op->value.varname, varname);
     return op;
 }
 
-Operand *create_operand_from_type(const char *typeName)
+tOperand *create_operand_from_type(const char *typeName)
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_TYPE;
     op->value.typeName = safeMalloc(strlen(typeName) + 1);
     strcpy(op->value.typeName, typeName);
     return op;
 }
 
-Operand *create_operand_from_constant_nil()
+tOperand *create_operand_from_constant_nil()
 {
-    Operand *op = safeMalloc(sizeof(Operand));
+    tOperand *op = safeMalloc(sizeof(tOperand));
     op->type = OPP_CONST_NIL;
     return op;
 }
 
-void emit_comment(const char *text, ThreeACList *list)
+void emit_comment(const char *text, tThreeACList *list)
 {
-    Operand *commentOp = safeMalloc(sizeof(Operand));
+    tOperand *commentOp = safeMalloc(sizeof(tOperand));
     commentOp->type = OPP_COMMENT_TEXT;
     commentOp->value.strval = safeMalloc(strlen(text) + 1);
     strcpy(commentOp->value.strval, text);
     emit(OP_COMMENT, commentOp, NULL, NULL, list);
 }
 
-void emit(OperationType op, Operand *result, Operand *arg1, Operand *arg2, ThreeACList *list)
+void emit(tOperationType op, tOperand *result, tOperand *arg1, tOperand *arg2, tThreeACList *list)
 {
     if (list_isActive(list))
     {

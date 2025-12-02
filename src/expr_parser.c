@@ -1,10 +1,15 @@
-#include "3AC.h"
+/**
+ * @file expr_parser.c
+ *
+ * IFJ25 project
+ *
+ * Expression parser using precedence analysis
+ *
+ * @author Lukáš Denkócy <xdenkol00>
+ */
+
 #include "3AC_patterns.h"
 #include "expr_parser.h"
-#include "parser.h"
-#include "semantic.h"
-#include "symtable.h"
-#include <stdio.h>
 
 // clang-format off
 static tPrec precedence_table[12][12] = {
@@ -208,13 +213,13 @@ static char *process_string_literal(const char *rawData)
     }
 }
 
-// Helper to create an Operand from a token
-static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack)
+// Helper to create an tOperand from a token
+static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStack)
 {
     if (!token)
         return NULL;
 
-    Operand *op;
+    tOperand *op;
     char *dataCopy = NULL;
 
     if (token->data)
@@ -263,7 +268,7 @@ static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack
 
                 char mangledName[256];
                 sprintf(mangledName, "%s$0%%getter", dataCopy);
-                Operand *callLabel = create_operand_from_label(mangledName);
+                tOperand *callLabel = create_operand_from_label(mangledName);
                 emit(OP_CALL, callLabel, NULL, NULL, &threeACcode);
 
                 emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
@@ -272,7 +277,7 @@ static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack
                 return op;
             }
 
-            tSymbolData *data = find_data_in_stack(symStack, dataCopy);
+            tSymbolData *data = symtable_stack_find(symStack, dataCopy);
 
             // Treat as getter not yet defined
             if (!data)
@@ -281,7 +286,6 @@ static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack
                 data->kind = SYM_FUNC;
                 data->dataType = TYPE_UNDEF;
                 data->returnType = TYPE_UNDEF;
-                data->index = -1;
                 data->defined = false;
                 data->paramCount = 0;
                 data->paramNames = NULL;
@@ -298,7 +302,7 @@ static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack
 
                 char mangledName[256];
                 sprintf(mangledName, "%s$0%%getter", dataCopy);
-                Operand *callLabel = create_operand_from_label(mangledName);
+                tOperand *callLabel = create_operand_from_label(mangledName);
                 emit(OP_CALL, callLabel, NULL, NULL, &threeACcode);
 
                 emit(OP_POPFRAME, NULL, NULL, NULL, &threeACcode);
@@ -314,11 +318,11 @@ static Operand *create_operand_from_token(tToken token, tSymTableStack *symStack
         }
         case T_GLOBAL_ID:
         {
-            tSymbolData *data = find_data_in_stack(symStack, dataCopy);
+            tSymbolData *data = symtable_stack_find(symStack, dataCopy);
             if (!data)
             {
                 semantic_define_variable(symStack, dataCopy, true);
-                data = find_data_in_stack(symStack, dataCopy);
+                data = symtable_stack_find(symStack, dataCopy);
             }
 
             op = create_operand_from_variable(data->unique_name, true);
@@ -348,7 +352,7 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack
         case T_ID:
         case T_GLOBAL_ID:
         {
-            tSymbolData *data = find_data_in_stack(symStack, token->data);
+            tSymbolData *data = symtable_stack_find(symStack, token->data);
             if (data)
             {
                 return data->dataType;
@@ -546,23 +550,23 @@ static int reduce_expr(tExprStack *stack)
                 free(n2->value);
             expr_pop(stack);
 
-            Operand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
+            tOperand *op1 = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, op1, NULL, NULL, &threeACcode);
             emit(OP_POPS, op1, NULL, NULL, &threeACcode);
 
-            Operand *typeOp1 =
+            tOperand *typeOp1 =
                 create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, typeOp1, NULL, NULL, &threeACcode);
             emit(OP_TYPE, typeOp1, op1, NULL, &threeACcode);
 
-            Operand *op1OkLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+            tOperand *op1OkLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
             emit(OP_JUMPIFNEQ, op1OkLabel, typeOp1, create_operand_from_constant_string("int"),
                  &threeACcode);
             emit(OP_INT2FLOAT, op1, op1, NULL, &threeACcode);
             emit(OP_LABEL, op1OkLabel, NULL, NULL, &threeACcode);
 
             // Push 0.0 and op1, then subtract
-            Operand *zeroFloat = create_operand_from_constant_float(0.0);
+            tOperand *zeroFloat = create_operand_from_constant_float(0.0);
             emit(OP_PUSHS, zeroFloat, NULL, NULL, &threeACcode);
             emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
             emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
@@ -585,24 +589,25 @@ static int reduce_expr(tExprStack *stack)
             expr_pop(stack);
             expr_pop(stack);
 
-            Operand *exprVal =
+            tOperand *exprVal =
                 create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, exprVal, NULL, NULL, &threeACcode);
             emit(OP_POPS, exprVal, NULL, NULL, &threeACcode);
 
-            Operand *typeVal =
+            tOperand *typeVal =
                 create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, typeVal, NULL, NULL, &threeACcode);
             emit(OP_TYPE, typeVal, exprVal, NULL, &threeACcode);
 
-            Operand *result =
+            tOperand *result =
                 create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
             emit(OP_DEFVAR, result, NULL, NULL, &threeACcode);
 
             if (strcmp(typeStr, "Num") == 0)
             {
-                Operand *isIntLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
-                Operand *endLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
+                tOperand *isIntLabel =
+                    create_operand_from_label(threeAC_create_label(&threeACcode));
+                tOperand *endLabel = create_operand_from_label(threeAC_create_label(&threeACcode));
 
                 emit(OP_JUMPIFEQ, isIntLabel, typeVal, create_operand_from_constant_string("int"),
                      &threeACcode);
@@ -729,7 +734,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
             if (lookSym == E_ID || lookSym == E_LITERAL)
             {
-                Operand *op = create_operand_from_token(lookahead, stack);
+                tOperand *op = create_operand_from_token(lookahead, stack);
                 emit(OP_PUSHS, op, NULL, NULL, &threeACcode);
                 exprStack.top->dataType = get_data_type_from_token(lookahead, stack);
             }
@@ -871,7 +876,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         resultType = exprStack.top->dataType;
         if (threeACcode.returnUsed == true)
         {
-            Operand *retvalVar = create_operand_from_variable("%retval", false);
+            tOperand *retvalVar = create_operand_from_variable("%retval", false);
             emit(OP_POPS, retvalVar, NULL, NULL, &threeACcode);
             emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
             threeACcode.returnUsed = false;
