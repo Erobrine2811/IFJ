@@ -17,17 +17,17 @@ class Program {
                 sum = sum + i
             }
             
-            Ifj.write("i: ")
-            Ifj.write(i)
-            Ifj.write(", sum: ")
-            Ifj.write(sum)
-            Ifj.write("\n")
+            __a = Ifj.write("i: ")
+            __a = Ifj.write(i)
+            __a = Ifj.write(", sum: ")
+            __a = Ifj.write(sum)
+            __a = Ifj.write("\n")
             
             i = i + 1
         }
         
-        Ifj.write("Final sum: ")
-        Ifj.write(sum)
-        Ifj.write("\n")
+        __a = Ifj.write("Final sum: ")
+        __a = Ifj.write(sum)
+        __a = Ifj.write("\n")
     }
 }

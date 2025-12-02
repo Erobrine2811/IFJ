@@ -37,6 +37,17 @@ void semantic_define_variable(tSymTableStack *stack, const char *variable_name, 
 void semantic_check_argument_count(tSymbolData *funcData, int argCount, const char *name);
 
 /**
+ * Function to check semantic argument types of function call
+ *
+ * @param funcData Function symbol data
+ * @param argTypes Argument types passed to the function
+ * @param argCount Number of arguments passed to the function
+ * @param name Name of the function being called
+ */
+void semantic_check_argument_types(tSymbolData *funcData, tDataType *argTypes, int argCount,
+                                   const char *name);
+
+/**
  * Function to check semantic rules for binary operations.
  *
  * @param op The operator string (e.g., "+", "*").

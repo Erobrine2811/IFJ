@@ -20,11 +20,11 @@ class Program {
         r1 = test()
         r2 = test(5)
         r3 = test(3, 4)
-        Ifj.write(r1)
-        Ifj.write("\n")
-        Ifj.write(r2)
-        Ifj.write("\n")
-        Ifj.write(r3)
-        Ifj.write("\n")
+        __a = Ifj.write(r1)
+        __a = Ifj.write("\n")
+        __a = Ifj.write(r2)
+        __a = Ifj.write("\n")
+        __a = Ifj.write(r3)
+        __a = Ifj.write("\n")
     }
 }

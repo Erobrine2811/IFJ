@@ -6,7 +6,7 @@ class Program {
         a = 10
         var result 
         result = a + undefinedVariable  // ERROR: undefinedVariable not declared
-        Ifj.write(result)
-        Ifj.write("\n")
+        __a = Ifj.write(result)
+        __a = Ifj.write("\n")
     }
 }

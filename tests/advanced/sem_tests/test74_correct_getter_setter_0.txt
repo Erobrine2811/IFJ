@@ -15,13 +15,13 @@ class Program {
     
     static main() {
         value = 42
-        Ifj.write("Value is: ")
-        Ifj.write(value)
-        Ifj.write("\n")
+        __a = Ifj.write("Value is: ")
+        __a = Ifj.write(value)
+        __a = Ifj.write("\n")
         
         value = 100
-        Ifj.write("New value is: ")
-        Ifj.write(value)
-        Ifj.write("\n")
+        __a = Ifj.write("New value is: ")
+        __a = Ifj.write(value)
+        __a = Ifj.write("\n")
     }
 }

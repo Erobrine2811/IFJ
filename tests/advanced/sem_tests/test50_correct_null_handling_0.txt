@@ -6,22 +6,22 @@ class Program {
         x = Ifj.read_num()
         if (x != null) {
             if (x is Num) {
-                Ifj.write("Got a number: ")
-                Ifj.write(x)
-                Ifj.write("\n")
+                __a = Ifj.write("Got a number: ")
+                __a = Ifj.write(x)
+                __a = Ifj.write("\n")
             } else {
-                Ifj.write("Not a number\n")
+                __a = Ifj.write("Not a number\n")
             }
         } else {
-            Ifj.write("Input was null\n")
+            __a = Ifj.write("Input was null\n")
         }
         
         var y 
         y = null
         if (y is Null) {
-            Ifj.write("y is null\n")
+            __a = Ifj.write("y is null\n")
         } else {
-            Ifj.write("y is not null\n")
+            __a = Ifj.write("y is not null\n")
         }
     }
 }

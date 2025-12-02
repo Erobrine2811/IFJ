@@ -844,7 +844,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         }
         else
         {
-            printf("Unexpected token: %d\n", lookahead->type);
+            printf("Unexpected token: %d\n", typeToString(lookahead->type));
             printf("Unexpected token: %d:%d\n", lookahead->linePos, lookahead->colPos);
             exit(SYNTAX_ERROR);
         }

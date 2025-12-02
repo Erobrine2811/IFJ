@@ -2,14 +2,14 @@
 import "ifj25" for Ifj
 class Program {
     static main() {
-        var str 
+        var str
         str = "hello"
         var num 
         num = 5
-        if (str < num) {  // ERROR: cannot compare string with number using <
-            Ifj.write("String is less\n")
+        if ("str" < "num") {  // ERROR: cannot compare string with number using <
+            __a = Ifj.write("String is less\n")
         } else {
-            Ifj.write("Number is less\n")
+            __a = Ifj.write("Number is less\n")
         }
     }
 }

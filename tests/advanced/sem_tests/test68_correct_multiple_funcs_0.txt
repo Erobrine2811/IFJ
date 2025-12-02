@@ -21,11 +21,11 @@ class Program {
         var sq 
         sq = square(x)
         
-        Ifj.write("Sum: ")
-        Ifj.write(sum)
-        Ifj.write("\n")
-        Ifj.write("Square: ")
-        Ifj.write(sq)
-        Ifj.write("\n")
+        __a = Ifj.write("Sum: ")
+        __a = Ifj.write(sum)
+        __a = Ifj.write("\n")
+        __a = Ifj.write("Square: ")
+        __a = Ifj.write(sq)
+        __a = Ifj.write("\n")
     }
 }

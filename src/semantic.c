@@ -39,6 +39,25 @@ void semantic_check_argument_count(tSymbolData *funcData, int argCount, const ch
     }
 }
 
+void semantic_check_argument_types(tSymbolData *funcData, tDataType *argTypes, int argCount,
+                                   const char *name)
+{
+    for (int i = 0; i < argCount; i++)
+    {
+        tDataType expectedType = funcData->paramTypes[i];
+        tDataType actualType = argTypes[i];
+
+        if (actualType != TYPE_UNDEF && expectedType != TYPE_UNDEF && expectedType != actualType)
+        {
+            fprintf(stderr,
+                    "[SEMANTIC] Error: builtin '%s' argument %d expects type %s, got %s\n", name,
+                    i + 1, transform_to_data_type(expectedType),
+                    transform_to_data_type(actualType));
+            exit(WRONG_ARGUMENT_COUNT_ERROR);
+        }
+    }
+}
+
 extern tSymTable *global_symtable;
 
 void semantic_define_variable(tSymTableStack *stack, const char *variableName, bool isGlobal)
@@ -76,11 +95,6 @@ tDataType semantic_check_literal_operation(char *op, tDataType left, tDataType r
         return TYPE_UNDEF;
     }
 
-    if (left == TYPE_NULL || right == TYPE_NULL)
-    {
-        fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: operand cannot be null\n", op);
-        exit(TYPE_COMPATIBILITY_ERROR);
-    }
 
     bool leftIsNum = left == TYPE_NUM;
     bool rightIsNum = right == TYPE_NUM;
@@ -88,6 +102,11 @@ tDataType semantic_check_literal_operation(char *op, tDataType left, tDataType r
     if (strcmp(op, "+") == 0 || strcmp(op, "-") == 0 || strcmp(op, "*") == 0 ||
         strcmp(op, "/") == 0)
     {
+        if (left == TYPE_NULL || right == TYPE_NULL)
+        {
+            fprintf(stderr, "[SEMANTIC] Type error in '%s' operation: operand cannot be null\n", op);
+            exit(TYPE_COMPATIBILITY_ERROR);
+        }
         if (leftIsNum && rightIsNum)
         {
             return TYPE_NUM;

@@ -22,10 +22,10 @@ class Program {
         n = 7
         var result 
         result = fib(n)
-        Ifj.write("Fibonacci of ")
-        Ifj.write(n)
-        Ifj.write(" is ")
-        Ifj.write(result)
-        Ifj.write("\n")
+        __a = Ifj.write("Fibonacci of ")
+        __a = Ifj.write(n)
+        __a = Ifj.write(" is ")
+        __a = Ifj.write(result)
+        __a = Ifj.write("\n")
     }
 }

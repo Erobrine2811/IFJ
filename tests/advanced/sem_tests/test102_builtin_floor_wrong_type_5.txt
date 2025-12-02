@@ -4,7 +4,7 @@ class Program {
     static main() {
         var result 
         result = Ifj.floor("42.7")
-        Ifj.write(result)
-        Ifj.write("\n")
+        __a = Ifj.write(result)
+        __a = Ifj.write("\n")
     }
 }

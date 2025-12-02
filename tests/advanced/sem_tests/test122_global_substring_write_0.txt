@@ -7,7 +7,7 @@ class Program {
         __end = 5
         var sub
         sub = Ifj.substring(__str, __start, __end)
-        Ifj.write(sub)
-        Ifj.write("\n")
+        __a = Ifj.write(sub)
+        __a = Ifj.write("\n")
     }
 }

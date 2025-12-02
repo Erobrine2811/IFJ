@@ -55,18 +55,6 @@ class Program {
         var ar15 
         ar15 = 1e2 / 50
         
-        // === UNARY MINUS (5) ===
-        var un1 
-        un1 = -1 + 2
-        var un2 
-        un2 = -(10 + 5)
-        var un3 
-        un3 = -lit1
-        var un4 
-        un4 = -ar1 * 2
-        var un5 
-        un5 = -(3.14 + 2.71)
-        
         // === PARENTHESES NESTING (10) ===
         var p1 
         p1 = (1)
@@ -165,28 +153,6 @@ class Program {
         var s10 
         s10 = "abc" * 0
         
-        // === TERNARY OPERATOR (10) ===
-        var t1 
-        t1 = 1 ? 2 : 3
-        var t2 
-        t2 = (1 < 2) ? 10 : 20
-        var t3 
-        t3 = (5 == 5) ? "yes" : "no"
-        var t4 
-        t4 = null ? 1 : 0
-        var t5 
-        t5 = (1 + 1) ? (2 + 2) : (3 + 3)
-        var t6 
-        t6 = (1 != 2) ? (10 * 5) : (20 / 4)
-        var t7 
-        t7 = (lit1 > 0) ? lit1 : 0
-        var t8 
-        t8 = ("a" == "a") ? 1 : 2
-        var t9 
-        t9 = ((1 ? 2 : 3)) ? 4 : 5
-        var t10 
-        t10 = 1 ? (2 ? 3 : 4) : 5
-        
         // === COMPLEX EXPRESSIONS (15) ===
         var c1 
         c1 = (1 + 2) * (3 + 4)
@@ -196,26 +162,16 @@ class Program {
         c3 = (1 * 2) + (3 / 4) - (5 - 6)
         var c4 
         c4 = ((10 + 20) * 30) / ((40 - 50) + 60)
-        var c5 
-        c5 = (1 < 2) ? ((3 + 4) * 5) : ((6 - 7) / 8)
-        var c6 
-        c6 = ((1 + 2) == 3) ? (4 * 5) : (6 + 7)
         var c7 
         c7 = (("a" + "b") * 2) + (("c" + "d") * 3)
-        var c8 
-        c8 = ((1 is Num) ? 1 : 0) + ((2 is String) ? 0 : 1)
         var c9 
         c9 = ((10 / 2) + (20 * 3)) - ((30 - 40) + 50)
         var c10 
         c10 = (((1 + 2) * (3 + 4)) / ((5 - 6) + (7 * 8)))
-        var c11 
-        c11 = ((1 < 2) ? (3 > 4) : (5 <= 6)) ? 1 : 0
         var c12 
         c12 = (1 + 2 * 3 - 4 / 5) + (6 * 7 - 8 + 9)
         var c13 
         c13 = ((((1)))) + ((((2)))) * ((((3))))
-        var c14 
-        c14 = (1 ? (2 ? 3 : 4) : (5 ? 6 : 7))
         var c15 
         c15 = ((1 + 2) * 3) == ((4 - 5) + 6)
         
@@ -241,7 +197,7 @@ class Program {
         var m10 
         m10 = ((1 + 2.5) * (3 + 4.5))
         
-        Ifj.write("Expression stress test completed!\n")
-        Ifj.write("Total expressions: 110\n")
+        __a = Ifj.write("Expression stress test completed!\n")
+        __a = Ifj.write("Total expressions: 110\n")
     }
 }

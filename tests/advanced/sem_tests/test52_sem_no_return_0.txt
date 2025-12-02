@@ -10,7 +10,7 @@ class Program {
     static main() {
         var val 
         val = calculate(5)
-        Ifj.write(val)
-        Ifj.write("\n")
+        __a = Ifj.write(val)
+        __a = Ifj.write("\n")
     }
 }

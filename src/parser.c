@@ -62,9 +62,9 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
 {
     if ((*currentToken)->type != type)
     {
-        printf("Unexpected token: %d\n", (*currentToken)->type);
+        printf("Unexpected token: %d\n", typeToString((*currentToken)->type));
         printf("Unexpected token: %d:%d\n", (*currentToken)->linePos, (*currentToken)->colPos);
-        printf("Expected token: %d\n", type);
+        printf("Expected token: %d\n", typeToString(type));
         exit(SYNTAX_ERROR);
     }
 
@@ -72,6 +72,8 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
     {
         if (strcmp((*currentToken)->data, value) != 0)
         {
+            printf("Unexpected token value: %s\n", (*currentToken)->data);
+            printf("Expected token value: %s\n", value);
             exit(SYNTAX_ERROR);
         }
     }
@@ -156,8 +158,10 @@ void parse_prolog(FILE *file, tToken *currentToken)
 {
     skip_optional_eol(currentToken, file);
     expect_and_consume(T_KW_IMPORT, currentToken, file, false, NULL);
+    skip_optional_eol(currentToken, file);
     expect_and_consume(T_STRING, currentToken, file, true, "\"ifj25\"");
     expect_and_consume(T_KW_FOR, currentToken, file, false, NULL);
+    skip_optional_eol(currentToken, file);
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
     consume_eol(file, currentToken);
 }
@@ -1271,9 +1275,9 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     char *key = safeMalloc(keyLength);
     sprintf(key, "%s@%d", funcName, argCount);
 
-    tSymbolData *func = symtable_find(global_symtable, key);
+    tSymbolData *funcData = symtable_find(global_symtable, key);
 
-    if (!func)
+    if (!funcData)
     {
         if (symtable_find_function(global_symtable, key))
         {
@@ -1310,7 +1314,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
             exit(INTERNAL_ERROR);
         }
     }
-    else if (func->kind != SYM_FUNC)
+    else if (funcData->kind != SYM_FUNC)
     {
         fprintf(stderr, "[PARSER] Error: '%s' is not a function\n", funcName);
         free(funcName);
@@ -1357,15 +1361,16 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     skip_optional_eol(currentToken, file);
 
     int argCount = 0;
+    tDataType argTypes[3];
     if ((*currentToken)->type != T_RIGHT_PAREN)
     {
-        parse_expression(file, currentToken, stack);
+        argTypes[argCount] = parse_expression(file, currentToken, stack);
         argCount++;
         while ((*currentToken)->type == T_COMMA)
         {
             get_next_token(file, currentToken);
             skip_optional_eol(currentToken, file);
-            parse_expression(file, currentToken, stack);
+            argTypes[argCount] = parse_expression(file, currentToken, stack);
             argCount++;
         }
     }
@@ -1392,6 +1397,7 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     }
 
     semantic_check_argument_count(funcData, argCount, fullName);
+    semantic_check_argument_types(funcData, argTypes, argCount, fullName);
 
     tDataType returnType;
 

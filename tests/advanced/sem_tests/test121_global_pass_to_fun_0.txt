@@ -11,7 +11,7 @@ class Program {
         __gB = 9
         var res
         res = sum(__gA, __gB)
-        Ifj.write(res)
-        Ifj.write("\n")
+        __a = Ifj.write(res)
+        __a = Ifj.write("\n")
     }
 }

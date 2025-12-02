@@ -7,8 +7,8 @@ class Program {
         var num 
         num = 2
         var result 
-        result = str / num  // ERROR: cannot divide string
-        Ifj.write(result)
-        Ifj.write("\n")
+        result = "str" / num  // ERROR: cannot divide string
+        __a = Ifj.write(result)
+        __a = Ifj.write("\n")
     }
 }

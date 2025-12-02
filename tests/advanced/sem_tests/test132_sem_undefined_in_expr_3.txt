@@ -6,7 +6,7 @@ class Program {
         var y
         x = 10
         y = x + z * 2  // z is undefined
-        Ifj.write(y)
-        Ifj.write("\n")
+        __a = Ifj.write(y)
+        __a = Ifj.write("\n")
     }
 }

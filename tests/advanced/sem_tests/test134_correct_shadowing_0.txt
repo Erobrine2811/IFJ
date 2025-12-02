@@ -4,15 +4,15 @@ class Program {
     static main() {
         var x
         x = 10
-        Ifj.write(x)
-        Ifj.write("\n")
+        __a = Ifj.write(x)
+        __a = Ifj.write("\n")
         {
             var x  // shadows outer x (allowed in different scope)
             x = 20
-            Ifj.write(x)
-            Ifj.write("\n")
+            __a = Ifj.write(x)
+            __a = Ifj.write("\n")
         }
-        Ifj.write(x)  // outer x still 10
-        Ifj.write("\n")
+        __a = Ifj.write(x)  // outer x still 10
+        __a = Ifj.write("\n")
     }
 }

@@ -9,17 +9,17 @@ class Program {
         
         var greeting 
         greeting = str1 + " " + str2
-        Ifj.write(greeting)
-        Ifj.write("\n")
+        __a = Ifj.write(greeting)
+        __a = Ifj.write("\n")
         
         var repeated 
         repeated = "Ha" * 3
-        Ifj.write(repeated)
-        Ifj.write("\n")
+        __a = Ifj.write(repeated)
+        __a = Ifj.write("\n")
         
         var multi 
         multi = (str1 * 2) + (str2 * 2)
-        Ifj.write(multi)
-        Ifj.write("\n")
+        __a = Ifj.write(multi)
+        __a = Ifj.write("\n")
     }
 }

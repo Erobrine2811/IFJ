@@ -3,12 +3,12 @@ import "ifj25" for Ifj
 class Program {
     // Hlavni funkce
     static main() {
-        Ifj.write("Zadejte cislo pro vypocet faktorialu: ")
+        __a = Ifj.write("Zadejte cislo pro vypocet faktorialu: ")
         var inp 
         inp = Ifj.read_num()
         if (inp != null) {
             if (inp < 0) {
-                Ifj.write("Faktorial nelze spocitat!\n")
+                __a = Ifj.write("Faktorial nelze spocitat!\n")
             } else {
                 // Overime celociselnost
                 var inpFloored 
@@ -17,15 +17,15 @@ class Program {
                     var vysl 
                     vysl = factorial(inp)
                     vysl = Ifj.str(vysl)
-                    Ifj.write("Vysledek: ")
-                    Ifj.write(vysl)
-                    Ifj.write("\n")
+                    __a = Ifj.write("Vysledek: ")
+                    __a = Ifj.write(vysl)
+                    __a = Ifj.write("\n")
                 } else {
-                    Ifj.write("Cislo neni cele!\n")
+                    __a = Ifj.write("Cislo neni cele!\n")
                 }
             }
         } else {
-            Ifj.write("Chyba pri nacitani celeho cisla!\n")
+            __a = Ifj.write("Chyba pri nacitani celeho cisla!\n")
         }
     }
     // Funkce pro vypocet hodnoty faktorialu

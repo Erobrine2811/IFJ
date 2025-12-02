@@ -9,16 +9,16 @@ class Program {
         
         while (counter < 5) {
             sum = sum + counter
-            Ifj.write("Counter: ")
-            Ifj.write(counter)
-            Ifj.write(", Sum: ")
-            Ifj.write(sum)
-            Ifj.write("\n")
+            __a = Ifj.write("Counter: ")
+            __a = Ifj.write(counter)
+            __a = Ifj.write(", Sum: ")
+            __a = Ifj.write(sum)
+            __a = Ifj.write("\n")
             counter = counter + 1
         }
         
-        Ifj.write("Final sum: ")
-        Ifj.write(sum)
-        Ifj.write("\n")
+        __a = Ifj.write("Final sum: ")
+        __a = Ifj.write(sum)
+        __a = Ifj.write("\n")
     }
 }

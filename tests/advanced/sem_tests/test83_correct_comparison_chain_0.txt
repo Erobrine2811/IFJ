@@ -8,21 +8,21 @@ class Program {
         b = 10
         
         if (a < b) {
-            Ifj.write("a is less than b\n")
+            __a = Ifj.write("a is less than b\n")
         } else {
-            Ifj.write("a is not less\n")
+            __a = Ifj.write("a is not less\n")
         }
         
         if (a <= b) {
-            Ifj.write("a is less or equal\n")
+            __a = Ifj.write("a is less or equal\n")
         } else {
-            Ifj.write("a is greater\n")
+            __a = Ifj.write("a is greater\n")
         }
         
         if (a == a) {
-            Ifj.write("a equals itself\n")
+            __a = Ifj.write("a equals itself\n")
         } else {
-            Ifj.write("impossible\n")
+            __a = Ifj.write("impossible\n")
         }
     }
 }

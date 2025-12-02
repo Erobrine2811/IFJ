@@ -7,7 +7,7 @@ class Program {
         __c = 5
         var r
         r = (__a + __b) * __c - __a
-        Ifj.write(r)
-        Ifj.write("\n")
+        __a = Ifj.write(r)
+        __a = Ifj.write("\n")
     }
 }

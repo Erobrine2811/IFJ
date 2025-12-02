@@ -6,14 +6,14 @@ class Program {
         x = 15
         
         if (x > 10) {
-            Ifj.write("x is greater than 10\n")
+            __a = Ifj.write("x is greater than 10\n")
             if (x > 20) {
-                Ifj.write("x is greater than 20\n")
+                __a = Ifj.write("x is greater than 20\n")
             } else {
-                Ifj.write("x is between 10 and 20\n")
+                __a = Ifj.write("x is between 10 and 20\n")
             }
         } else {
-            Ifj.write("x is 10 or less\n")
+            __a = Ifj.write("x is 10 or less\n")
         }
     }
 }
