@@ -1,9 +1,14 @@
 #include "symtable.h"
-#include "error.h"
 
-int height(tSymNode *n) { return n ? n->height : 0; }
+int height(tSymNode *n)
+{
+    return n ? n->height : 0;
+}
 
-int max(int a, int b) { return (a > b) ? a : b; }
+int max(int a, int b)
+{
+    return (a > b) ? a : b;
+}
 
 tSymNode *create_node(const char *key, tSymbolData data)
 {
@@ -18,12 +23,16 @@ tSymNode *create_node(const char *key, tSymbolData data)
 
 void free_node(tSymNode *node)
 {
-    if (!node) return;
+    if (!node)
+        return;
     free(node->data.unique_name);
-    if (node->data.kind == SYM_FUNC) {
+    if (node->data.kind == SYM_FUNC)
+    {
         free(node->data.paramTypes);
-        if (node->data.paramNames) {
-            for (int i = 0; i < node->data.paramCount; i++) {
+        if (node->data.paramNames)
+        {
+            for (int i = 0; i < node->data.paramCount; i++)
+            {
                 free(node->data.paramNames[i]);
             }
             free(node->data.paramNames);
@@ -59,7 +68,8 @@ tSymNode *rotate_left(tSymNode *x)
     return y;
 }
 
-int get_balance(tSymNode *n) {
+int get_balance(tSymNode *n)
+{
     return n ? height(n->left) - height(n->right) : 0;
 }
 
@@ -106,9 +116,11 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
 
 tSymbolData *find_rec(tSymNode *node, const char *key)
 {
-    if (!node) return NULL;
+    if (!node)
+        return NULL;
     int cmp = strcmp(key, node->key);
-    if (cmp == 0) return &node->data;
+    if (cmp == 0)
+        return &node->data;
     return (cmp < 0) ? find_rec(node->left, key) : find_rec(node->right, key);
 }
 
@@ -119,38 +131,47 @@ tSymbolData *find_rec(tSymNode *node, const char *key)
  * @param s2 The second string.
  * @return 'true' if the function names are identical, 'false' otherwise.
  */
-bool compare_function_names(const char* s1, const char* s2) {
-    if (s1 == NULL || s2 == NULL) return false;
+bool compare_function_names(const char *s1, const char *s2)
+{
+    if (s1 == NULL || s2 == NULL)
+        return false;
 
-    const char* at1 = strrchr(s1, '@');
-    const char* at2 = strrchr(s2, '@');
+    const char *at1 = strrchr(s1, '@');
+    const char *at2 = strrchr(s2, '@');
 
-    if (at1 == NULL && at2 == NULL) return strcmp(s1, s2) == 0;
+    if (at1 == NULL && at2 == NULL)
+        return strcmp(s1, s2) == 0;
 
-    if (at1 == NULL || at2 == NULL) return false;
+    if (at1 == NULL || at2 == NULL)
+        return false;
 
     size_t len1 = at1 - s1;
     size_t len2 = at2 - s2;
 
-    if (len1 != len2) return false;
+    if (len1 != len2)
+        return false;
 
-    if (len1 == 0) return true;
+    if (len1 == 0)
+        return true;
 
     return strncmp(s1, s2, len1) == 0;
 }
 
 bool find_function(tSymNode *node, const char *key)
 {
-    if (!node) return false;
+    if (!node)
+        return false;
     bool cmp = compare_function_names(key, node->key);
     int cmpFull = strcmp(key, node->key);
-    if (cmp && node->data.kind == SYM_FUNC && node->data.defined) return true;
+    if (cmp && node->data.kind == SYM_FUNC && node->data.defined)
+        return true;
     return (cmpFull < 0) ? find_function(node->left, key) : find_function(node->right, key);
 }
 
 void free_rec(tSymNode *node)
 {
-    if (!node) return;
+    if (!node)
+        return;
     free_rec(node->left);
     free_rec(node->right);
     free_node(node);

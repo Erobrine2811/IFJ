@@ -1,19 +1,17 @@
 /**
  * @file helper.c
- * 
+ *
  * IFJ25 project
- * 
+ *
  * File with helper function
- * 
+ *
  * @author Jakub Králik <xkralij00>
  */
 
-
- 
-#include "helper.h"
 #include "error.h"
+#include "helper.h"
 
-void *safeMalloc(size_t size) 
+void *safeMalloc(size_t size)
 {
     void *ptr = malloc(size);
     if (ptr == NULL)
@@ -34,4 +32,3 @@ void *safeRealloc(void *block, size_t size)
     }
     return ptr;
 }
-

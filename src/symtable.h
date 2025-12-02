@@ -2,25 +2,28 @@
 #define IFJ_SYMTABLE_H
 
 #include "helper.h"
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <stdbool.h>
 
-typedef enum {
+typedef enum
+{
     SYM_VAR,
     SYM_FUNC,
     SYM_LABEL
 } tSymbolType;
 
-typedef enum {
+typedef enum
+{
     TYPE_NUM,
     TYPE_STRING,
     TYPE_NULL,
     TYPE_UNDEF
 } tDataType;
 
-typedef struct {
+typedef struct
+{
     tSymbolType kind;
     tDataType dataType;
     char *unique_name;
@@ -34,7 +37,8 @@ typedef struct {
     int paramCount;
 } tSymbolData;
 
-typedef struct SymNode {
+typedef struct SymNode
+{
     char *key;
     tSymbolData data;
     struct SymNode *left;
@@ -42,7 +46,8 @@ typedef struct SymNode {
     int height;
 } tSymNode;
 
-typedef struct {
+typedef struct
+{
     tSymNode *root;
 } tSymTable;
 

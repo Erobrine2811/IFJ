@@ -1,39 +1,34 @@
 /**
  * @file scanner.h
- * 
+ *
  * IFJ25 project
- * 
+ *
  * Lexical analyzator
- * 
+ *
  * @author Jakub Králik <xkralij00>
  */
-
-
 
 #ifndef IFJ_SCANNER_H
 #define IFJ_SCANNER_H
 
 #include "error.h"
 #include "helper.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <ctype.h>
 #include <stdbool.h>
-
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * Length of string blocks for dynamic string allocation
  */
 #define STRING_BLOCK_LEN 50
 
-
-
 /**
  * Enumeration of all possible token types
  */
-typedef enum {
+typedef enum
+{
     T_UNKNOWN,
     T_ID,
     T_GLOBAL_ID,
@@ -84,12 +79,11 @@ typedef enum {
     T_COMMA
 } tType;
 
-
-
 /**
  * Enumeration of all possible states of the finite state machine
  */
-typedef enum {
+typedef enum
+{
     S_NULL,
     S_SPACE,
     S_ERROR,
@@ -148,13 +142,12 @@ typedef enum {
     S_BLOCK_COMMENT_SLASH
 } tState;
 
-
-
 /**
  * Structure representing a token
  * can be linked to form a list of tokens
  */
-typedef struct Token{
+typedef struct Token
+{
     tType type;
     char *data;
     unsigned int linePos;
@@ -163,108 +156,86 @@ typedef struct Token{
     struct Token *nextToken;
 } *tToken;
 
-
-
 /**
  * Finite State Machine for lexical analysis
- * 
+ *
  * @param file Input file to read from
  * @param token Pointer to token structure to fill
  * @return 0 on success, LEXICAL_ERROR on lexical error, INTERNAL_ERROR on internal error
  */
 int FSM(FILE *file, tToken token);
 
-
-
 /**
  * Function to print scanner error messages
- * 
+ *
  * @param currChar Current character causing the error
  * @param state Current state of the FSM
  * @param linePos Current line position in the input file
  * @param colPos Current column position in the input file
  */
-void scannerError(char currChar, tState state ,unsigned int linePos, unsigned int colPos);
-
-
+void scannerError(char currChar, tState state, unsigned int linePos, unsigned int colPos);
 
 /**
  * Function to get the next token from the input file
- * 
+ *
  * @param file Input file to read from
  * @param token Pointer to token structure to fill
  * @return 0 on success, LEXICAL_ERROR on lexical error, INTERNAL_ERROR on internal error
  */
 int getToken(FILE *file, tToken *token);
 
-
-
 /**
  * Function to get the list of all tokens from the input file
- * 
+ *
  * @param file Input file to read from
  * @param firstToken Pointer to the first token in the list
  * @return 0 on success, LEXICAL_ERROR on lexical error, INTERNAL_ERROR on internal error
  */
 int getTokenList(FILE *file, tToken *firstToken);
 
-
-
 /**
  * Function to free a token
- * 
+ *
  * @param token Pointer to token to free
  */
 void freeToken(tToken *token);
 
-
-
 /**
  * Function to free a list of tokens
- * 
+ *
  * @param token Pointer to the first token in the list
  */
 void freeTokenList(tToken *token);
 
-
-
 /**
  * Function to check if a token is a keyword
  * If it is, the token type is changed to the corresponding keyword type
- * 
+ *
  * @param token Token to check
  * @return true if the token is a keyword, false otherwise
  */
 bool isKeyword(tToken token);
 
-
-
 /**
  * Function to convert a token type to a string
- * 
+ *
  * @param type Token type to convert
  * @return String representation of the token type
  */
 char *typeToString(tType type);
 
-
-
 /**
  * Function to print a token
- * 
+ *
  * @param token Token to print
  */
 void printToken(tToken token);
 
-
-
 /**
  * Function to print a list of tokens
- * 
+ *
  * @param token Pointer to the first token in the list
  */
 void printTokenList(tToken token);
-
-
 
 #endif // IFJ_SCANNER_H

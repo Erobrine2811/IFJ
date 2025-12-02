@@ -1,15 +1,16 @@
 #ifndef EXPR_PARSER_H
 #define EXPR_PARSER_H
 
+#include "error.h"
 #include "scanner.h"
 #include "symstack.h"
-#include "error.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
-typedef enum {
+typedef enum
+{
     E_MUL_DIV,
     E_PLUS_MINUS,
     E_REL,
@@ -24,14 +25,16 @@ typedef enum {
     E_DOLLAR
 } tSymbol;
 
-typedef enum {
+typedef enum
+{
     PREC_LESS = '<',
     PREC_GREATER = '>',
     PREC_EQUAL = '=',
     PREC_ERROR = 'E'
 } tPrec;
 
-typedef struct ExprStackNode {
+typedef struct ExprStackNode
+{
     tSymbol symbol;
     bool is_terminal;
     char *value;
@@ -39,7 +42,8 @@ typedef struct ExprStackNode {
     struct ExprStackNode *next;
 } tExprStackNode;
 
-typedef struct {
+typedef struct
+{
     tExprStackNode *top;
 } tExprStack;
 

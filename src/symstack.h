@@ -1,15 +1,16 @@
 #ifndef SYMSTACK_H
 #define SYMSTACK_H
 
-#include "symtable.h"
 #include "error.h"
-#include <stdio.h>
+#include "symtable.h"
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define MAX_SCOPE_DEPTH 100
 
-typedef struct {
+typedef struct
+{
     tSymTable *tables[MAX_SCOPE_DEPTH];
     int top;
 } tSymTableStack;

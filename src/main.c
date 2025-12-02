@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include "3AC.h"
 #include "error.h"
 #include "parser.h"
-#include "3AC.h"
+#include <stdio.h>
 
 // Global 3AC code list
 ThreeACList threeACcode;
@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
     {
         // File argument provided, open the file
         file = fopen(argv[1], "r");
-        if (file == NULL) {
+        if (file == NULL)
+        {
             fprintf(stderr, "Error: Cannot open file '%s'\n", argv[1]);
             return INTERNAL_ERROR;
         }

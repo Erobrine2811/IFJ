@@ -9,3 +9,4 @@ ic25int
 *.zip
 submission_test_dir
 completed_project
+.clang-format

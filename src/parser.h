@@ -1,20 +1,21 @@
 #ifndef IFJ_PARSER_H
 #define IFJ_PARSER_H
 
+#include "error.h"
+#include "expr_parser.h"
+#include "helper.h"
 #include "scanner.h"
 #include "symstack.h"
 #include "symtable.h"
-#include "error.h"
-#include "helper.h"
-#include "expr_parser.h"
 #include <stdbool.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern tSymTable *global_symtable;
 
-typedef struct {
+typedef struct
+{
     char *name;
     tDataType returnType;
     int paramCount;
@@ -37,13 +38,15 @@ void check_node_defined(tSymNode *node);
 void check_undefined_functions();
 void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack, char ***paramNames);
+int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                         char ***paramNames);
 void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody);
 void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement);
 tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement);
-void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check_value, const char* value);
+void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
+                        const char *value);
 void skip_optional_eol(tToken *currentToken, FILE *file);
 
 tSymbolData *find_data_in_stack(tSymTableStack *stack, const char *key);
