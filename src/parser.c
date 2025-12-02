@@ -6,6 +6,8 @@
 #include "semantic.h"
 #include "3AC.h"
 #include "3AC_patterns.h"
+
+
 static tToken peek_buffer = NULL;
 
 static tBuiltinDef builtin_defs[] = {
@@ -668,11 +670,41 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
         symtable_init(blockSymtable);
         symtable_stack_push(stack, blockSymtable);
     }
-    else {
+    else
+    {
         blockSymtable = symtable_stack_top(stack);
     }
 
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
+
+    if ((*currentToken)->type != T_EOL)
+    {
+        if (!isFunctionBody)
+        {
+            if ((*currentToken)->type != T_RIGHT_BRACE)
+            {
+                parse_expression(file, currentToken, stack);
+            }
+            
+            expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
+
+            symtable_stack_pop(stack);
+            symtable_free(blockSymtable);
+            free(blockSymtable);
+        }
+        else 
+        {
+            if ((*currentToken)->type != T_RIGHT_BRACE)
+            {
+                generate_return(file, currentToken, stack, true);
+            }
+            
+            expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
+        }
+        
+        return;
+    }
+
     consume_eol(file, currentToken);
 
     while ((*currentToken)->type != T_RIGHT_BRACE && (*currentToken)->type != T_EOF)
@@ -705,7 +737,7 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             parse_while_statement(file, currentToken, stack);
             break;
         case T_KW_RETURN:
-            generate_return(file, currentToken, stack);
+            generate_return(file, currentToken, stack, false);
             break;
         case T_KW_VAR:
             parse_variable_declaration(file, currentToken, stack);
@@ -834,9 +866,6 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     if (nextToken && nextToken->type == T_LEFT_PAREN && (*currentToken)->type == T_ID)
     {
         parse_function_call(file, currentToken, stack, true);
-        if ((*currentToken)->type == T_EOL) {
-            consume_eol(file, currentToken);
-        }
         return;
     }
 
