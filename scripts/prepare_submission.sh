@@ -28,12 +28,7 @@ cp src/*.h "$SUBMISSION_DIR/"
 
 # Copy other required files
 echo "--- Copying Makefile into $SUBMISSION_DIR ---"
-cp Makefile "$SUBMISSION_DIR/"
-
-# Modify the Makefile inside the submission directory to remove "src/" paths
-# Using -i.bak for macOS compatibility
-echo "--- Modifying Makefile inside $SUBMISSION_DIR for flat structure ---"
-sed -i.bak 's|src/||g' "$SUBMISSION_DIR/Makefile"
+cp Makefile.submission "$SUBMISSION_DIR/Makefile"
 
 # Copy optional files if they exist
 if [ -f "dokumentace.pdf" ]; then

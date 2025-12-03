@@ -1,0 +1,17 @@
+CC = gcc
+CFLAGS = -std=c99 -pedantic -Wall -Wextra -g
+SRC = scanner.c helper.c parser.c symtable.c main.c expr_parser.c symstack.c semantic.c 3AC.c 3AC_patterns.c
+OBJ = $(SRC:.c=.o)
+TARGET = ifj25
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJ) $(TARGET)
+
