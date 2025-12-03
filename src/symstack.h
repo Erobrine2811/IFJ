@@ -52,7 +52,6 @@ void symtable_stack_push(tSymTableStack *stack, tSymTable *table);
 
 /**
  * Pops the top symbol table from the stack and frees the stack node.
- * Note: This does not free the tSymTable pointer itself.
  *
  * @param stack Pointer to the stack.
  */
@@ -60,7 +59,6 @@ void symtable_stack_pop(tSymTableStack *stack);
 
 /**
  * Frees all nodes in the stack.
- * Note: This does not free the tSymTable pointers held by the nodes.
  *
  * @param stack Pointer to the stack to be freed.
  */

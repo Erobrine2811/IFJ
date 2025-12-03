@@ -59,7 +59,7 @@ typedef enum
 typedef struct ExprStackNode
 {
     tSymbol symbol;
-    bool is_terminal;
+    bool isTerminal;
     char *value;
     tDataType dataType;
     struct ExprStackNode *next;
@@ -73,7 +73,7 @@ typedef struct
     tExprStackNode *top;
 } tExprStack;
 
-// ---  Functions ---
+// --- Functions ---
 
 /**
  * Parses a single expression using precedence parsing rules.
@@ -117,7 +117,7 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack
  * Maps a token to its corresponding symbol for the precedence table.
  *
  * @param token The token to map.
- * @param file The input file stream (for lookahead in case of ambiguity).
+ * @param file The input file stream (for lookahead in case of function calls).
  * @return The corresponding tSymbol for the precedence table.
  */
 static tSymbol get_precedence_type(tToken token, FILE *file);

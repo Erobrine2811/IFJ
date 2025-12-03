@@ -25,7 +25,7 @@ void symtable_stack_push(tSymTableStack *stack, tSymTable *table)
     tSymTableStackNode *newNode = (tSymTableStackNode *)safeMalloc(sizeof(tSymTableStackNode));
     if (newNode == NULL)
     {
-        fprintf(stderr, "[INTERNAL] Fatal error: stack memory allocation failed\n");
+        fprintf(stderr, "[INTERNAL] FatalError: Stack memory allocation failed\n");
         exit(INTERNAL_ERROR);
     }
 
@@ -50,8 +50,7 @@ tSymTable *symtable_stack_top(tSymTableStack *stack)
 {
     if (symtable_stack_is_empty(stack))
     {
-        fprintf(stderr,
-                "[INTERNAL] Fatal error: attempt to access top of an empty symbol stack.\n");
+        fprintf(stderr, "[INTERNAL] FatalError: Attempt to access top of an empty symbol stack.\n");
         exit(INTERNAL_ERROR);
     }
 

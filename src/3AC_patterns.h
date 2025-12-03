@@ -6,13 +6,6 @@
 
 void generate_program_entrypoint(tThreeACList *list);
 
-void generate_eof(tThreeACList *list);
-
-void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-void generate_function_call(tSymTable *g_symtable, tSymTableStack *stack, tToken *funcToken,
-                            FILE *file, tToken *currentToken);
-
 void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isOneLine);
 
 tDataType generate_ifj_write(tSymTableStack *stack);

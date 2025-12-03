@@ -10,6 +10,7 @@
 
 #include "3AC_patterns.h"
 #include "parser.h"
+#include "scanner.h"
 
 static tToken peek_buffer = NULL;
 
@@ -34,6 +35,8 @@ tToken peek_token(FILE *file)
     {
         if (getToken(file, &peek_buffer) != 0)
         {
+            fprintf(stderr, "[PARSER] LexicalError:%d:%d: Failed to get next token.\n",
+                    peek_buffer->linePos, peek_buffer->colPos);
             exit(LEXICAL_ERROR);
         }
     }
@@ -57,18 +60,21 @@ void get_next_token(FILE *file, tToken *currentToken)
 
     if (getToken(file, currentToken) != 0)
     {
+        fprintf(stderr, "[PARSER] LexicalError:%d:%d: Failed to get next token.\n",
+                (*currentToken)->linePos, (*currentToken)->colPos);
         exit(LEXICAL_ERROR);
     }
 }
 
-void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
-                        const char *value)
+static void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
+                               const char *value)
 {
     if ((*currentToken)->type != type)
     {
-        printf("Unexpected token: %d\n", typeToString((*currentToken)->type));
-        printf("Unexpected token: %d:%d\n", (*currentToken)->linePos, (*currentToken)->colPos);
-        printf("Expected token: %d\n", typeToString(type));
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                (*currentToken)->linePos, (*currentToken)->colPos,
+                typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s'\n", typeToString(type));
         exit(SYNTAX_ERROR);
     }
 
@@ -76,8 +82,9 @@ void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool check
     {
         if (strcmp((*currentToken)->data, value) != 0)
         {
-            printf("Unexpected token value: %s\n", (*currentToken)->data);
-            printf("Expected token value: %s\n", value);
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token value: %s.\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, (*currentToken)->data);
+            fprintf(stderr, "\t Expected: %s\n", value);
             exit(SYNTAX_ERROR);
         }
     }
@@ -91,12 +98,13 @@ void skip_optional_eol(tToken *currentToken, FILE *file)
         get_next_token(file, currentToken);
 }
 
-void consume_eol(FILE *file, tToken *currentToken)
+static void consume_eol(FILE *file, tToken *currentToken)
 {
     if ((*currentToken)->type != T_EOL)
     {
-        fprintf(stderr, "[PARSER] Syntax Error: Expected EOL, but got token of type %d\n",
-                (*currentToken)->type);
+        fprintf(stderr, "[PARSER] SyntaxError: Expected EOL, but got token of type %s at %d:%d\n",
+                typeToString((*currentToken)->type), (*currentToken)->linePos,
+                (*currentToken)->colPos);
         exit(SYNTAX_ERROR);
     }
 
@@ -144,7 +152,7 @@ int parse_program(FILE *file)
     return 0;
 }
 
-void parse_prolog(FILE *file, tToken *currentToken)
+static void parse_prolog(FILE *file, tToken *currentToken)
 {
     skip_optional_eol(currentToken, file);
     expect_and_consume(T_KW_IMPORT, currentToken, file, false, NULL);
@@ -156,7 +164,7 @@ void parse_prolog(FILE *file, tToken *currentToken)
     consume_eol(file, currentToken);
 }
 
-void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_CLASS, currentToken, file, false, NULL);
     expect_and_consume(T_ID, currentToken, file, true, "Program");
@@ -169,14 +177,14 @@ void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
 
     if (symtable_find(global_symtable, "main@0") == NULL)
     {
-        fprintf(stderr, "[SEMANTIC] Error: undefined function 'main' with 0 parameters\n");
+        fprintf(stderr, "[PARSER] SemanticError: undefined function 'main' with 0 parameters\n");
         exit(UNDEFINED_FUN_ERROR);
     }
 
     expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
 }
 
-void insert_builtin_functions()
+static void insert_builtin_functions()
 {
     for (int i = 0; i < 10; i++)
     {
@@ -206,15 +214,18 @@ void insert_builtin_functions()
 
         if (!symtable_insert(global_symtable, def->name, builtinData))
         {
-            fprintf(stderr, "[INTERNAL] Could not insert builtin '%s'.\n", def->name);
+            fprintf(stderr, "[INTERNAL] Could not insert builtin '%s' into symbol table\n",
+                    def->name);
         }
     }
 }
 
-void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     if ((*currentToken)->type != T_KW_STATIC)
     {
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Missing expected 'static' keyword\n",
+                (*currentToken)->linePos, (*currentToken)->colPos);
         exit(SYNTAX_ERROR);
     }
 
@@ -225,13 +236,16 @@ void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
     }
 }
 
-void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_STATIC, currentToken, file, false, NULL);
 
     if ((*currentToken)->type != T_ID)
     {
-        printf("Expected token type %d but got2 %d\n", T_ID, (*currentToken)->type);
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                (*currentToken)->linePos, (*currentToken)->colPos,
+                typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_ID));
         exit(SYNTAX_ERROR);
     }
 
@@ -256,6 +270,11 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         }
 
         free(funcName);
+
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                (*currentToken)->linePos, (*currentToken)->colPos,
+                typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_LEFT_PAREN));
         exit(SYNTAX_ERROR);
     }
 
@@ -297,10 +316,6 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     for (int i = 0; i < paramCount; i++)
     {
         tSymbolData *paramData = symtable_find(funcScopeTable, paramNames[i]);
-        if (!paramData)
-        {
-            exit(INTERNAL_ERROR);
-        }
         tOperand *paramOp = create_operand_from_variable(paramData->unique_name, false);
         emit(OP_DEFVAR, paramOp, NULL, NULL, &threeACcode);
     }
@@ -311,10 +326,6 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
         sprintf(tempParamName, "%%param%d", i);
 
         tSymbolData *paramData = symtable_find(funcScopeTable, paramNames[i]);
-        if (!paramData)
-        {
-            exit(INTERNAL_ERROR);
-        }
 
         tOperand *dest = create_operand_from_variable(paramData->unique_name, false);
         tOperand *src = create_operand_from_variable(tempParamName, false);
@@ -329,14 +340,15 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     int keyLength = strlen(funcName) + 1 + 10 + 1;
     char *key = safeMalloc(keyLength);
     sprintf(key, "%s@%d", funcName, paramCount);
-    free(funcName);
 
     tSymbolData *existing = symtable_find(global_symtable, key);
     if (existing != NULL)
     {
         if (existing->defined)
         {
-            fprintf(stderr, "[SEMANTIC] Error: function '%s' redefined\n", key);
+            fprintf(stderr, "[PARSER] SemanticError:%d:%d: Function '%s' redefined\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, funcName);
+            free(funcName);
             free(key);
             exit(REDEFINITION_FUN_ERROR);
         }
@@ -378,6 +390,10 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
 
         if (!symtable_insert(global_symtable, key, funcData))
         {
+            fprintf(stderr,
+                    "[INTERNAL] Error:%d:%d: Failed to insert function '%s' into symbol table\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, funcName);
+            free(funcName);
             free(key);
             exit(INTERNAL_ERROR);
         }
@@ -395,14 +411,16 @@ void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack
     symtable_stack_pop(stack);
     symtable_free(poppedSymtable);
     free(poppedSymtable);
+    free(funcName);
     free(key);
+
     // For space bettween instructions
     emit(OP_RETURN, NULL, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
-void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
+static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
 {
     int keyLength = strlen("getter:") + strlen(funcName) + 3;
     char *key = safeMalloc(keyLength);
@@ -412,8 +430,9 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 
     if (alreadyDefined != NULL && alreadyDefined->defined)
     {
+        fprintf(stderr, "[PARSER] SemanticError:%d:%d: Getter '%s' redefined\n",
+                (*currentToken)->linePos, (*currentToken)->colPos, funcName);
         free(key);
-        printf("Getter redefinition error for %s\n", funcName);
         exit(REDEFINITION_FUN_ERROR);
     }
 
@@ -429,9 +448,11 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 
         if (!symtable_insert(global_symtable, key, getterData))
         {
+            fprintf(stderr,
+                    "[INTERNAL] Error:%d:%d: Failed to insert getter '%s' into symbol table\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, funcName);
             free(key);
-            printf("Getter redefinition error for %s\n", funcName);
-            exit(REDEFINITION_FUN_ERROR);
+            exit(INTERNAL_ERROR);
         }
     }
 
@@ -472,13 +493,17 @@ void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     free(key);
 }
 
-void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
+static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
 {
     get_next_token(file, currentToken);
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
 
     if ((*currentToken)->type != T_ID)
     {
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token for setter parameter '%s'\n",
+                (*currentToken)->linePos, (*currentToken)->colPos,
+                typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_ID));
         exit(SYNTAX_ERROR);
     }
 
@@ -496,9 +521,10 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 
     if (alreadyDefined != NULL && alreadyDefined->defined)
     {
+        fprintf(stderr, "[PARSER] SemanticError:%d:%d: Setter '%s' already defined\n",
+                (*currentToken)->linePos, (*currentToken)->colPos, funcName);
         free(key);
         free(paramName);
-        printf("Setter redefinition error for %s\n", funcName);
         exit(REDEFINITION_FUN_ERROR);
     }
 
@@ -516,9 +542,12 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
 
         if (!symtable_insert(global_symtable, key, setterData))
         {
+            fprintf(stderr,
+                    "[INTERNAL] Error:%d:%d: Failed to insert setter '%s' into symbol table\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, funcName);
             free(key);
             free(setterData.paramTypes);
-            exit(REDEFINITION_FUN_ERROR);
+            exit(INTERNAL_ERROR);
         }
     }
 
@@ -572,8 +601,8 @@ void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char 
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
-int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
-                         char ***paramNames)
+static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                                char ***paramNames)
 {
     int paramCount = 0;
     tSymTable *currentSymtable = symtable_stack_top(stack);
@@ -592,6 +621,11 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         if ((*currentToken)->type != T_ID)
         {
+            fprintf(stderr,
+                    "[PARSER] SyntaxError:%d:%d: Unexpected token for fuction parameter '%s'\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos,
+                    typeToString((*currentToken)->type));
+            fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_ID));
             exit(SYNTAX_ERROR);
         }
 
@@ -613,6 +647,9 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
 
         if (!symtable_insert(currentSymtable, paramName, paramData))
         {
+            fprintf(stderr,
+                    "[PARSER] SemanticError:%d:%d: Redefinition of function parameter '%s'\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, paramName);
             free(paramData.unique_name);
             free(paramName);
             exit(REDEFINITION_FUN_ERROR);
@@ -633,7 +670,7 @@ int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack
     return paramCount;
 }
 
-void check_node_defined(tSymNode *node)
+static void check_node_defined(tSymNode *node)
 {
     if (node == NULL)
     {
@@ -644,14 +681,14 @@ void check_node_defined(tSymNode *node)
 
     if (node->data.kind == SYM_FUNC && !node->data.defined)
     {
-        fprintf(stderr, "[Parser] Error: undefined function: %s\n", node->key);
+        fprintf(stderr, "[PARSER] SemanticError: Undefined function '%s'\n", node->key);
         exit(UNDEFINED_FUN_ERROR);
     }
 
     check_node_defined(node->right);
 }
 
-void check_undefined_functions()
+static void check_undefined_functions()
 {
     if (global_symtable != NULL)
     {
@@ -659,7 +696,8 @@ void check_undefined_functions()
     }
 }
 
-void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody)
+static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                        bool isFunctionBody)
 {
     tSymTable *blockSymtable;
 
@@ -676,7 +714,7 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
 
     expect_and_consume(T_LEFT_BRACE, currentToken, file, false, NULL);
 
-    if ((*currentToken)->type != T_EOL)
+    if ((*currentToken)->type != T_EOL) // ONELINEBLOCK extension
     {
         if (!isFunctionBody)
         {
@@ -722,7 +760,7 @@ void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool i
     }
 }
 
-void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     switch ((*currentToken)->type)
     {
@@ -749,14 +787,15 @@ void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
             parse_ifj_call(file, currentToken, stack, true);
             break;
         default:
-            fprintf(stderr, "[PARSER] Syntax error: unexpected token '%s'\n",
-                    (*currentToken)->data);
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos,
+                    typeToString((*currentToken)->type));
             exit(SYNTAX_ERROR);
             break;
     }
 }
 
-void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken); // consume 'if'
 
@@ -853,7 +892,7 @@ void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
     threeACcode.whileUsed = whileUsedBackup;
 }
 
-void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     tToken nextToken = peek_token(file);
 
@@ -909,8 +948,10 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
 
                 if (!symtable_insert(global_symtable, setterKey, *varData))
                 {
+                    fprintf(stderr, "[PARSER] SemanticError: Variable redefinition for '%s'\n",
+                            varName);
+                    free(varName);
                     free(varData);
-                    printf("Variable redefinition error for %s\n", varName);
                     exit(REDEFINITION_FUN_ERROR);
                 }
             }
@@ -972,12 +1013,17 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     free(varName);
 }
 
-void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken);
 
     if ((*currentToken)->type != T_ID && (*currentToken)->type != T_GLOBAL_ID)
     {
+        fprintf(
+            stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token for variable declaration '%s'\n",
+            (*currentToken)->linePos, (*currentToken)->colPos, typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s' or '%s'\n", typeToString(T_ID),
+                typeToString(T_GLOBAL_ID));
         exit(SYNTAX_ERROR);
     }
 
@@ -1022,7 +1068,7 @@ void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack
     }
 }
 
-void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+static void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken);
 
@@ -1144,7 +1190,7 @@ void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *sta
                 threeACcode.tail = scanPtr->prev;
             }
 
-            // Insert after hoist_point
+            // Insert after hoistPoint
             if (hoistPoint)
             {
                 scanPtr->next = hoistPoint->next;
@@ -1214,7 +1260,10 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         if ((*currentToken)->type != T_RIGHT_PAREN)
         {
-            fprintf(stderr, "[SYNTAX] Error: expected ')'\n");
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos,
+                    typeToString((*currentToken)->type));
+            fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_RIGHT_PAREN));
             exit(SYNTAX_ERROR);
         }
     }
@@ -1264,7 +1313,11 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         if (symtable_find_function(global_symtable, key))
         {
-            fprintf(stderr, "[PARSER] Error: Wrong argument count for function %s\n", funcName);
+            fprintf(stderr,
+                    "[PARSER] SemanticError:%d:%d: Wrong argument count for function '%s'\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos, funcName);
+            free(funcName);
+            free(key);
             exit(WRONG_ARGUMENT_COUNT_ERROR);
         }
 
@@ -1290,7 +1343,10 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
         if (!symtable_insert(global_symtable, key, forwardDecl))
         {
-            fprintf(stderr, "[PARSER] Error inserting forward decl for '%s'\n", key);
+            fprintf(stderr,
+                    "[INTERNAL] Error: Unable to insert forward declaration for '%s' into symbol "
+                    "table\n",
+                    funcName);
             free(funcName);
             free(key);
             exit(INTERNAL_ERROR);
@@ -1298,7 +1354,7 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     }
     else if (funcData->kind != SYM_FUNC)
     {
-        fprintf(stderr, "[PARSER] Error: '%s' is not a function\n", funcName);
+        fprintf(stderr, "[PARSER] SemanticError: '%s' is not a function\n", funcName);
         free(funcName);
         free(key);
         exit(UNDEFINED_FUN_ERROR);
@@ -1328,9 +1384,14 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 {
     expect_and_consume(T_KW_IFJ, currentToken, file, false, NULL);
     expect_and_consume(T_DOT, currentToken, file, false, NULL);
+    skip_optional_eol(currentToken, file);
 
     if ((*currentToken)->type != T_ID)
     {
+        fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'\n",
+                (*currentToken)->linePos, (*currentToken)->colPos,
+                typeToString((*currentToken)->type));
+        fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_ID));
         exit(SYNTAX_ERROR);
     }
 
@@ -1365,7 +1426,10 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     {
         if ((*currentToken)->type != T_RIGHT_PAREN)
         {
-            fprintf(stderr, "[SYNTAX] Error: expected ')'\n");
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos,
+                    typeToString((*currentToken)->type));
+            fprintf(stderr, "\t Expected: '%s'\n", typeToString(T_RIGHT_PAREN));
             exit(SYNTAX_ERROR);
         }
     }
@@ -1373,7 +1437,8 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
     tSymbolData *funcData = symtable_find(global_symtable, fullName);
     if (funcData == NULL || funcData->kind != SYM_FUNC)
     {
-        fprintf(stderr, "[SEMANTIC] Error: undefined IFJ function '%s'\n", fullName);
+        fprintf(stderr, "[PARSER] SemanticError:%d:%d: Undefined built-in function '%s'\n",
+                (*currentToken)->linePos, (*currentToken)->colPos, fullName);
         free(fullName);
         exit(UNDEFINED_FUN_ERROR);
     }

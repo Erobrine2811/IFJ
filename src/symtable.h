@@ -110,7 +110,7 @@ bool symtable_insert(tSymTable *t, char *key, tSymbolData data);
 tSymbolData *symtable_find(tSymTable *t, const char *key);
 
 /**
- * Finds a function symbol in the symbol table.
+ * Finds a function in the symbol table.
  *
  * @param sym Pointer to the symbol table.
  * @param key The mangled name of the function to find.

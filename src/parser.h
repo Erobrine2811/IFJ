@@ -39,6 +39,8 @@ typedef struct
     tDataType params[3];
 } tBuiltinDef;
 
+// --- Functions ---
+
 /**
  * Main entry point for the parser. Parses the entire program from a file.
  *
@@ -48,158 +50,12 @@ typedef struct
 int parse_program(FILE *file);
 
 /**
- * Looks at the next token in the stream without consuming it.
+ * Skips an end-of-line token if it is the current token.
  *
- * @param file The input file stream.
- * @return The next token.
- */
-tToken peek_token(FILE *file);
-
-/**
- * Consumes the current token and fetches the next one from the stream.
- *
- * @param file The input file stream.
- * @param currentToken Pointer to the token to be updated with the next token.
- */
-void get_next_token(FILE *file, tToken *currentToken);
-
-/**
- * Parses the program prolog (e.g., 'import "ifj25" for Ifj').
- *
- * @param file The input file stream.
  * @param currentToken The current token from the scanner.
- */
-void parse_prolog(FILE *file, tToken *currentToken);
-
-/**
- * Parses the main class definition block.
- *
  * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
  */
-void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Inserts all built-in functions into the global symbol table.
- */
-void insert_builtin_functions();
-
-/**
- * Parses a list of function definitions within the class body.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses a single function declaration.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses a getter function (a function with no parameters).
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- * @param funcName The name of the function.
- */
-void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
-
-/**
- * Parses a setter function (a function with one parameter).
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- * @param funcName The name of the function.
- */
-void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
-
-/**
- * Parses a single statement.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Checks if a symbol table node (function) has been defined (has a body).
- *
- * @param node The symbol table node to check.
- */
-void check_node_defined(tSymNode *node);
-
-/**
- * Iterates through the symbol table to find any functions that were declared but not defined.
- */
-void check_undefined_functions();
-
-/**
- * Parses an if-else statement.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses a while loop statement.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses a list of parameters in a function declaration.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- * @param paramNames A pointer to an array of strings to store parameter names.
- * @return The number of parameters found.
- */
-int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
-                         char ***paramNames);
-/**
- * Parses a variable declaration statement.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses an assignment statement.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- */
-void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
-
-/**
- * Parses a block of statements enclosed in curly braces.
- *
- * @param file The input file stream.
- * @param currentToken The current token from the scanner.
- * @param stack The symbol table stack.
- * @param isFunctionBody True if the block is a function body, false otherwise.
- */
-void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody);
+void skip_optional_eol(tToken *currentToken, FILE *file);
 
 /**
  * Parses a function call.
@@ -223,6 +79,163 @@ void parse_function_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isStatement);
 
 /**
+ * Consumes the current token and fetches the next one from the stream.
+ *
+ * @param file The input file stream.
+ * @param currentToken Pointer to the token to be updated with the next token.
+ */
+void get_next_token(FILE *file, tToken *currentToken);
+
+/**
+ * Looks at the next token in the stream without consuming it.
+ *
+ * @param file The input file stream.
+ * @return The next token.
+ */
+tToken peek_token(FILE *file);
+
+// --- Internal (Static) Functions ---
+
+/**
+ * Parses the program prolog.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ */
+static void parse_prolog(FILE *file, tToken *currentToken);
+
+/**
+ * Parses the main class definition block.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Inserts all built-in functions into the global symbol table.
+ */
+static void insert_builtin_functions();
+
+/**
+ * Parses a list of function definitions within the class body.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses a single function declaration.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses a getter function.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ * @param funcName The name of the function.
+ */
+static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
+
+/**
+ * Parses a setter function.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ * @param funcName The name of the function.
+ */
+static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
+
+/**
+ * Parses a single statement.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Checks if a symbol table node (function) has been defined.
+ *
+ * @param node The symbol table node to check.
+ */
+static void check_node_defined(tSymNode *node);
+
+/**
+ * Iterates through the symbol table to find any functions that were declared but not defined.
+ */
+static void check_undefined_functions();
+
+/**
+ * Parses an if-else statement.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses a while loop statement.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses a list of parameters in a function declaration.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ * @param paramNames A pointer to an array of strings to store parameter names.
+ * @return The number of parameters found.
+ */
+static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                                char ***paramNames);
+/**
+ * Parses a variable declaration statement.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses an assignment statement.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ */
+static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+
+/**
+ * Parses a block of statements enclosed in curly braces.
+ *
+ * @param file The input file stream.
+ * @param currentToken The current token from the scanner.
+ * @param stack The symbol table stack.
+ * @param isFunctionBody True if the block is a function body, false otherwise.
+ */
+static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                        bool isFunctionBody);
+
+/**
  * Expects a token of a specific type and consumes it, otherwise exits with an error.
  *
  * @param type The expected token type.
@@ -231,22 +244,7 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
  * @param checkValue If true, also checks the token's string value.
  * @param value The expected string value if checkValue is true.
  */
-void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
-                        const char *value);
-/**
- * Skips an end-of-line token if it is the current token.
- *
- * @param currentToken The current token from the scanner.
- * @param file The input file stream.
- */
-void skip_optional_eol(tToken *currentToken, FILE *file);
-
-/**
- * Searches for a symbol by key through the entire symbol table stack.
- *
- * @param stack The symbol table stack to search in.
- * @param key The key of the symbol to find.
- * @return A pointer to the symbol's data if found, otherwise NULL.
- */
+static void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
+                               const char *value);
 
 #endif // IFJ_PARSER_H

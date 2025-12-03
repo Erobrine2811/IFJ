@@ -600,7 +600,7 @@ void scannerError(char currChar, tState state, unsigned int linePos, unsigned in
 int getToken(FILE *file, tToken *token)
 {
     if (file == NULL || token == NULL)
-        return INTERNAL_ERROR;
+        exit(INTERNAL_ERROR);
 
     *token = safeMalloc(sizeof(struct Token));
     (*token)->data = NULL;

@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     list_init(&threeACcode);
     int result = parse_program(file);
 
-    // Only close the file if it was opened by fopen (i.e., not stdin)
+    // Only close the file if it was opened by fopen
     if (argc == 2)
     {
         fclose(file);

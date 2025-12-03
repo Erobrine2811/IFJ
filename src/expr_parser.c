@@ -10,6 +10,7 @@
 
 #include "3AC_patterns.h"
 #include "expr_parser.h"
+#include "parser.h"
 
 // clang-format off
 static tPrec precedence_table[12][12] = {
@@ -293,7 +294,10 @@ static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStac
 
                 if (!symtable_insert(global_symtable, getterKey, *data))
                 {
-                    fprintf(stderr, "[PARSER] Error inserting forward decl for '%s'\n", getterKey);
+                    fprintf(stderr,
+                            "[INTERNAL] Error: Failed inserting forward decl for '%s' into symbol "
+                            "table\n",
+                            getterKey);
                     exit(INTERNAL_ERROR);
                 }
 
@@ -436,7 +440,7 @@ static void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal)
 {
     tExprStackNode *node = (tExprStackNode *)safeMalloc(sizeof(tExprStackNode));
     node->symbol = sym;
-    node->is_terminal = isTerminal;
+    node->isTerminal = isTerminal;
     node->next = stack->top;
     node->dataType = TYPE_UNDEF;
     node->value = NULL;
@@ -457,7 +461,7 @@ static tExprStackNode *expr_top_terminal(tExprStack *stack)
     tExprStackNode *curr = stack->top;
     while (curr != NULL)
     {
-        if (curr->is_terminal)
+        if (curr->isTerminal)
             return curr;
         curr = curr->next;
     }
@@ -466,7 +470,7 @@ static tExprStackNode *expr_top_terminal(tExprStack *stack)
 
 static void expr_pop_until_marker(tExprStack *stack)
 {
-    while (stack->top != NULL && !(stack->top->is_terminal && stack->top->symbol == E_DOLLAR))
+    while (stack->top != NULL && !(stack->top->isTerminal && stack->top->symbol == E_DOLLAR))
     {
         expr_pop(stack);
     }
@@ -498,10 +502,10 @@ static int reduce_expr(tExprStack *stack)
         return 0;
 
     // E -> i
-    if (n1->is_terminal && (n1->symbol == E_ID || n1->symbol == E_LITERAL || n1->symbol == E_FUNC))
+    if (n1->isTerminal && (n1->symbol == E_ID || n1->symbol == E_LITERAL || n1->symbol == E_FUNC))
     {
         tDataType type = n1->dataType;
-        n1->is_terminal = false;
+        n1->isTerminal = false;
         if (n1->value)
         {
             free(n1->value);
@@ -517,21 +521,22 @@ static int reduce_expr(tExprStack *stack)
     // E -> (E)
     if (n1 && n2 && n3)
     {
-        if (n1->is_terminal && n1->symbol == E_RPAREN && !n2->is_terminal && n3->is_terminal &&
+        if (n1->isTerminal && n1->symbol == E_RPAREN && !n2->isTerminal && n3->isTerminal &&
             n3->symbol == E_LPAREN)
         {
             tDataType type = n2->dataType;
+            tSymbol n2Sym = n2->symbol;
             expr_pop(stack);
             expr_pop(stack);
             expr_pop(stack);
-            expr_push(stack, n2->symbol, false);
+            expr_push(stack, n2Sym, false);
             stack->top->dataType = type;
             return 1;
         }
     }
 
     // E -> - E (unary minus)
-    if (n1 && n2 && n3 && !n1->is_terminal && n2->is_terminal && n3->is_terminal)
+    if (n1 && n2 && n3 && !n1->isTerminal && n2->isTerminal && n3->isTerminal)
     {
         if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0)
         {
@@ -539,11 +544,14 @@ static int reduce_expr(tExprStack *stack)
             {
                 if (n1->dataType != TYPE_NUM || n3->dataType != TYPE_NUM)
                 {
-                    fprintf(stderr,
-                            "[SEMANTIC] Error: Unary minus applied to non-numeric literal.\n");
+                    fprintf(
+                        stderr,
+                        "[PARSER] SemanticError: Unary minus applied to non-numeric literal.\n");
                     exit(TYPE_COMPATIBILITY_ERROR);
                 }
             }
+
+            tSymbol n3Sym = n3->symbol;
 
             expr_pop(stack);
             if (n2->value)
@@ -571,7 +579,7 @@ static int reduce_expr(tExprStack *stack)
             emit(OP_PUSHS, op1, NULL, NULL, &threeACcode);
             emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
 
-            expr_push(stack, n3->symbol, false);
+            expr_push(stack, n3Sym, false);
             stack->top->dataType = TYPE_NUM;
             return 1;
         }
@@ -580,8 +588,8 @@ static int reduce_expr(tExprStack *stack)
     // E -> E is TYPE
     if (n1 && n2 && n3)
     {
-        if (n1->is_terminal && n1->symbol == E_TYPE && n2->is_terminal && n2->symbol == E_IS &&
-            !n3->is_terminal)
+        if (n1->isTerminal && n1->symbol == E_TYPE && n2->isTerminal && n2->symbol == E_IS &&
+            !n3->isTerminal)
         {
 
             char *typeStr = n1->value;
@@ -650,12 +658,13 @@ static int reduce_expr(tExprStack *stack)
     // E -> E op E
     if (n1 && n2 && n3)
     {
-        if (!n1->is_terminal && n2->is_terminal && !n3->is_terminal)
+        if (!n1->isTerminal && n2->isTerminal && !n3->isTerminal)
         {
             tDataType resultType = TYPE_UNDEF;
 
             // Static semantic analysis of literal types
-            if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
+            if ((n1->symbol == E_LITERAL || n1->symbol == E_FUNC) &&
+                (n3->symbol == E_LITERAL || n3->symbol == E_FUNC))
             {
                 resultType =
                     semantic_check_literal_operation(n2->value, n1->dataType, n3->dataType);
@@ -683,13 +692,16 @@ static int reduce_expr(tExprStack *stack)
                     generate_relational_op(&threeACcode, n2->value);
                 }
 
+                tSymbol n1Sym = n1->symbol;
+                tSymbol n3Sym = n3->symbol;
+
                 expr_pop(stack);
                 if (n2->value)
                     free(n2->value);
                 expr_pop(stack);
                 expr_pop(stack);
 
-                if (n1->symbol == E_ID || n3->symbol == E_ID)
+                if (n1Sym == E_ID || n3Sym == E_ID)
                 {
                     expr_push(stack, E_ID, false);
                 }
@@ -714,12 +726,15 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
     tToken lookahead = *currentToken;
     int done = 0;
+    bool skipped = false;
 
     while (!done)
     {
         tExprStackNode *topTerminal = expr_top_terminal(&exprStack);
         if (topTerminal == NULL)
         {
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected end of expression.\n",
+                    lookahead->linePos, lookahead->colPos);
             exit(SYNTAX_ERROR);
         }
 
@@ -830,6 +845,10 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
                     exprStack.top->value = safeMalloc(3);
                     strcpy(exprStack.top->value, ">=");
                 }
+
+                get_next_token(file, &lookahead);
+                skip_optional_eol(&lookahead, file);
+                continue;
             }
 
             if (lookahead->type == T_EOF)
@@ -843,14 +862,16 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
         {
             if (!reduce_expr(&exprStack))
             {
-                printf("Reduction failed\n");
+                fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Reduction failed\n",
+                        lookahead->linePos, lookahead->colPos);
                 exit(SYNTAX_ERROR);
             }
         }
         else
         {
-            printf("Unexpected token: %d\n", typeToString(lookahead->type));
-            printf("Unexpected token: %d:%d\n", lookahead->linePos, lookahead->colPos);
+            fprintf(stderr, "[PARSER] SyntaxError:%d:%d: Unexpected token '%s'.\n",
+                    (*currentToken)->linePos, (*currentToken)->colPos,
+                    typeToString((*currentToken)->type));
             exit(SYNTAX_ERROR);
         }
 
@@ -859,7 +880,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
         if (n1 && n2)
         {
-            if (!n1->is_terminal && n2->is_terminal && n2->symbol == E_DOLLAR)
+            if (!n1->isTerminal && n2->isTerminal && n2->symbol == E_DOLLAR)
             {
                 if (is_token_expr_end(&lookahead))
                 {
@@ -871,7 +892,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
     tDataType resultType = TYPE_UNDEF;
 
-    if (exprStack.top && !exprStack.top->is_terminal)
+    if (exprStack.top && !exprStack.top->isTerminal)
     {
         resultType = exprStack.top->dataType;
         if (threeACcode.returnUsed == true)

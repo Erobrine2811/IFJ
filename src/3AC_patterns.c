@@ -32,60 +32,6 @@ void generate_program_entrypoint(tThreeACList *list)
     emit(NO_OP, NULL, NULL, NULL, list);
 }
 
-void generate_eof(tThreeACList *list)
-{
-    // This can be used for any cleanup or finalization code.
-    // For now, it will also handle built-in function implementations.
-}
-
-void generate_while(FILE *file, tToken *currentToken, tSymTableStack *stack)
-{
-    get_next_token(file, currentToken);
-    expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
-    skip_optional_eol(currentToken, file);
-
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-    emit_comment("While loop start", &threeACcode);
-
-    char *loopStartLabelStr = threeAC_create_label(&threeACcode);
-    char *loopEndLabelStr = threeAC_create_label(&threeACcode);
-    tOperand *loopStartLabel = create_operand_from_label(loopStartLabelStr);
-    tOperand *loopEndLabel = create_operand_from_label(loopEndLabelStr);
-
-    emit(OP_LABEL, loopStartLabel, NULL, NULL, &threeACcode);
-    emit_comment("While condition", &threeACcode);
-
-    parse_expression(file, currentToken, stack);
-
-    tOperand *exprValWhile = create_operand_from_variable(threeAC_create_temp(&threeACcode), false);
-    emit(OP_DEFVAR, exprValWhile, NULL, NULL, &threeACcode);
-    emit(OP_POPS, exprValWhile, NULL, NULL, &threeACcode);
-    generate_truthiness_check(&threeACcode, exprValWhile);
-
-    emit(OP_PUSHS, create_operand_from_constant_bool(false), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFEQS, loopEndLabel, NULL, NULL, &threeACcode);
-
-    expect_and_consume(T_RIGHT_PAREN, currentToken, file, false, NULL);
-
-    emit_comment("While body", &threeACcode);
-    parse_block(file, currentToken, stack, false);
-
-    emit(OP_JUMP, loopStartLabel, NULL, NULL, &threeACcode);
-    emit(OP_LABEL, loopEndLabel, NULL, NULL, &threeACcode);
-
-    free(loopStartLabelStr);
-    free(loopEndLabelStr);
-    emit_comment("While loop end", &threeACcode);
-    emit(NO_OP, NULL, NULL, NULL, &threeACcode);
-}
-
-void generate_function_call(tSymTable *g_symtable, tSymTableStack *stack, tToken *func_token,
-                            FILE *file, tToken *currentToken)
-{
-    // This is a simplified version. The full logic from parse_function_call needs to be adapted.
-    // For now, this is a placeholder.
-}
-
 void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isOneLine)
 {
     if (!isOneLine)
