@@ -205,29 +205,33 @@ tDataType generate_ifj_ord()
     emit(OP_DEFVAR, typeI, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeI, iArg, NULL, &threeACcode);
 
-    tOperand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelParamTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelRuntimeTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
     tOperand *labelContinueOrd = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, sArg, NULL, NULL, &threeACcode);
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
 
     emit(OP_PUSHS, typeI, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, &threeACcode);
     emit(OP_JUMPIFEQS, labelContinueOrd, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, typeI, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, iArg, NULL, NULL, &threeACcode);
     emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelRuntimeTypeError, NULL, NULL, &threeACcode);
     emit(OP_FLOAT2INT, iArg, iArg, NULL, &threeACcode);
     emit(OP_JUMP, labelContinueOrd, NULL, NULL, &threeACcode);
 
-    emit(OP_LABEL, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_LABEL, labelParamTypeError, NULL, NULL, &threeACcode);
     emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_PARAM_TYPE_ERROR), NULL, NULL,
+         &threeACcode);
+    emit(OP_LABEL, labelRuntimeTypeError, NULL, NULL, &threeACcode);
+    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL,
          &threeACcode);
 
     emit(OP_JUMP, labelContinueOrd, NULL, NULL, &threeACcode);
@@ -442,6 +446,7 @@ tDataType generate_ifj_substring()
     emit(OP_TYPES, NULL, NULL, NULL, &threeACcode);
 
     tOperand *labelParamTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelRuntimeTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
     tOperand *labelContinueSubstring =
         create_operand_from_label(threeAC_create_label(&threeACcode));
     tOperand *labelCheckJEnd = create_operand_from_label(threeAC_create_label(&threeACcode));
@@ -457,7 +462,7 @@ tDataType generate_ifj_substring()
     emit(OP_PUSHS, jArg, NULL, NULL, &threeACcode);
     emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelRuntimeTypeError, NULL, NULL, &threeACcode);
     emit(OP_FLOAT2INT, jArg, jArg, NULL, &threeACcode);
     emit(OP_LABEL, labelCheckJEnd, NULL, NULL, &threeACcode);
 
@@ -468,7 +473,7 @@ tDataType generate_ifj_substring()
     emit(OP_PUSHS, iArg, NULL, NULL, &threeACcode);
     emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelRuntimeTypeError, NULL, NULL, &threeACcode);
     emit(OP_FLOAT2INT, iArg, iArg, NULL, &threeACcode);
     emit(OP_LABEL, labelCheckIEnd, NULL, NULL, &threeACcode);
 
@@ -476,6 +481,10 @@ tDataType generate_ifj_substring()
 
     emit(OP_LABEL, labelParamTypeError, NULL, NULL, &threeACcode);
     emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_PARAM_TYPE_ERROR), NULL, NULL,
+         &threeACcode);
+
+    emit(OP_LABEL, labelRuntimeTypeError, NULL, NULL, &threeACcode);
+    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL,
          &threeACcode);
 
     emit(OP_LABEL, labelContinueSubstring, NULL, NULL, &threeACcode);
@@ -579,7 +588,8 @@ tDataType generate_ifj_chr()
     emit(OP_DEFVAR, typeI, NULL, NULL, &threeACcode);
     emit(OP_TYPE, typeI, iArg, NULL, &threeACcode);
 
-    tOperand *labelTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelParamTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
+    tOperand *labelRuntimeTypeError = create_operand_from_label(threeAC_create_label(&threeACcode));
     tOperand *labelContinueChr = create_operand_from_label(threeAC_create_label(&threeACcode));
 
     emit(OP_PUSHS, typeI, NULL, NULL, &threeACcode);
@@ -587,16 +597,19 @@ tDataType generate_ifj_chr()
     emit(OP_JUMPIFEQS, labelContinueChr, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, typeI, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelParamTypeError, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, iArg, NULL, NULL, &threeACcode);
     emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
-    emit(OP_JUMPIFNEQS, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, labelRuntimeTypeError, NULL, NULL, &threeACcode);
     emit(OP_FLOAT2INT, iArg, iArg, NULL, &threeACcode);
     emit(OP_JUMP, labelContinueChr, NULL, NULL, &threeACcode);
 
-    emit(OP_LABEL, labelTypeError, NULL, NULL, &threeACcode);
+    emit(OP_LABEL, labelParamTypeError, NULL, NULL, &threeACcode);
     emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_PARAM_TYPE_ERROR), NULL, NULL,
+         &threeACcode);
+    emit(OP_LABEL, labelRuntimeTypeError, NULL, NULL, &threeACcode);
+    emit(OP_EXIT, create_operand_from_constant_int(RUNTIME_TYPE_COMPATIBILITY_ERROR), NULL, NULL,
          &threeACcode);
 
     emit(OP_LABEL, labelContinueChr, NULL, NULL, &threeACcode);
@@ -767,19 +780,7 @@ void generate_mult_op()
     emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
     emit(OP_ORS, NULL, NULL, NULL, &threeACcode);
     emit(OP_ANDS, NULL, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, type2, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, create_operand_from_constant_string("string"), NULL, NULL, &threeACcode);
-    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, create_operand_from_constant_string("int"), NULL, NULL, &threeACcode);
-    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, type1, NULL, NULL, &threeACcode);
-    emit(OP_PUSHS, create_operand_from_constant_string("float"), NULL, NULL, &threeACcode);
-    emit(OP_EQS, NULL, NULL, NULL, &threeACcode);
-    emit(OP_ORS, NULL, NULL, NULL, &threeACcode);
-    emit(OP_ANDS, NULL, NULL, NULL, &threeACcode);
 
-    emit(OP_ORS, NULL, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
 
     emit(OP_JUMPIFNEQS, numMultLabelCheck, NULL, NULL, &threeACcode);
@@ -810,6 +811,10 @@ void generate_mult_op()
 
     emit(OP_JUMPIFNEQS, op2IsIntLabel, NULL, NULL, &threeACcode);
 
+    emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
+    emit(OP_ISINTS, NULL, NULL, NULL, &threeACcode);
+    emit(OP_PUSHS, create_operand_from_constant_bool(true), NULL, NULL, &threeACcode);
+    emit(OP_JUMPIFNEQS, typeErrorLabel, NULL, NULL, &threeACcode);
     emit(OP_PUSHS, op2, NULL, NULL, &threeACcode);
     emit(OP_FLOAT2INTS, NULL, NULL, NULL, &threeACcode);
     emit(OP_POPS, op2, NULL, NULL, &threeACcode);

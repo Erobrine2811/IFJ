@@ -1000,11 +1000,11 @@ void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack
     nextToken = peek_token(file);
     tDataType exprType;
 
-    exprType = parse_expression(file, currentToken, stack);
+    parse_expression(file, currentToken, stack);
 
     if (varData)
     {
-        varData->dataType = exprType;
+        varData->dataType = TYPE_UNDEF;
     }
 
     tOperand *popsVarOp = create_operand_from_variable(varData->unique_name, isGlobal);

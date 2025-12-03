@@ -343,7 +343,7 @@ tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack)
 {
     if (!token)
         return TYPE_UNDEF;
-
+    
     switch (token->type)
     {
         case T_INTEGER:
@@ -512,6 +512,7 @@ int reduce_expr(tExprStack *stack)
             n1->value = NULL;
         }
         n1->dataType = type;
+
         return 1;
     }
 
@@ -530,7 +531,15 @@ int reduce_expr(tExprStack *stack)
             expr_pop(stack);
             expr_pop(stack);
             expr_push(stack, n2Sym, false);
-            stack->top->dataType = type;
+
+            if (n2Sym == E_LITERAL || n2Sym == E_FUNC)
+            {
+                stack->top->dataType = type;
+            }
+            else
+            {
+                stack->top->dataType = TYPE_UNDEF;
+            }
             return 1;
         }
     }
@@ -540,9 +549,9 @@ int reduce_expr(tExprStack *stack)
     {
         if (n2->symbol == E_PLUS_MINUS && strcmp(n2->value, "-") == 0)
         {
-            if (n1->symbol == E_LITERAL && n3->symbol == E_LITERAL)
+            if (n3->symbol == E_LITERAL || n3->symbol == E_FUNC)
             {
-                if (n1->dataType != TYPE_NUM || n3->dataType != TYPE_NUM)
+                if (n3->dataType != TYPE_NUM)
                 {
                     fprintf(
                         stderr,
@@ -580,7 +589,15 @@ int reduce_expr(tExprStack *stack)
             emit(OP_SUBS, NULL, NULL, NULL, &threeACcode);
 
             expr_push(stack, n3Sym, false);
-            stack->top->dataType = TYPE_NUM;
+            
+            if (n3Sym == E_LITERAL || n3Sym == E_FUNC)
+            {
+                stack->top->dataType = TYPE_NUM;
+            }
+            else
+            {
+                stack->top->dataType = TYPE_UNDEF;
+            }
             return 1;
         }
     }
@@ -894,6 +911,7 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
     if (exprStack.top && !exprStack.top->isTerminal)
     {
         resultType = exprStack.top->dataType;
+
         if (threeACcode.returnUsed == true)
         {
             tOperand *retvalVar = create_operand_from_variable("%retval", false);
