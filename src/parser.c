@@ -1450,43 +1450,43 @@ tDataType parse_ifj_call(FILE *file, tToken *currentToken, tSymTableStack *stack
 
     if (strcmp(fullName, "Ifj.write") == 0)
     {
-        returnType = generate_ifj_write(stack);
+        returnType = generate_ifj_write();
     }
     else if (strcmp(fullName, "Ifj.read_str") == 0)
     {
-        returnType = generate_ifj_read_str(stack);
+        returnType = generate_ifj_read_str();
     }
     else if (strcmp(fullName, "Ifj.strcmp") == 0)
     {
-        returnType = generate_ifj_strcmp(stack);
+        returnType = generate_ifj_strcmp();
     }
     else if (strcmp(fullName, "Ifj.ord") == 0)
     {
-        returnType = generate_ifj_ord(stack);
+        returnType = generate_ifj_ord();
     }
     else if (strcmp(fullName, "Ifj.read_num") == 0)
     {
-        returnType = generate_ifj_read_num(stack);
+        returnType = generate_ifj_read_num();
     }
     else if (strcmp(fullName, "Ifj.floor") == 0)
     {
-        returnType = generate_ifj_floor(stack);
+        returnType = generate_ifj_floor();
     }
     else if (strcmp(fullName, "Ifj.str") == 0)
     {
-        returnType = generate_ifj_str(stack);
+        returnType = generate_ifj_str();
     }
     else if (strcmp(fullName, "Ifj.length") == 0)
     {
-        returnType = generate_ifj_length(stack);
+        returnType = generate_ifj_length();
     }
     else if (strcmp(fullName, "Ifj.substring") == 0)
     {
-        returnType = generate_ifj_substring(stack);
+        returnType = generate_ifj_substring();
     }
     else if (strcmp(fullName, "Ifj.chr") == 0)
     {
-        returnType = generate_ifj_chr(stack);
+        returnType = generate_ifj_chr();
     }
 
     free(fullName);
