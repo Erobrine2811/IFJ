@@ -10,16 +10,36 @@
 
 #include "symtable.h"
 
+/**
+ * Gets the height of a node.
+ *
+ * @param n The node.
+ * @return The height of the node, or 0 if the node is NULL.
+ */
 int height(tSymNode *n)
 {
     return n ? n->height : 0;
 }
 
+/**
+ * Returns the maximum of two integers.
+ *
+ * @param a The first integer.
+ * @param b The second integer.
+ * @return The larger of the two integers.
+ */
 int max(int a, int b)
 {
     return (a > b) ? a : b;
 }
 
+/**
+ * Creates a new symbol table node.
+ *
+ * @param key The key for the new node.
+ * @param data The data for the new node.
+ * @return A pointer to the newly created node.
+ */
 tSymNode *create_node(const char *key, tSymbolData data)
 {
     tSymNode *node = safeMalloc(sizeof(tSymNode));
@@ -31,6 +51,11 @@ tSymNode *create_node(const char *key, tSymbolData data)
     return node;
 }
 
+/**
+ * Frees a single symbol table node and its associated data.
+ *
+ * @param node The node to free.
+ */
 void free_node(tSymNode *node)
 {
     if (!node)
@@ -52,6 +77,12 @@ void free_node(tSymNode *node)
     free(node);
 }
 
+/**
+ * Performs a right rotation on a subtree rooted at y.
+ *
+ * @param y The root of the subtree to rotate.
+ * @return The new root of the rotated subtree.
+ */
 tSymNode *rotate_right(tSymNode *y)
 {
     tSymNode *x = y->left;
@@ -65,6 +96,12 @@ tSymNode *rotate_right(tSymNode *y)
     return x;
 }
 
+/**
+ * Performs a left rotation on a subtree rooted at x.
+ *
+ * @param x The root of the subtree to rotate.
+ * @return The new root of the rotated subtree.
+ */
 tSymNode *rotate_left(tSymNode *x)
 {
     tSymNode *y = x->right;
@@ -78,11 +115,26 @@ tSymNode *rotate_left(tSymNode *x)
     return y;
 }
 
+/**
+ * Calculates the balance factor of a node.
+ *
+ * @param n The node to check.
+ * @return The balance factor (height of left subtree - height of right subtree).
+ */
 int get_balance(tSymNode *n)
 {
     return n ? height(n->left) - height(n->right) : 0;
 }
 
+/**
+ * Recursively inserts a new node into the AVL tree and performs rebalancing.
+ *
+ * @param node The current node in the recursion.
+ * @param key The key to insert.
+ * @param data The data for the new symbol.
+ * @param inserted A pointer to a boolean that will be set to true on successful insertion.
+ * @return The new root of the (potentially modified) subtree.
+ */
 static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, bool *inserted)
 {
     if (node == NULL)
@@ -124,6 +176,13 @@ static tSymNode *insert_rec(tSymNode *node, const char *key, tSymbolData data, b
     return node;
 }
 
+/**
+ * Recursively finds a symbol in a subtree by its key.
+ *
+ * @param node The current node in the recursion.
+ * @param key The key of the symbol to find.
+ * @return A pointer to the symbol's data if found, otherwise NULL.
+ */
 tSymbolData *find_rec(tSymNode *node, const char *key)
 {
     if (!node)
@@ -167,6 +226,13 @@ bool compare_function_names(const char *s1, const char *s2)
     return strncmp(s1, s2, len1) == 0;
 }
 
+/**
+ * Recursively finds if a function with the same base name exists in the tree.
+ *
+ * @param node The current node in the recursion.
+ * @param key The key of the function to find (mangled name).
+ * @return True if a function with the same base name is found, false otherwise.
+ */
 bool find_function(tSymNode *node, const char *key)
 {
     if (!node)
@@ -178,6 +244,11 @@ bool find_function(tSymNode *node, const char *key)
     return (cmpFull < 0) ? find_function(node->left, key) : find_function(node->right, key);
 }
 
+/**
+ * Recursively frees all nodes in a subtree.
+ *
+ * @param node The root of the subtree to free.
+ */
 void free_rec(tSymNode *node)
 {
     if (!node)

@@ -161,7 +161,7 @@ int is_token_expr_end(tToken *token);
  * Performs a reduction on the expression stack based on grammar rules.
  *
  * @param stack The expression stack.
- * @return 0 on success, otherwise an error code.
+ * @return 1 on success, otherwise 0.
  */
 int reduce_expr(tExprStack *stack);
 
