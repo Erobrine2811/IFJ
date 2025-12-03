@@ -66,7 +66,7 @@ void get_next_token(FILE *file, tToken *currentToken)
     }
 }
 
-static void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
+void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
                                const char *value)
 {
     if ((*currentToken)->type != type)
@@ -98,7 +98,7 @@ void skip_optional_eol(tToken *currentToken, FILE *file)
         get_next_token(file, currentToken);
 }
 
-static void consume_eol(FILE *file, tToken *currentToken)
+void consume_eol(FILE *file, tToken *currentToken)
 {
     if ((*currentToken)->type != T_EOL)
     {
@@ -152,7 +152,7 @@ int parse_program(FILE *file)
     return 0;
 }
 
-static void parse_prolog(FILE *file, tToken *currentToken)
+void parse_prolog(FILE *file, tToken *currentToken)
 {
     skip_optional_eol(currentToken, file);
     expect_and_consume(T_KW_IMPORT, currentToken, file, false, NULL);
@@ -164,7 +164,7 @@ static void parse_prolog(FILE *file, tToken *currentToken)
     consume_eol(file, currentToken);
 }
 
-static void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_CLASS, currentToken, file, false, NULL);
     expect_and_consume(T_ID, currentToken, file, true, "Program");
@@ -184,7 +184,7 @@ static void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *st
     expect_and_consume(T_RIGHT_BRACE, currentToken, file, false, NULL);
 }
 
-static void insert_builtin_functions()
+void insert_builtin_functions()
 {
     for (int i = 0; i < 10; i++)
     {
@@ -220,7 +220,7 @@ static void insert_builtin_functions()
     }
 }
 
-static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     if ((*currentToken)->type != T_KW_STATIC)
     {
@@ -236,7 +236,7 @@ static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *st
     }
 }
 
-static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     expect_and_consume(T_KW_STATIC, currentToken, file, false, NULL);
 
@@ -420,7 +420,7 @@ static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTab
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
-static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
+void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
 {
     int keyLength = strlen("getter:") + strlen(funcName) + 3;
     char *key = safeMalloc(keyLength);
@@ -493,7 +493,7 @@ static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack
     free(key);
 }
 
-static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
+void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName)
 {
     get_next_token(file, currentToken);
     expect_and_consume(T_LEFT_PAREN, currentToken, file, false, NULL);
@@ -601,7 +601,7 @@ static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack
     emit(NO_OP, NULL, NULL, NULL, &threeACcode);
 }
 
-static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
+int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
                                 char ***paramNames)
 {
     int paramCount = 0;
@@ -670,7 +670,7 @@ static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack
     return paramCount;
 }
 
-static void check_node_defined(tSymNode *node)
+void check_node_defined(tSymNode *node)
 {
     if (node == NULL)
     {
@@ -688,7 +688,7 @@ static void check_node_defined(tSymNode *node)
     check_node_defined(node->right);
 }
 
-static void check_undefined_functions()
+void check_undefined_functions()
 {
     if (global_symtable != NULL)
     {
@@ -696,7 +696,7 @@ static void check_undefined_functions()
     }
 }
 
-static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
+void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
                         bool isFunctionBody)
 {
     tSymTable *blockSymtable;
@@ -760,7 +760,7 @@ static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
     }
 }
 
-static void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     switch ((*currentToken)->type)
     {
@@ -795,7 +795,7 @@ static void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *st
     }
 }
 
-static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken); // consume 'if'
 
@@ -892,7 +892,7 @@ static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack 
     threeACcode.whileUsed = whileUsedBackup;
 }
 
-static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     tToken nextToken = peek_token(file);
 
@@ -1013,7 +1013,7 @@ static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTab
     free(varName);
 }
 
-static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken);
 
@@ -1068,7 +1068,7 @@ static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTab
     }
 }
 
-static void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
+void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack)
 {
     get_next_token(file, currentToken);
 

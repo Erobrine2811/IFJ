@@ -30,7 +30,7 @@ static tPrec precedence_table[12][12] = {
 };
 // clang-format on
 
-static char *process_string_literal(const char *rawData)
+char *process_string_literal(const char *rawData)
 {
     int len = strlen(rawData);
 
@@ -215,7 +215,7 @@ static char *process_string_literal(const char *rawData)
 }
 
 // Helper to create an tOperand from a token
-static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStack)
+tOperand *create_operand_from_token(tToken token, tSymTableStack *symStack)
 {
     if (!token)
         return NULL;
@@ -339,7 +339,7 @@ static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStac
     return op;
 }
 
-static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack)
+tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack)
 {
     if (!token)
         return TYPE_UNDEF;
@@ -368,7 +368,7 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack
     }
 }
 
-static tSymbol get_precedence_type(tToken token, FILE *file)
+tSymbol get_precedence_type(tToken token, FILE *file)
 {
     if (!token)
         return E_DOLLAR;
@@ -436,7 +436,7 @@ static tSymbol get_precedence_type(tToken token, FILE *file)
     }
 }
 
-static void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal)
+void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal)
 {
     tExprStackNode *node = (tExprStackNode *)safeMalloc(sizeof(tExprStackNode));
     node->symbol = sym;
@@ -447,7 +447,7 @@ static void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal)
     stack->top = node;
 }
 
-static void expr_pop(tExprStack *stack)
+void expr_pop(tExprStack *stack)
 {
     if (stack->top == NULL)
         return;
@@ -456,7 +456,7 @@ static void expr_pop(tExprStack *stack)
     free(tmp);
 }
 
-static tExprStackNode *expr_top_terminal(tExprStack *stack)
+tExprStackNode *expr_top_terminal(tExprStack *stack)
 {
     tExprStackNode *curr = stack->top;
     while (curr != NULL)
@@ -468,7 +468,7 @@ static tExprStackNode *expr_top_terminal(tExprStack *stack)
     return NULL;
 }
 
-static void expr_pop_until_marker(tExprStack *stack)
+void expr_pop_until_marker(tExprStack *stack)
 {
     while (stack->top != NULL && !(stack->top->isTerminal && stack->top->symbol == E_DOLLAR))
     {
@@ -476,7 +476,7 @@ static void expr_pop_until_marker(tExprStack *stack)
     }
 }
 
-static int is_token_expr_end(tToken *token)
+int is_token_expr_end(tToken *token)
 {
     // Expression end tokens: ), ,, EOL, }, EOF
     if (token == NULL)
@@ -494,7 +494,7 @@ static int is_token_expr_end(tToken *token)
     }
 }
 
-static int reduce_expr(tExprStack *stack)
+int reduce_expr(tExprStack *stack)
 {
     tExprStackNode *n1 = stack->top;
 
@@ -676,20 +676,20 @@ static int reduce_expr(tExprStack *stack)
 
                 if (strcmp(n2->value, "+") == 0)
                 {
-                    generate_add_op(&threeACcode);
+                    generate_add_op();
                 }
                 else if (strcmp(n2->value, "*") == 0)
                 {
-                    generate_mult_op(&threeACcode);
+                    generate_mult_op();
                 }
                 else if (strcmp(n2->value, "-") == 0 || strcmp(n2->value, "/") == 0)
                 {
-                    generate_numeric_op(&threeACcode, n2->value);
+                    generate_numeric_op(n2->value);
                     resultType = TYPE_NUM;
                 }
                 else
                 {
-                    generate_relational_op(&threeACcode, n2->value);
+                    generate_relational_op(n2->value);
                 }
 
                 tSymbol n1Sym = n1->symbol;
@@ -726,7 +726,6 @@ tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *sta
 
     tToken lookahead = *currentToken;
     int done = 0;
-    bool skipped = false;
 
     while (!done)
     {

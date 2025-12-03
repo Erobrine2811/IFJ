@@ -4,29 +4,29 @@
 #include "3AC.h"
 #include "parser.h"
 
-void generate_program_entrypoint(tThreeACList *list);
+void generate_program_entrypoint();
 
 void generate_return(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isOneLine);
 
-tDataType generate_ifj_write(tSymTableStack *stack);
-tDataType generate_ifj_read_str(tSymTableStack *stack);
-tDataType generate_ifj_str(tSymTableStack *stack);
-tDataType generate_ifj_read_num(tSymTableStack *stack);
-tDataType generate_ifj_floor(tSymTableStack *stack);
-tDataType generate_ifj_length(tSymTableStack *stack);
-tDataType generate_ifj_substring(tSymTableStack *stack);
-tDataType generate_ifj_strcmp(tSymTableStack *stack);
-tDataType generate_ifj_ord(tSymTableStack *stack);
-tDataType generate_ifj_chr(tSymTableStack *stack);
+tDataType generate_ifj_write();
+tDataType generate_ifj_read_str();
+tDataType generate_ifj_str();
+tDataType generate_ifj_read_num();
+tDataType generate_ifj_floor();
+tDataType generate_ifj_length();
+tDataType generate_ifj_substring();
+tDataType generate_ifj_strcmp();
+tDataType generate_ifj_ord();
+tDataType generate_ifj_chr();
 
-void generate_truthiness_check(tThreeACList *list, tOperand *conditionResult);
+void generate_truthiness_check(tOperand *conditionResult);
 
-void generate_numeric_op(tThreeACList *list, char *op);
-void generate_mult_op(tThreeACList *list);
-void generate_add_op(tThreeACList *list);
+void generate_numeric_op(char *op);
+void generate_mult_op();
+void generate_add_op();
 
-void generate_relational_op(tThreeACList *list, char *op);
+void generate_relational_op(char *op);
 
-void generate_string_mult(tThreeACList *list);
+void generate_string_mult();
 
 #endif // IFJ_3AC_PATTERNS_H

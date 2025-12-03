@@ -39,8 +39,6 @@ typedef struct
     tDataType params[3];
 } tBuiltinDef;
 
-// --- Functions ---
-
 /**
  * Main entry point for the parser. Parses the entire program from a file.
  *
@@ -94,15 +92,13 @@ void get_next_token(FILE *file, tToken *currentToken);
  */
 tToken peek_token(FILE *file);
 
-// --- Internal (Static) Functions ---
-
 /**
  * Parses the program prolog.
  *
  * @param file The input file stream.
  * @param currentToken The current token from the scanner.
  */
-static void parse_prolog(FILE *file, tToken *currentToken);
+void parse_prolog(FILE *file, tToken *currentToken);
 
 /**
  * Parses the main class definition block.
@@ -111,12 +107,12 @@ static void parse_prolog(FILE *file, tToken *currentToken);
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_class_def(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Inserts all built-in functions into the global symbol table.
  */
-static void insert_builtin_functions();
+void insert_builtin_functions();
 
 /**
  * Parses a list of function definitions within the class body.
@@ -125,7 +121,7 @@ static void insert_builtin_functions();
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses a single function declaration.
@@ -134,7 +130,7 @@ static void parse_func_list(FILE *file, tToken *currentToken, tSymTableStack *st
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_function_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses a getter function.
@@ -144,7 +140,7 @@ static void parse_function_declaration(FILE *file, tToken *currentToken, tSymTab
  * @param stack The symbol table stack.
  * @param funcName The name of the function.
  */
-static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
+void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
 
 /**
  * Parses a setter function.
@@ -154,7 +150,7 @@ static void parse_getter(FILE *file, tToken *currentToken, tSymTableStack *stack
  * @param stack The symbol table stack.
  * @param funcName The name of the function.
  */
-static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
+void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack, char *funcName);
 
 /**
  * Parses a single statement.
@@ -163,19 +159,19 @@ static void parse_setter(FILE *file, tToken *currentToken, tSymTableStack *stack
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Checks if a symbol table node (function) has been defined.
  *
  * @param node The symbol table node to check.
  */
-static void check_node_defined(tSymNode *node);
+void check_node_defined(tSymNode *node);
 
 /**
  * Iterates through the symbol table to find any functions that were declared but not defined.
  */
-static void check_undefined_functions();
+void check_undefined_functions();
 
 /**
  * Parses an if-else statement.
@@ -184,7 +180,7 @@ static void check_undefined_functions();
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses a while loop statement.
@@ -193,7 +189,7 @@ static void parse_if_statement(FILE *file, tToken *currentToken, tSymTableStack 
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_while_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses a list of parameters in a function declaration.
@@ -204,8 +200,8 @@ static void parse_while_statement(FILE *file, tToken *currentToken, tSymTableSta
  * @param paramNames A pointer to an array of strings to store parameter names.
  * @return The number of parameters found.
  */
-static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
-                                char ***paramNames);
+int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack *stack,
+                         char ***paramNames);
 /**
  * Parses a variable declaration statement.
  *
@@ -213,7 +209,7 @@ static int parse_parameter_list(FILE *file, tToken *currentToken, tSymTableStack
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses an assignment statement.
@@ -222,7 +218,7 @@ static void parse_variable_declaration(FILE *file, tToken *currentToken, tSymTab
  * @param currentToken The current token from the scanner.
  * @param stack The symbol table stack.
  */
-static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
+void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
 /**
  * Parses a block of statements enclosed in curly braces.
@@ -232,8 +228,7 @@ static void parse_assignment_statement(FILE *file, tToken *currentToken, tSymTab
  * @param stack The symbol table stack.
  * @param isFunctionBody True if the block is a function body, false otherwise.
  */
-static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
-                        bool isFunctionBody);
+void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack, bool isFunctionBody);
 
 /**
  * Expects a token of a specific type and consumes it, otherwise exits with an error.
@@ -244,7 +239,7 @@ static void parse_block(FILE *file, tToken *currentToken, tSymTableStack *stack,
  * @param checkValue If true, also checks the token's string value.
  * @param value The expected string value if checkValue is true.
  */
-static void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
-                               const char *value);
+void expect_and_consume(tType type, tToken *currentToken, FILE *file, bool checkValue,
+                        const char *value);
 
 #endif // IFJ_PARSER_H

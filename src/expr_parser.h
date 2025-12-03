@@ -73,8 +73,6 @@ typedef struct
     tExprStackNode *top;
 } tExprStack;
 
-// --- Functions ---
-
 /**
  * Parses a single expression using precedence parsing rules.
  *
@@ -85,15 +83,13 @@ typedef struct
  */
 tDataType parse_expression(FILE *file, tToken *currentToken, tSymTableStack *stack);
 
-// --- Internal (Static) Functions ---
-
 /**
  * Processes a raw string literal, handling escape sequences.
  *
  * @param rawData The raw string data from the token.
  * @return A new dynamically allocated string with escape sequences processed.
  */
-static char *process_string_literal(const char *rawData);
+char *process_string_literal(const char *rawData);
 
 /**
  * Creates a 3-address code operand from a given token.
@@ -102,7 +98,7 @@ static char *process_string_literal(const char *rawData);
  * @param symStack The symbol table stack for context.
  * @return A pointer to a new tOperand structure.
  */
-static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStack);
+tOperand *create_operand_from_token(tToken token, tSymTableStack *symStack);
 
 /**
  * Determines the data type of a token by checking the symbol table.
@@ -111,7 +107,7 @@ static tOperand *create_operand_from_token(tToken token, tSymTableStack *symStac
  * @param symStack The symbol table stack for context.
  * @return The data type of the token.
  */
-static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack);
+tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack);
 
 /**
  * Maps a token to its corresponding symbol for the precedence table.
@@ -120,7 +116,7 @@ static tDataType get_data_type_from_token(tToken token, tSymTableStack *symStack
  * @param file The input file stream (for lookahead in case of function calls).
  * @return The corresponding tSymbol for the precedence table.
  */
-static tSymbol get_precedence_type(tToken token, FILE *file);
+tSymbol get_precedence_type(tToken token, FILE *file);
 
 /**
  * Pushes a new symbol onto the expression stack.
@@ -129,14 +125,14 @@ static tSymbol get_precedence_type(tToken token, FILE *file);
  * @param sym The symbol to push.
  * @param isTerminal True if the symbol is a terminal.
  */
-static void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal);
+void expr_push(tExprStack *stack, tSymbol sym, bool isTerminal);
 
 /**
  * Pops the top symbol from the expression stack.
  *
  * @param stack The expression stack.
  */
-static void expr_pop(tExprStack *stack);
+void expr_pop(tExprStack *stack);
 
 /**
  * Finds the first terminal symbol from the top of the expression stack.
@@ -144,14 +140,14 @@ static void expr_pop(tExprStack *stack);
  * @param stack The expression stack.
  * @return A pointer to the top-most terminal node on the stack.
  */
-static tExprStackNode *expr_top_terminal(tExprStack *stack);
+tExprStackNode *expr_top_terminal(tExprStack *stack);
 
 /**
  * Pops from the expression stack until a left parenthesis (marker) is found.
  *
  * @param stack The expression stack.
  */
-static void expr_pop_until_marker(tExprStack *stack);
+void expr_pop_until_marker(tExprStack *stack);
 
 /**
  * Checks if a token signifies the end of an expression.
@@ -159,7 +155,7 @@ static void expr_pop_until_marker(tExprStack *stack);
  * @param token The token to check.
  * @return 1 if it's the end of an expression, 0 otherwise.
  */
-static int is_token_expr_end(tToken *token);
+int is_token_expr_end(tToken *token);
 
 /**
  * Performs a reduction on the expression stack based on grammar rules.
@@ -167,6 +163,6 @@ static int is_token_expr_end(tToken *token);
  * @param stack The expression stack.
  * @return 0 on success, otherwise an error code.
  */
-static int reduce_expr(tExprStack *stack);
+int reduce_expr(tExprStack *stack);
 
 #endif // IFJ_EXPR_PARSER_H
