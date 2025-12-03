@@ -27,9 +27,8 @@ cp src/*.c "$SUBMISSION_DIR/"
 cp src/*.h "$SUBMISSION_DIR/"
 
 # Copy other required files
-echo "--- Copying Makefile, README, etc. into $SUBMISSION_DIR ---"
+echo "--- Copying Makefile into $SUBMISSION_DIR ---"
 cp Makefile "$SUBMISSION_DIR/"
-cp README.md "$SUBMISSION_DIR/"
 
 # Modify the Makefile inside the submission directory to remove "src/" paths
 # Using -i.bak for macOS compatibility
